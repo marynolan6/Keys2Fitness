@@ -22,6 +22,9 @@ export default function ClientLayout() {
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.fill" md="person" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="workout" hidden />
+      
     </NativeTabs>
   );
 }
