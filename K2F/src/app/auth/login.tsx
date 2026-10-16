@@ -11,7 +11,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.title}>Welcome</Text>
         <Text style={styles.subtitle}>Log in to continue</Text>
 
         <Text style={styles.label}>Email</Text>
