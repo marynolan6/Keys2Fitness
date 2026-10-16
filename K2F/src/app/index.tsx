@@ -1,5 +1,5 @@
-import { Button, Text, View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { Button, StyleSheet, Text, View } from "react-native";
 
 export default function Index() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function Index() {
       <View style={styles.button}>
         <Button
           title="Client Dashboard"
-          onPress={() => router.push("/client")}
+          onPress={() => router.push("/client/home")}
         />
       </View>
     </View>
