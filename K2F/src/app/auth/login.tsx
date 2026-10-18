@@ -1,3 +1,5 @@
+import { router } from "expo-router";
+
 import {
   SafeAreaView,
   StyleSheet,
@@ -31,7 +33,7 @@ export default function LoginScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.loginButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => { router.replace("/client/home"); }}>
           <Text style={styles.loginButtonText}>Log In</Text>
         </TouchableOpacity>
       </View>

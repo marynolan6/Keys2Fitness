@@ -44,7 +44,7 @@ export default function ClientHome() {
       <View style={styles.quickAccessSection}>
         <Text style={styles.sectionTitle}>Quick access</Text>
 
-        <Text style={styles.quickAccessGrid}>
+        <View style={styles.quickAccessGrid}>
           <QuickAccessCard
             label="Workout"
             description="Continue training"
@@ -65,7 +65,7 @@ export default function ClientHome() {
             description="Review your progress"
             onPress={() => router.push("/client/progress")}
           />
-        </Text>
+        </View>
       </View>
     </View>
   );
