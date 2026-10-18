@@ -14,7 +14,7 @@ type Exercise = {
 };
 
 // Just a static set of exercises for our initial layout of the workout screen
-const initialExercise: Exercise[] = [
+const initialExercises: Exercise[] = [
     {
         id: "bench-press",
         name: "Bench Press",
@@ -49,9 +49,13 @@ const initialExercise: Exercise[] = [
     },
 ];
 
+const workoutNotes =
+    "Focus on controlled movement and rest for 90 seconds between sets.";
+
 export default function WorkoutDetails() {
     const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
-    const [exercises, setExercises] = useState(initialExercise);
+    const [exercises, setExercises] = useState(initialExercises);
+    const [showNotes, setShowNotes] = useState(false);
 
     const completedCount = exercises.filter((exercise) => exercise.completed).length;
     const progress = Math.round((completedCount / exercises.length) * 100);
@@ -69,8 +73,29 @@ return (
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.brand}>KEYS2FITNESS</Text>
         <Text style={styles.screenNumber}>03</Text>
-        <Text style={styles.title}>Today's Workout</Text>
-        <Text style={styles.subtitle}>Upper Body Strength · Week 5, Day 3</Text>
+        <Text style={styles.title}>Today&apos;s Workout</Text>
+        <View style={styles.subtitleRow}>
+          <Text style={[styles.subtitle, styles.subtitleText]}>
+            Upper Body Strength · Week 5, Day 3
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showNotes }}
+            onPress={() => setShowNotes((visible) => !visible)}
+            style={styles.notesToggle}
+          >
+            <Text style={styles.notesToggleText}>
+              {showNotes ? "Hide notes" : "Notes"}
+            </Text>
+          </Pressable>
+        </View>
+
+        {showNotes && (
+          <View style={styles.notesCard}>
+            <Text style={styles.notesTitle}>Workout notes</Text>
+            <Text style={styles.notesText}>{workoutNotes}</Text>
+          </View>
+        )}
 
         <View style={styles.progressCard}>
           <View style={styles.rowBetween}>
@@ -167,8 +192,45 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.body,
     fontWeight: "700",
-    marginBottom: 22,
     marginTop: 8,
+  },
+  subtitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  subtitleText: {
+    flex: 1,
+    marginTop: 0,
+  },
+  notesToggle: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.button,
+    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  notesToggleText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  notesCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+  },
+  notesTitle: {
+    color: colors.text,
+    fontSize: typography.heading,
+    fontWeight: "700",
+  },
+  notesText: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    marginTop: spacing.sm,
   },
   progressCard: {
     backgroundColor: colors.surface,
