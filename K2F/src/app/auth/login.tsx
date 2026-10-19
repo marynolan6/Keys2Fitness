@@ -10,7 +10,8 @@ import {
 } from "react-native";
 
 import { colors } from "@/theme";
-import { LoginFields, validateLogin } from "@/validation/login";
+import type { LoginFields } from "@/validation/login";
+import { validateLogin } from "@/validation/login";
 
 export default function LoginScreen() {
   const [fields, setFields] = useState<LoginFields>({ email: "", password: "" });

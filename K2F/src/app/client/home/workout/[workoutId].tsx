@@ -1,5 +1,5 @@
 import { colors, radii, spacing, typography } from "@/theme";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -59,6 +59,8 @@ export default function WorkoutDetails() {
 
     const completedCount = exercises.filter((exercise) => exercise.completed).length;
     const progress = Math.round((completedCount / exercises.length) * 100);
+
+    const router = useRouter();
 
     function toggleExercise(id: string) {
         setExercises((current) =>
@@ -137,8 +139,28 @@ return (
                 <Text style={styles.secondaryButtonText}>− Remove Set</Text>
               </Pressable>
             </View>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() =>
+                router.push({
+                  pathname:
+                    "/client/home/workout/[workoutId]/exercise/[exerciseId]",
+                  params: {
+                    workoutId: String(workoutId),
+                    exerciseId: exercise.id,
+                    name: exercise.name,
+                    sets: String(exercise.sets),
+                    reps: String(exercise.reps),
+                    weight: exercise.weight,
+                  },
+                })
+              }
+            >
+              <Text style={styles.secondaryButtonText}>View Details</Text>
+            </Pressable>
           </View>
         ))}
+
 
         <View style={styles.buttonRow}>
           <Pressable style={styles.secondaryButton}>
