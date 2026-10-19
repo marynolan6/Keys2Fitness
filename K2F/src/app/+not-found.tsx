@@ -1,15 +1,27 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { Link, Stack } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, Stack } from 'expo-router';
+
+import { colors, radii, spacing, typography } from '@/theme';
 
 export default function NotFoundScreen() {
+  // Replace (rather than push) so the invalid route is removed from history
+  // and the user can't navigate "back" onto it.
+  const goHome = () => router.replace('/');
+
   return (
     <>
-      <Stack.Screen options={{ title: '404 Screen' }} />
+      <Stack.Screen options={{ title: 'Page Not Found' }} />
       <View style={styles.container}>
         <Text style={styles.title}>404</Text>
-        <Link href="/" style={styles.button}>
-          The page you requested was not found. Click here to go back to home screen.
-        </Link>
+        <Text style={styles.message}>The page you requested was not found.</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go to home screen"
+          onPress={goHome}
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        >
+          <Text style={styles.buttonText}>Go to Home</Text>
+        </Pressable>
       </View>
     </>
   );
@@ -18,19 +30,39 @@ export default function NotFoundScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#25292e',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.lg,
   },
 
   title: {
     fontSize: 96,
-    color: '#fff',
+    fontWeight: '700',
+    color: colors.surface,
+  },
+
+  message: {
+    fontSize: typography.body,
+    color: colors.surface,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
 
   button: {
-    fontSize: 20,
-    textDecorationLine: 'underline',
-    color: '#fff',
+    backgroundColor: colors.primaryDark,
+    borderRadius: radii.button,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+
+  buttonPressed: {
+    opacity: 0.8,
+  },
+
+  buttonText: {
+    color: colors.surface,
+    fontSize: typography.body,
+    fontWeight: '700',
   },
 });
