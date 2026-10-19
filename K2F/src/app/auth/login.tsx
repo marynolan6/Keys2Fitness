@@ -7,7 +7,10 @@ import {
   View,
 } from "react-native";
 
+import { useRouter } from "expo-router";
+
 export default function LoginScreen() {
+  const router = useRouter();
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -30,8 +33,13 @@ export default function LoginScreen() {
           placeholderTextColor="#999"
           secureTextEntry
         />
-
-        <TouchableOpacity style={styles.loginButton} onPress={() => {}}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => {
+  console.log("LOGIN BUTTON PRESSED");
+  router.push("/client/home");
+}} 
+        >
           <Text style={styles.loginButtonText}>Log In</Text>
         </TouchableOpacity>
       </View>
