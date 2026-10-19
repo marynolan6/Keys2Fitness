@@ -160,7 +160,7 @@ return (
             </Pressable>
           </View>
         ))}
-        
+
 
         <View style={styles.buttonRow}>
           <Pressable style={styles.secondaryButton}>
