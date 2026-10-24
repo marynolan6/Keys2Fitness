@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { CurrentGoalCard } from "@/components/CurrentGoalCard";
+import { mockCurrentGoal } from "@/goals/mockGoal";
 import { colors, radii, spacing, typography } from "@/theme";
 
 type QuickAccessCardProps = {
@@ -36,10 +38,18 @@ export default function ClientHome() {
   const router = useRouter();
 
   return (
-    <View style={styles.screen}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
       <Text style={styles.brand}>KEYS2FITNESS</Text>
       <Text style={styles.title}>Good morning, Spencer</Text>
       <Text style={styles.subtitle}>Let&apos;s build strength!</Text>
+
+      <View style={styles.goalSection}>
+        <CurrentGoalCard
+          goal={mockCurrentGoal}
+          onViewProgress={() => router.push("/client/progress")}
+          onMessageCoach={() => router.push("/client/messages")}
+        />
+      </View>
 
       <View style={styles.quickAccessSection}>
         <Text style={styles.sectionTitle}>Quick access</Text>
@@ -67,7 +77,7 @@ export default function ClientHome() {
           />
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -75,7 +85,12 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.background,
     flex: 1,
+  },
+  screenContent: {
     padding: spacing.lg,
+  },
+  goalSection: {
+    marginTop: spacing.lg,
   },
   brand: {
     color: colors.primaryDark,

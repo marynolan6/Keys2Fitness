@@ -9,6 +9,9 @@ export const colors = {
   border: "#DCE5E9",
   progressTrack: "#DCE9EE",
   success: "#5B9FD4",
+  // Completed-goal state; distinct from primary so "done" doesn't read as "in progress".
+  achieved: "#2F8A5B",
+  achievedMuted: "#E3F3EA",
   danger: "#B94A48",
 } as const;
 
