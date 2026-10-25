@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ThemedBackground } from "@/components/ThemedBackground";
+import { colors, radii, spacing, typography } from "@/theme";
 
 
 export default function ExerciseDetails() {
@@ -13,13 +15,15 @@ export default function ExerciseDetails() {
   }>();
 
   return (
-    <View style={styles.container}>
-      <Pressable onPress={() => router.back()}>
+    <ThemedBackground>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Pressable accessibilityRole="button" onPress={() => router.back()}>
         <Text style={styles.backButton}>← Back</Text>
       </Pressable>
 
       <Text style={styles.title}>{name ?? "Exercise Details"}</Text>
 
+      <View style={styles.card}>
       <Text style={styles.label}>Sets</Text>
       <Text style={styles.value}>{sets ?? "N/A"}</Text>
 
@@ -33,36 +37,49 @@ export default function ExerciseDetails() {
       <Text style={styles.instructions}>
         Follow the exercise instructions provided by your coach.
       </Text>
-    </View>
+      </View>
+    </ScrollView>
+    </ThemedBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 24,
-    gap: 14,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  card: {
+    padding: spacing.lg,
+    borderRadius: radii.card,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
   },
   backButton: {
-    color: "blue",
-    fontSize: 16,
-    marginBottom: 20,
+    color: colors.primaryDark,
+    fontSize: typography.body,
+    paddingVertical: spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 12,
+    color: colors.text,
+    fontSize: typography.heading,
+    fontWeight: "300",
+    marginBottom: spacing.sm,
   },
   label: {
-    fontSize: 16,
+    color: colors.text,
+    fontSize: typography.body,
     fontWeight: "bold",
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
   value: {
-    fontSize: 18,
+    color: colors.primaryDark,
+    fontSize: typography.heading,
   },
   instructions: {
-    fontSize: 16,
+    color: colors.textMuted,
+    fontSize: typography.body,
     lineHeight: 24,
   },
 });

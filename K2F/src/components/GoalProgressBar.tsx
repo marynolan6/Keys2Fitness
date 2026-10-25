@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { formatMeasurement } from "@/goals/goal";
-import { colors, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, spacing, typography } from "@/theme";
 
 const MARKER_SIZE = 16;
 
@@ -26,6 +26,8 @@ export function GoalProgressBar({
   unit,
   achieved = false,
 }: GoalProgressBarProps) {
+  const { width, fontScale } = useWindowDimensions();
+  const compact = isCompactLayout(width, fontScale);
   const current = formatMeasurement(currentValue, unit);
   const target = formatMeasurement(targetValue, unit);
 
@@ -60,7 +62,7 @@ export function GoalProgressBar({
         />
       </View>
 
-      <View style={styles.legend}>
+      <View style={[styles.legend, compact && styles.compactLegend]}>
         <Text style={styles.startText}>Start {formatMeasurement(startValue, unit)}</Text>
         <View style={styles.legendRight}>
           <View style={styles.legendItem}>
@@ -123,6 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: spacing.sm,
   },
+  compactLegend: { flexDirection: "column", gap: spacing.sm },
   legendRight: {
     alignItems: "flex-end",
     gap: spacing.xs,

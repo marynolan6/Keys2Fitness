@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { GoalProgressBar } from "@/components/GoalProgressBar";
 import { GoalAchievedBanner, GoalNoDataNotice } from "@/components/GoalStatusBanner";
@@ -10,7 +10,7 @@ import {
   formatShortGoalDate,
   getGoalProgress,
 } from "@/goals/goal";
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type CurrentGoalCardProps = {
   goal: FitnessGoal | null;
@@ -23,6 +23,8 @@ export function CurrentGoalCard({
   onViewProgress,
   onMessageCoach,
 }: CurrentGoalCardProps) {
+  const { width, fontScale } = useWindowDimensions();
+  const compact = isCompactLayout(width, fontScale);
   if (!goal) {
     return (
       <View style={styles.card}>
@@ -41,9 +43,13 @@ export function CurrentGoalCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, compact && styles.compactRow]}>
         <Text style={styles.cardTitle}>Your current goal</Text>
-        <Pressable accessibilityRole="link" onPress={onViewProgress} hitSlop={spacing.sm}>
+        <Pressable
+          accessibilityRole="link"
+          onPress={onViewProgress}
+          style={({ pressed }) => [styles.viewProgress, pressed && styles.emptyButtonPressed]}
+        >
           <Text style={styles.link}>View progress</Text>
         </Pressable>
       </View>
@@ -52,12 +58,12 @@ export function CurrentGoalCard({
 
       {progress.status === "no-data" ? (
         <>
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
+          <View style={[styles.statsRow, compact && styles.compactRow]}>
+            <View style={[styles.stat, compact && styles.compactStat]}>
               <Text style={styles.statValue}>{formatMeasurement(goal.startValue, goal.unit)}</Text>
               <Text style={styles.statLabel}>Starting point</Text>
             </View>
-            <View style={styles.stat}>
+            <View style={[styles.stat, compact && styles.compactStat]}>
               <Text style={[styles.statValue, styles.targetValue]}>
                 {formatMeasurement(goal.targetValue, goal.unit)}
               </Text>
@@ -78,8 +84,8 @@ export function CurrentGoalCard({
             />
           )}
 
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
+          <View style={[styles.statsRow, compact && styles.compactRow]}>
+            <View style={[styles.stat, compact && styles.compactStat]}>
               <Text style={styles.statValue}>
                 {formatMeasurement(progress.currentValue, goal.unit)}
               </Text>
@@ -87,7 +93,7 @@ export function CurrentGoalCard({
                 {goal.metricLabel} · {formatShortGoalDate(progress.asOf)}
               </Text>
             </View>
-            <View style={styles.stat}>
+            <View style={[styles.stat, compact && styles.compactStat]}>
               <Text style={[styles.statValue, achieved && styles.achievedValue]}>
                 {progress.percent}%
               </Text>
@@ -136,6 +142,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  compactRow: {
+    alignItems: "flex-start",
+    flexDirection: "column",
+    gap: spacing.sm,
+  },
   cardTitle: {
     color: colors.text,
     fontSize: typography.heading,
@@ -145,6 +156,11 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: typography.label,
     fontWeight: "600",
+  },
+  viewProgress: {
+    minHeight: layout.minTouchTarget,
+    minWidth: layout.minTouchTarget,
+    justifyContent: "center",
   },
   goalTitle: {
     color: colors.text,
@@ -158,7 +174,9 @@ const styles = StyleSheet.create({
   },
   stat: {
     flex: 1,
+    minWidth: 0,
   },
+  compactStat: { flex: 0, width: "100%" },
   statValue: {
     color: colors.text,
     fontSize: 30,
@@ -199,6 +217,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.button,
     marginTop: spacing.md,
     paddingVertical: spacing.sm + spacing.xs,
+    minHeight: layout.minTouchTarget,
+    justifyContent: "center",
   },
   emptyButtonPressed: {
     opacity: 0.8,

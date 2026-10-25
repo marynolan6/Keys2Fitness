@@ -23,6 +23,14 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+## Theme & Design
+
+- **Required for every new or modified screen/component:** use tokens from `src/theme.ts` (`@/theme`) for color, gradient, spacing, radii, typography, touch targets, and layout breakpoints. Do not hardcode colors or duplicate theme values in UI styles. Add genuinely reusable tokens to the shared theme; review impact on all consumers when changing existing tokens.
+- Follow the visual hierarchy and blue/white palette in `design-references/`. Use `ThemedBackground` for gradient screens and the shared surface, primary, muted, and border tokens for their content; do not introduce an alternate palette or one-off gradient.
+- Responsive behavior is required: use `useWindowDimensions()` and `isCompactLayout(width, fontScale)` from the theme when deciding between columns and stacked controls. Cards must fit within the window; avoid fixed widths/heights and text nesting inside `Text` for layout. Allow text to wrap, use scrolling for long content, and ensure controls remain usable at 320 dp width and 1.5× font scale, as well as normal phone and tablet sizes.
+- Interactive elements must have accessible roles/labels, visible pressed states, and touch areas at least `layout.minTouchTarget` (48 dp) in both dimensions. Ensure text has readable contrast on the actual background at every gradient stop.
+- Before calling a UI story Done: run lint and typecheck; verify the screen on an Android emulator at 320 dp, ~390 dp, and tablet width plus 1.5× font scale; test empty/optional data and navigation/back; document what was actually tested. Mock data does not prove a client-specific assignment: a story requiring the *client's assigned workout* needs an authenticated assignment source or an explicitly agreed prototype-only scope.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
