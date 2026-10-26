@@ -7,13 +7,9 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
-<<<<<<< HEAD
-
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidget";
-=======
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
->>>>>>> origin/main
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type QuickAccessCardProps = {

@@ -6,13 +6,17 @@ import { colors, radii, spacing, typography } from "@/theme";
 
 export function RecentMessagesWidget() {
     const router = useRouter();
-    const visibleMessages = [...recentMessages]
+    const sortedMessages = [...recentMessages]
         .sort(
             (a, b) =>
                 new Date(b.createdAt).getTime() -
                 new Date(a.createdAt).getTime(),
         )
         .slice(0, 2);
+
+    const visibleMessages = sortedMessages.filter(
+        (message, index) => index < 2 || message.unread,
+    );
 
     return (
         <View style={styles.messagesSection}>
@@ -46,7 +50,7 @@ export function RecentMessagesWidget() {
                 </Pressable>
             ))}
 
-            {recentMessages.length > 2 && (
+            {visibleMessages.length < recentMessages.length && (
                 <Pressable
                     style={styles.viewMoreButton}
                     onPress={() => router.push("/client/messages")}
