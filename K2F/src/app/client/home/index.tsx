@@ -6,6 +6,7 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
+import { recentMessages } from "@/messages/mockMessages";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type QuickAccessCardProps = {
@@ -28,18 +29,7 @@ function QuickAccessCard({ label, description, onPress, compact }: QuickAccessCa
     </Pressable>
   );
 }
-const recentMessages = [ 
-  {
-    id: "1",
-    message: "Remember to upload your workout video after training.",
-    time: "Yesterday, 4:30 PM",
-  },
-  {
-    id: "2",
-    message: "Your progress is looking great. Keep it up!",
-    time: "Monday, 10:15 AM",
-  },
-];
+
 
 export default function ClientHome() {
   const router = useRouter();
@@ -50,6 +40,8 @@ export default function ClientHome() {
     pathname: "/client/home/workout/[workoutId]",
     params: { workoutId },
   });
+
+  const visibleMessages = recentMessages.slice(0, 2);
 
   return (
     <ThemedBackground>
@@ -74,13 +66,29 @@ export default function ClientHome() {
           <View style={styles.messagesSection}>
           <Text style={styles.sectionTitle}>Recent Messages</Text>
 
-          {recentMessages.map((item) => (
-            <View key={item.id} style={styles.messageCard}>
+          {visibleMessages.map((item) => (
+                      <View
+            key={item.id}
+            style={[styles.messageCard, item.unread && styles.unreadMessageCard]}
+          >
+            <View style={styles.messageHeader}>
               <Text style={styles.coachName}>Coach Keys</Text>
-              <Text style={styles.messageText}>{item.message}</Text>
-              <Text style={styles.messageTime}>{item.time}</Text>
+
+              {item.unread && <Text style={styles.unreadLabel}>NEW</Text>}
             </View>
-          ))}
+
+            <Text style={styles.messageText}>{item.message}</Text>
+            <Text style={styles.messageTime}>{item.time}</Text>
+          </View>
+                    ))}
+        {recentMessages.length > 2 && (
+          <Pressable
+            style={styles.viewMoreButton}
+            onPress={() => router.push("/client/messages")}
+          >
+            <Text style={styles.viewMoreText}>View more messages</Text>
+          </Pressable>
+        )}
          </View>
 
           <View style={styles.quickAccessSection}>
@@ -220,6 +228,33 @@ messageTime: {
   color: colors.textMuted,
   fontSize: typography.label,
   marginTop: spacing.sm,
+},
+messageHeader: {
+  alignItems: "center",
+  flexDirection: "row",
+  justifyContent: "space-between",
+},
+
+unreadMessageCard: {
+  borderColor: colors.primary,
+  borderWidth: 2,
+},
+
+unreadLabel: {
+  color: colors.primaryDark,
+  fontSize: typography.label,
+  fontWeight: "700",
+},
+viewMoreButton: {
+  alignItems: "center",
+  marginTop: spacing.xs,
+  padding: spacing.sm,
+},
+
+viewMoreText: {
+  color: colors.primaryDark,
+  fontSize: typography.body,
+  fontWeight: "700",
 },
 
 });
