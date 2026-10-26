@@ -6,7 +6,8 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
-import { recentMessages } from "@/messages/mockMessages";
+
+import { RecentMessagesWidget } from "@/components/RecentMessagesWidget";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type QuickAccessCardProps = {
@@ -41,7 +42,7 @@ export default function ClientHome() {
     params: { workoutId },
   });
 
-  const visibleMessages = recentMessages.slice(0, 2);
+
 
   return (
     <ThemedBackground>
@@ -63,44 +64,19 @@ export default function ClientHome() {
               onMessageCoach={() => router.push("/client/messages")}
             />
           </View>
-          <View style={styles.messagesSection}>
-          <Text style={styles.sectionTitle}>Recent Messages</Text>
 
-          {visibleMessages.map((item) => (
-                      <View
-            key={item.id}
-            style={[styles.messageCard, item.unread && styles.unreadMessageCard]}
-          >
-            <View style={styles.messageHeader}>
-              <Text style={styles.coachName}>Coach Keys</Text>
-
-              {item.unread && <Text style={styles.unreadLabel}>NEW</Text>}
-            </View>
-
-            <Text style={styles.messageText}>{item.message}</Text>
-            <Text style={styles.messageTime}>{item.time}</Text>
-          </View>
-                    ))}
-        {recentMessages.length > 2 && (
-          <Pressable
-            style={styles.viewMoreButton}
-            onPress={() => router.push("/client/messages")}
-          >
-            <Text style={styles.viewMoreText}>View more messages</Text>
-          </Pressable>
-        )}
-         </View>
+          <RecentMessagesWidget />
 
           <View style={styles.quickAccessSection}>
             <Text style={styles.sectionTitle}>Quick access</Text>
             <View style={styles.quickAccessGrid}>
               {assignedWorkout && (
-            <QuickAccessCard
-              label="Workout"
-              description="Continue training"
-              compact={compact}
-              onPress={() => openWorkout(assignedWorkout.id)}
-            />
+                <QuickAccessCard
+                  label="Workout"
+                  description="Continue training"
+                  compact={compact}
+                  onPress={() => openWorkout(assignedWorkout.id)}
+                />
               )}
               <QuickAccessCard
                 label="Messages"
@@ -201,60 +177,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     textAlign: "center",
   },
-  messagesSection: {
-  marginTop: spacing.lg,
-},
-
-messageCard: {
-  backgroundColor: colors.surface,
-  borderRadius: radii.card,
-  marginBottom: spacing.sm,
-  padding: spacing.md,
-},
-
-coachName: {
-  color: colors.primaryDark,
-  fontSize: typography.body,
-  fontWeight: "700",
-},
-
-messageText: {
-  color: colors.text,
-  fontSize: typography.body,
-  marginTop: spacing.xs,
-},
-
-messageTime: {
-  color: colors.textMuted,
-  fontSize: typography.label,
-  marginTop: spacing.sm,
-},
-messageHeader: {
-  alignItems: "center",
-  flexDirection: "row",
-  justifyContent: "space-between",
-},
-
-unreadMessageCard: {
-  borderColor: colors.primary,
-  borderWidth: 2,
-},
-
-unreadLabel: {
-  color: colors.primaryDark,
-  fontSize: typography.label,
-  fontWeight: "700",
-},
-viewMoreButton: {
-  alignItems: "center",
-  marginTop: spacing.xs,
-  padding: spacing.sm,
-},
-
-viewMoreText: {
-  color: colors.primaryDark,
-  fontSize: typography.body,
-  fontWeight: "700",
-},
 
 });
