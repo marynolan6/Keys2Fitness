@@ -16,6 +16,7 @@ export const colors = {
   achieved: "#2F8A5B",
   achievedMuted: "#E3F3EA",
   danger: "#B94A48",
+  dangerMuted: "#FBEAE8",
 } as const;
 
 export const gradients = {
