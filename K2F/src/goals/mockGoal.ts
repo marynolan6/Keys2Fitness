@@ -5,7 +5,7 @@ import type { FitnessGoal } from "./goal";
 // Placeholder until goals come from the backend. Set to `null` to preview the no-goal state.
 // Weight entries come from the client's check-ins so every screen shows the same numbers.
 export const mockCurrentGoal: FitnessGoal | null = {
-  title: "Build strength & reach 65 kg",
+  title: "Build strength & reach 143.3 lb",
   metricLabel: "Current weight",
   unit: "kg",
   startValue: 72.2,

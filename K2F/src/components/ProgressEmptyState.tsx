@@ -9,7 +9,7 @@ const TRACKED_ITEMS = [
 ];
 
 type ProgressEmptyStateProps = {
-  // Real profile details (e.g. "168 cm · 29 years old"), shown only when recorded.
+  // Real profile details (e.g. "5'6\" · 29 years old"), shown only when recorded.
   profileDetails?: string;
   onMessageCoach: () => void;
 };

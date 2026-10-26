@@ -1,15 +1,17 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { GoalNoDataNotice } from "@/components/GoalStatusBanner";
 import { formatShortGoalDate } from "@/goals/goal";
 import { buildStatItems, ClientStats, StatItem } from "@/profile/stats";
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, radii, spacing, typography } from "@/theme";
 
 type ProgressStatsSectionProps = {
   stats: ClientStats;
 };
 
 export function ProgressStatsSection({ stats }: ProgressStatsSectionProps) {
+  const { width, fontScale } = useWindowDimensions();
+  const compact = isCompactLayout(width, fontScale);
   const items = buildStatItems(stats, formatShortGoalDate);
   const nothingRecorded = items.every((item) => item.value === null);
 
@@ -33,7 +35,7 @@ export function ProgressStatsSection({ stats }: ProgressStatsSectionProps) {
       ) : (
         <View style={styles.grid}>
           {items.map((item) => (
-            <StatTile key={item.label} item={item} />
+            <StatTile key={item.label} item={item} compact={compact} />
           ))}
         </View>
       )}
@@ -41,13 +43,13 @@ export function ProgressStatsSection({ stats }: ProgressStatsSectionProps) {
   );
 }
 
-function StatTile({ item }: { item: StatItem }) {
+function StatTile({ item, compact }: { item: StatItem; compact: boolean }) {
   const missing = item.value === null;
   const sublabel = missing ? "Not recorded" : item.detail;
 
   return (
     <View
-      style={styles.tile}
+      style={[styles.tile, compact && styles.tileCompact]}
       accessible
       accessibilityLabel={`${item.label}: ${missing ? "not recorded" : item.value}${
         item.detail && !missing ? `, ${item.detail}` : ""
@@ -57,7 +59,7 @@ function StatTile({ item }: { item: StatItem }) {
       <Text style={[styles.value, missing && styles.valueMissing]} numberOfLines={1} adjustsFontSizeToFit>
         {missing ? "—" : item.value}
       </Text>
-      <Text style={styles.label} numberOfLines={1}>
+      <Text style={styles.label}>
         {item.label}
       </Text>
       {/* Always rendered so tiles in a row keep the same height. */}
@@ -100,6 +102,9 @@ const styles = StyleSheet.create({
   tile: {
     paddingRight: spacing.sm,
     width: "33.33%",
+  },
+  tileCompact: {
+    width: "50%",
   },
   value: {
     color: colors.text,

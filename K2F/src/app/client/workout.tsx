@@ -23,7 +23,7 @@ export default function WorkoutScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.brand}>KEYS2FITNESS</Text>
-      <Text style={styles.title}>Today's Workout</Text>
+      <Text style={styles.title}>Today&apos;s Workout</Text>
 
       <View style={styles.card}>
         <Text style={styles.workoutName}>{workout.name}</Text>
