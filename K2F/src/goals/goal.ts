@@ -82,7 +82,7 @@ export function getGoalProgress(goal: FitnessGoal): GoalProgress {
   };
 }
 
-// "4 kg down since September 1 · 3.2 kg to go"; different wording with no data or once the target is hit.
+// Measurement values are stored in backend units but displayed in imperial units.
 export function describeGoalProgress(goal: FitnessGoal, progress: GoalProgress): string {
   const verb = progress.direction === "decrease" ? "down" : "up";
   const since = formatGoalDate(goal.startDate);
@@ -99,15 +99,17 @@ export function describeGoalProgress(goal: FitnessGoal, progress: GoalProgress):
   return `${changeText} · ${formatMeasurement(progress.remaining, goal.unit)} to go`;
 }
 
-// 68.2 -> "68.2", 65 -> "65"
+// Convert stored metric values at the presentation boundary.
 export function formatMeasurement(value: number, unit: string): string {
+  if (unit === "kg") return `${Number((value * 2.20462).toFixed(1))} lb`;
+  if (unit === "cm") return `${Number((value / 2.54).toFixed(1))} in`;
   return `${Number(value.toFixed(1))} ${unit}`;
 }
 
-// -4 -> "−4 kg", 1.5 -> "+1.5 kg"
+// -4 -> "−8.8 lb", 1.5 -> "+3.3 lb"
 export function formatSignedMeasurement(value: number, unit: string): string {
   const rounded = Number(value.toFixed(1));
-  if (rounded === 0) return `0 ${unit}`;
+  if (rounded === 0) return formatMeasurement(0, unit);
   return `${rounded > 0 ? "+" : "−"}${formatMeasurement(Math.abs(rounded), unit)}`;
 }
 

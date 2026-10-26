@@ -12,7 +12,7 @@ const sampleCheckIns: CheckIn[] = [
     date: "2026-10-03",
     weightKg: 68.2,
     measurements: { waistCm: 76, hipsCm: 96, armCm: 31 },
-    note: "Bench press up to 50 kg. Coach asked for a form-check video.",
+    note: "Bench press up to 110 lb. Coach asked for a form-check video.",
   },
   {
     id: "c1",

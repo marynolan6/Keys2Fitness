@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { CurrentGoalCard } from "@/components/CurrentGoalCard";
@@ -6,6 +7,8 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
+import { defaultProfile } from "@/profile/profile";
+import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type QuickAccessCardProps = {
@@ -34,6 +37,19 @@ export default function ClientHome() {
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
   const assignedWorkout = mockAssignedWorkout;
+  const [firstName, setFirstName] = useState(defaultProfile.fullName.split(" ")[0]);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    loadProfile()
+      .then((saved) => {
+        if (active) setFirstName(saved.fullName.trim().split(/\s+/)[0]);
+      })
+      .catch(() => {
+        if (active) setFirstName(defaultProfile.fullName.split(" ")[0]);
+      });
+    return () => { active = false; };
+  }, []));
   const openWorkout = (workoutId: string) => router.push({
     pathname: "/client/home/workout/[workoutId]",
     params: { workoutId },
@@ -44,7 +60,7 @@ export default function ClientHome() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
         <View style={styles.content}>
           <Text style={styles.brand}>KEYS2FITNESS</Text>
-          <Text style={styles.title}>Good morning, Spencer</Text>
+          <Text style={styles.title}>Good morning, {firstName}</Text>
           <Text style={styles.subtitle}>Let&apos;s build strength!</Text>
 
           <View style={styles.goalSection}>

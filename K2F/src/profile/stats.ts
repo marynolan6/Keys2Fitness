@@ -1,4 +1,6 @@
 import type { GoalDate } from "@/goals/goal";
+import { formatMeasurement } from "@/goals/goal";
+import { centimetersToInches, formatHeightImperial } from "@/profile/profile";
 
 // Any value can be missing (`null`) until it's been recorded.
 export type ClientStats = {
@@ -18,7 +20,6 @@ export type StatItem = {
 };
 
 const formatCount = (value: number) => Math.round(value).toLocaleString("en-US");
-const formatDecimal = (value: number) => `${Number(value.toFixed(1))}`;
 
 export function buildStatItems(
   stats: ClientStats,
@@ -31,10 +32,10 @@ export function buildStatItems(
   return [
     {
       label: "Weight",
-      value: latestWeight ? `${formatDecimal(latestWeight.value)} ${latestWeight.unit}` : null,
+      value: latestWeight ? formatMeasurement(latestWeight.value, latestWeight.unit) : null,
       detail: latestWeight ? formatDate(latestWeight.date) : undefined,
     },
-    { label: "Height", value: orNull(stats.heightCm, (v) => `${formatCount(v)} cm`) },
+    { label: "Height", value: orNull(stats.heightCm, (v) => formatHeightImperial(centimetersToInches(v))) },
     { label: "Age", value: orNull(stats.age, formatCount) },
     { label: "Workouts", value: orNull(stats.workoutsCompleted, formatCount) },
     { label: "Daily steps", value: orNull(stats.dailySteps, formatCount) },
