@@ -28,6 +28,18 @@ function QuickAccessCard({ label, description, onPress, compact }: QuickAccessCa
     </Pressable>
   );
 }
+const recentMessages = [ 
+  {
+    id: "1",
+    message: "Remember to upload your workout video after training.",
+    time: "Yesterday, 4:30 PM",
+  },
+  {
+    id: "2",
+    message: "Your progress is looking great. Keep it up!",
+    time: "Monday, 10:15 AM",
+  },
+];
 
 export default function ClientHome() {
   const router = useRouter();
@@ -59,6 +71,17 @@ export default function ClientHome() {
               onMessageCoach={() => router.push("/client/messages")}
             />
           </View>
+          <View style={styles.messagesSection}>
+          <Text style={styles.sectionTitle}>Recent Messages</Text>
+
+          {recentMessages.map((item) => (
+            <View key={item.id} style={styles.messageCard}>
+              <Text style={styles.coachName}>Coach Keys</Text>
+              <Text style={styles.messageText}>{item.message}</Text>
+              <Text style={styles.messageTime}>{item.time}</Text>
+            </View>
+          ))}
+         </View>
 
           <View style={styles.quickAccessSection}>
             <Text style={styles.sectionTitle}>Quick access</Text>
@@ -170,5 +193,33 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     textAlign: "center",
   },
+  messagesSection: {
+  marginTop: spacing.lg,
+},
+
+messageCard: {
+  backgroundColor: colors.surface,
+  borderRadius: radii.card,
+  marginBottom: spacing.sm,
+  padding: spacing.md,
+},
+
+coachName: {
+  color: colors.primaryDark,
+  fontSize: typography.body,
+  fontWeight: "700",
+},
+
+messageText: {
+  color: colors.text,
+  fontSize: typography.body,
+  marginTop: spacing.xs,
+},
+
+messageTime: {
+  color: colors.textMuted,
+  fontSize: typography.label,
+  marginTop: spacing.sm,
+},
 
 });
