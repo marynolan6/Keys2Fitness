@@ -79,12 +79,6 @@ export default function ClientHome() {
                 />
               )}
               <QuickAccessCard
-                label="Messages"
-                description="Talk to your coach"
-                compact={compact}
-                onPress={() => router.push("/client/messages")}
-              />
-              <QuickAccessCard
                 label="Progress"
                 description="Review your progress"
                 compact={compact}
