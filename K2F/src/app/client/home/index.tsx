@@ -7,6 +7,7 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
+import { RecentMessagesWidget } from "@/components/RecentMessagesWidget";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
@@ -32,6 +33,7 @@ function QuickAccessCard({ label, description, onPress, compact }: QuickAccessCa
   );
 }
 
+
 export default function ClientHome() {
   const router = useRouter();
   const { width, fontScale } = useWindowDimensions();
@@ -55,6 +57,8 @@ export default function ClientHome() {
     params: { workoutId },
   });
 
+
+
   return (
     <ThemedBackground>
       <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
@@ -76,23 +80,19 @@ export default function ClientHome() {
             />
           </View>
 
+          <RecentMessagesWidget />
+
           <View style={styles.quickAccessSection}>
             <Text style={styles.sectionTitle}>Quick access</Text>
             <View style={styles.quickAccessGrid}>
               {assignedWorkout && (
-            <QuickAccessCard
-              label="Workout"
-              description="Continue training"
-              compact={compact}
-              onPress={() => openWorkout(assignedWorkout.id)}
-            />
+                <QuickAccessCard
+                  label="Workout"
+                  description="Continue training"
+                  compact={compact}
+                  onPress={() => openWorkout(assignedWorkout.id)}
+                />
               )}
-              <QuickAccessCard
-                label="Messages"
-                description="Talk to your coach"
-                compact={compact}
-                onPress={() => router.push("/client/messages")}
-              />
               <QuickAccessCard
                 label="Progress"
                 description="Review your progress"
