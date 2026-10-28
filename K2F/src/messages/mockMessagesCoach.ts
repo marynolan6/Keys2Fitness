@@ -1,18 +1,22 @@
 export const coachMessages = [
-  {
-  id: "1",
-  clientId: "1",
-  clientName: "Spencer",
-  message: "Can you check my workout?",
-  time: "9:30 AM",
-  unread: true,
-},
-{
-  id: "2",
-  clientId: "1",
-  clientName: "Spencer",
-  message: "I finished today's workout.",
-  time: "10:15 AM",
-  unread: true,
-},
+    {
+        id: "1",
+        clientId: "1",
+        clientName: "Spencer",
+        message: "Can you check my workout?",
+        time: "9:30 AM",
+        createdAt: "2026-10-28T09:30:00",
+        unread: true,
+        fromCoach: false,
+    },
+    {
+        id: "2",
+        clientId: "1",
+        clientName: "Spencer",
+        message: "I finished today's workout.",
+        time: "10:15 AM",
+        createdAt: "2026-10-28T10:15:00",
+        unread: true,
+        fromCoach: false,
+    },
 ];
