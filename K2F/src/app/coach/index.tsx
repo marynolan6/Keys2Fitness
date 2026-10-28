@@ -1,56 +1,72 @@
-// K2F-264: Coach can view recent client check-ins from the dashboard
-import { router } from "expo-router";
+
+import { useRouter } from "expo-router";
 import {
-  Text,
-  View,
+  ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
 } from "react-native";
 
-// Use the team's existing Keys2Fitness theme
+// Coach messages widget
+import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
+import { ThemedBackground } from "@/components/ThemedBackground";
+import { coachMessages } from "@/messages/mockMessagesCoach";
+
+// Shared Keys2Fitness theme
 import { colors, radii, spacing, typography } from "@/theme";
 
 // Coach Dashboard screen
 export default function CoachHome() {
+  const router = useRouter();
+
   return (
-    <View style={styles.container}>
+    // Keep the gradient background from main
+    <ThemedBackground>
+      <ScrollView contentContainerStyle={styles.container}>
 
-      {/* Dashboard heading */}
-      <Text style={styles.title}>Coach Dashboard</Text>
+        {/* Dashboard heading */}
+        <Text style={styles.title}>Coach Dashboard</Text>
 
-      {/* K2F-264: Button to view recent client check-ins */}
-      <TouchableOpacity
-        style={styles.checkInButton}
-        onPress={() => {
-          // Navigate to the recent check-ins list
-          router.push("/coach-checkins");
-        }}
-      >
-        <Text style={styles.checkInButtonText}>
-          View Recent Check-ins →
-        </Text>
-      </TouchableOpacity>
+        {/* Display recent coach messages */}
+        <NewCoachMessagesWidget
+          messages={coachMessages}
+          onPress={() => router.push("/coach/messages")}
+        />
 
-    </View>
+        {/* K2F-264: View recent client check-ins */}
+        <TouchableOpacity
+          style={styles.checkInButton}
+          onPress={() => {
+            // Open the recent client check-ins screen
+            router.push("/coach-checkins");
+          }}
+        >
+          <Text style={styles.checkInButtonText}>
+            View Recent Check-ins →
+          </Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </ThemedBackground>
   );
 }
 
 // Styles for the Coach Dashboard
 const styles = StyleSheet.create({
+  // Dashboard spacing
   container: {
-    flex: 1,
     padding: spacing.lg,
-    backgroundColor: colors.background,
+    gap: spacing.md,
   },
 
+  // Dashboard title from main
   title: {
     color: colors.text,
-    fontSize: typography.heading,
+    fontSize: typography.title,
     fontWeight: "700",
-    marginBottom: spacing.lg,
   },
 
-  // Light-blue button matching the Keys2Fitness theme
+  // K2F-264: Check-in navigation button
   checkInButton: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radii.button,
@@ -60,6 +76,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  // Text inside the check-in button
   checkInButtonText: {
     color: colors.primaryDark,
     fontSize: typography.body,
