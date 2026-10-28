@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { conversationMessages } from "@/messages/mockMessages";
-import { colors, spacing, typography } from "@/theme";
+import { conversationMessages } from "@/messages/mockMessagesClient";
+import { colors, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
 export default function Messages() {
   const router = useRouter();
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     alignSelf: "flex-start",
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: radii.button,
     marginBottom: spacing.md,
     maxWidth: "85%",
     padding: spacing.md,
@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
   clientBubble: {
     alignSelf: "flex-end",
     backgroundColor: colors.primary,
+    borderRadius: radii.button,
   },
 
   sender: {

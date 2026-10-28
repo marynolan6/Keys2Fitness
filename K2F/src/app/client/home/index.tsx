@@ -7,7 +7,7 @@ import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
 import { mockCurrentGoal } from "@/goals/mockGoal";
-import { RecentMessagesWidget } from "@/components/RecentMessagesWidget";
+import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
