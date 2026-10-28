@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { coachMessages } from "@/messages/mockMessagesCoach";
 import { colors, radii, spacing, typography } from "@/theme";
+import { ClientAvatar } from "@/components/ClientAvatar";
 
 export default function CoachMessages() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function CoachMessages() {
 
       <ScrollView contentContainerStyle={styles.container}>
         <Pressable onPress={() => router.replace("/coach")}>
-          <Text style={styles.backButton}>← Back to Dashboard</Text>
+          <Text style={styles.backButton}>← Back</Text>
         </Pressable>
         <Text style={styles.title}>Messages</Text>
 
@@ -50,9 +51,13 @@ export default function CoachMessages() {
               }
             >
               <View style={styles.header}>
-                <Text style={styles.clientName}>
-                  {firstMessage.clientName}
-                </Text>
+                <View style={styles.clientInfo}>
+                  <ClientAvatar name={firstMessage.clientName} />
+
+                  <Text style={styles.clientName}>
+                    {firstMessage.clientName}
+                  </Text>
+                </View>
 
                 <Text style={styles.time}>{latestMessage.time}</Text>
               </View>
@@ -120,5 +125,10 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: "700",
     marginBottom: spacing.lg,
+  },
+  clientInfo: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
   },
 });

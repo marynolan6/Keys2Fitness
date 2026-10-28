@@ -5,6 +5,8 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 import { coachMessages } from "@/messages/mockMessagesCoach";
 import { colors, radii, spacing, typography } from "@/theme";
 
+import { ClientAvatar } from "@/components/ClientAvatar";
+
 export default function CoachConversation() {
   const router = useRouter();
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
@@ -26,9 +28,15 @@ export default function CoachConversation() {
           <Text style={styles.backButton}>← Back to Messages</Text>
         </Pressable>
 
-        <Text style={styles.title}>
-          {orderedMessages[0]?.clientName ?? "Conversation"}
-        </Text>
+        <View style={styles.profileHeader}>
+          <ClientAvatar
+            name={orderedMessages[0]?.clientName ?? "Client"}
+          />
+
+          <Text style={styles.title}>
+            {orderedMessages[0]?.clientName ?? "Conversation"}
+          </Text>
+        </View>
 
         {orderedMessages.map((item, index) => {
           const previousMessage = orderedMessages[index - 1];
@@ -36,8 +44,8 @@ export default function CoachConversation() {
           const showTimestamp =
             !previousMessage ||
             new Date(item.createdAt).getTime() -
-              new Date(previousMessage.createdAt).getTime() >
-              oneHour;
+            new Date(previousMessage.createdAt).getTime() >
+            oneHour;
 
           const showNewMessages =
             item.unread && !previousMessage?.unread;
@@ -91,12 +99,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: spacing.lg,
   },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "700",
-    marginBottom: spacing.lg,
-  },
+
   timestamp: {
     color: colors.textMuted,
     fontSize: typography.label,
@@ -138,6 +141,18 @@ const styles = StyleSheet.create({
   newMessagesText: {
     color: colors.textMuted,
     fontSize: typography.label,
+    fontWeight: "700",
+  },
+  profileHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  title: {
+    color: colors.text,
+    flex: 1,
+    fontSize: typography.title,
     fontWeight: "700",
   },
 });
