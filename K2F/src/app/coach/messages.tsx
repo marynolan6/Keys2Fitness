@@ -24,7 +24,11 @@ export default function CoachMessages() {
 
   return (
     <ThemedBackground>
+
       <ScrollView contentContainerStyle={styles.container}>
+        <Pressable onPress={() => router.replace("/coach")}>
+          <Text style={styles.backButton}>← Back to Dashboard</Text>
+        </Pressable>
         <Text style={styles.title}>Messages</Text>
 
         {conversations.map((messages) => {
@@ -40,7 +44,7 @@ export default function CoachMessages() {
               style={styles.messageCard}
               onPress={() =>
                 router.push({
-                  pathname: "/coach-client/[clientId]",
+                  pathname: "/coach-client/[clientId]/conversation",
                   params: { clientId: firstMessage.clientId },
                 })
               }
@@ -110,5 +114,11 @@ const styles = StyleSheet.create({
     fontSize: typography.label,
     fontWeight: "700",
     marginTop: spacing.sm,
+  },
+  backButton: {
+    color: colors.primaryDark,
+    fontSize: typography.body,
+    fontWeight: "700",
+    marginBottom: spacing.lg,
   },
 });

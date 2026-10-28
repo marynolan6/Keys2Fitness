@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 
 import { colors, radii, spacing, typography } from "@/theme";
 
@@ -11,15 +11,17 @@ type CoachMessage = {
 
 type NewCoachMessagesWidgetProps = {
   messages: CoachMessage[];
+  onPress: () => void;
 };
 
 export function NewCoachMessagesWidget({
   messages,
+  onPress,
 }: NewCoachMessagesWidgetProps) {
   const unreadMessages = messages.filter((message) => message.unread);
 
   return (
-    <View style={styles.container}>
+    <Pressable onPress={onPress} style={styles.container}>
       <Text style={styles.title}>New Messages</Text>
 
       {unreadMessages.length === 0 ? (
@@ -30,7 +32,7 @@ export function NewCoachMessagesWidget({
           {unreadMessages.length !== 1 ? "s" : ""}
         </Text>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     marginTop: spacing.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   title: {
     color: colors.text,
