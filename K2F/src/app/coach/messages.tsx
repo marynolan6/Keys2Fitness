@@ -1,4 +1,9 @@
-import { Text, View, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
+import { conversationMessages } from "@/messages/mockMessagesClient";
+import { colors, spacing, typography } from "@/theme";
+import { ThemedBackground } from "@/components/ThemedBackground";
 
 export default function Messages() {
   return (

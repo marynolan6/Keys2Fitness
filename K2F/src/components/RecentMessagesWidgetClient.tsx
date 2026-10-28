@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { recentMessages } from "@/messages/mockMessages";
+import { recentMessages } from "@/messages/mockMessagesClient";
 import { colors, radii, spacing, typography } from "@/theme";
 
 export function RecentMessagesWidget() {
