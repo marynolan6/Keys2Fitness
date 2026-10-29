@@ -5,6 +5,9 @@ export type WorkoutExercise = {
   reps: number;
   weight: string;
   completed: boolean;
+  instructions?: string;
+  demonstrationAvailable?: boolean;
+  coachNotes?: string;
 };
 
 export type AssignedWorkout = {
