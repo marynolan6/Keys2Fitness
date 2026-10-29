@@ -16,8 +16,11 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 export default function ClientProgress() {
 
   // Read the client ID passed through the navigation route
-  // Example: /coach-client/1/progress means clientId is "1"
-  const { clientId } = useLocalSearchParams<{ clientId: string }>();
+    // Read the client ID and where the coach came from
+    const { clientId, from } = useLocalSearchParams<{
+    clientId: string;
+    from?: string;
+    }>();
 
   return (
     <ThemedBackground>
@@ -27,16 +30,28 @@ export default function ClientProgress() {
       contentContainerStyle={styles.content}
     >
 
-      {/* Back button returns to the individual client profile */}
+      {/* Back button returns to the individual client profile or the previous screen */}
       <TouchableOpacity
-        onPress={() =>
+        onPress={() => {
+        // Return to check-ins if the coach opened progress from a check-in
+        if (from === "checkins") {
+            router.replace("/coach-checkins");
+        } else {
+            // Otherwise return to the selected client's profile
             router.replace({
             pathname: "/coach-client/[clientId]",
             params: { clientId: String(clientId) },
-            })
+            });
         }
+        }}
         >
-      <Text style={styles.back}>← Back to Client Profile</Text>
+
+        <Text style={styles.back}>
+        {from === "checkins"
+            ? "← Back to Check-ins"
+            : "← Back to Client Profile"}
+        </Text>
+        
       </TouchableOpacity>
 
       {/* Main heading of the progress screen */}
