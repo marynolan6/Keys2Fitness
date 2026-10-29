@@ -17,6 +17,7 @@ export const colors = {
   achievedMuted: "#E3F3EA",
   danger: "#B94A48",
   dangerMuted: "#FBEAE8",
+  overlay: "rgba(23, 35, 45, 0.58)",
 } as const;
 
 export const gradients = {

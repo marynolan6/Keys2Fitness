@@ -1,5 +1,6 @@
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -36,14 +37,12 @@ export default function WorkoutDetails() {
 function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     const { width, fontScale } = useWindowDimensions();
     const compact = isCompactLayout(width, fontScale);
-    const workoutId = workout.id;
     const [exercises, setExercises] = useState(workout.exercises);
     const [showNotes, setShowNotes] = useState(false);
+    const [selectedExercise, setSelectedExercise] = useState<AssignedWorkout["exercises"][number] | null>(null);
 
     const completedCount = exercises.filter((exercise) => exercise.completed).length;
     const progress = exercises.length ? Math.round((completedCount / exercises.length) * 100) : 0;
-
-    const router = useRouter();
 
     function toggleExercise(id: string) {
         setExercises((current) =>
@@ -127,20 +126,7 @@ return (
               accessibilityRole="button"
               accessibilityLabel={`View ${exercise.name} details`}
               style={({ pressed }) => [styles.secondaryButton, styles.detailsButton, pressed && styles.buttonPressed]}
-              onPress={() =>
-                router.push({
-                  pathname:
-                    "/client/home/workout/[workoutId]/exercise/[exerciseId]",
-                  params: {
-                    workoutId: String(workoutId),
-                    exerciseId: exercise.id,
-                    name: exercise.name,
-                    sets: String(exercise.sets),
-                    reps: String(exercise.reps),
-                    weight: exercise.weight,
-                  },
-                })
-              }
+              onPress={() => setSelectedExercise(exercise)}
             >
               <Text style={styles.secondaryButtonText}>View Details</Text>
             </Pressable>
@@ -162,6 +148,10 @@ return (
         </Pressable>
 
       </ScrollView>
+      <ExerciseDetailsModal
+        exercise={selectedExercise}
+        onClose={() => setSelectedExercise(null)}
+      />
     </ThemedBackground>
   );
 }
