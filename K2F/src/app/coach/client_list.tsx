@@ -24,7 +24,7 @@ export default function Client_List() {
           // Shows a message in the terminal for testing
           console.log("Spencer clicked!");
 
-          // Opens Spencer's individual client profile
+          // Opens Spencer's individual client profile - made clickable
           router.push({
             pathname: "/coach-client/[clientId]",
             params: { clientId: "1" },

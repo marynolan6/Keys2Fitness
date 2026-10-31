@@ -17,7 +17,8 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 // K2F-238: Create an individual client profile screen for the coach
 export default function ClientProfile() {
 
-  // Get the selected client ID from the URL
+  // gets the selected client's ID from the URL.
+  // built the profile to show the client's name, fitness plan, goals, and recent progress.
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
 
   // K2F-239: Sample workout progress information

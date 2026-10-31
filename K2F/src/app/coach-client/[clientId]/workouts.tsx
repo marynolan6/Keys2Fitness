@@ -38,7 +38,7 @@ export default function ClientWorkouts() {
       <Text style={styles.back}>← Back to Client Profile</Text>
       </TouchableOpacity>
 
-      {/* Keys2Fitness branding matching the Client Profile */}
+      {/* Keys2Fitness matching the Client Profile */}
       <Text style={styles.brand}>KEYS2FITNESS</Text>
 
       {/* Title of the workout details screen */}

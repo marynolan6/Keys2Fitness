@@ -58,9 +58,12 @@ const recentCheckIns = [
 
 
 // K2F-262: Coach-facing recent check-in list
+// This list displays sample check-in records with the client's name, date, weight, workout completion, and notes.
 export default function RecentCheckIns() {
   return (
     <ThemedBackground>
+    
+      // displays the sample check-in data in a scrollable list
       <FlatList
         // Show the newest check-ins first
         data={recentCheckIns}
