@@ -9,6 +9,9 @@ import {
   View,
 } from "react-native";
 
+// animation of door
+import DoorOpeningIntro from "../../components/DoorOpeningIntro";
+
 import { colors } from "@/theme";
 import type { LoginFields } from "@/validation/login";
 import { validateLogin } from "@/validation/login";
@@ -41,6 +44,9 @@ export default function LoginScreen() {
     if (hasErrors) return;
     router.replace("/client/home");
   };
+
+  // Show the door opening animation on the first visit to the login screen
+  const [showIntro, setShowIntro] = useState(true);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -97,6 +103,14 @@ export default function LoginScreen() {
           <Text style={styles.loginButtonText}>Log In</Text>
         </TouchableOpacity>
       </View>
+
+      // Show the door opening animation on the first visit to the login screen
+      {showIntro && (
+        <DoorOpeningIntro
+          onComplete={() => setShowIntro(false)}
+        />
+      )}
+
     </SafeAreaView>
   );
 }

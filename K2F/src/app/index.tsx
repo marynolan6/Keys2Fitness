@@ -1,8 +1,14 @@
 import { Button, Text, View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 
+// for the door opening animation on the first visit to the login screen
+import { useState } from "react";
+import DoorOpeningIntro from "../components/DoorOpeningIntro";
+
 export default function Index() {
   const router = useRouter();
+  // Show the door opening animation on the first visit to the login screen
+  const [showIntro, setShowIntro] = useState(true);
 
   return (
     <View style={styles.container}>
@@ -21,6 +27,16 @@ export default function Index() {
           onPress={() => router.push("/client/home")}
         />
       </View>
+           
+      {/* Door opening animation */}
+      {showIntro && (
+        <View style={StyleSheet.absoluteFill}>
+          <DoorOpeningIntro
+            onComplete={() => setShowIntro(false)}
+          />
+        </View>
+      )}
+
     </View>
   );
 }
