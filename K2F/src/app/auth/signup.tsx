@@ -40,8 +40,8 @@ export default function SignupScreen() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -70,6 +70,7 @@ export default function SignupScreen() {
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+      router.push("/auth/login");
     } catch (signupError: unknown) {
       if (
         signupError &&
