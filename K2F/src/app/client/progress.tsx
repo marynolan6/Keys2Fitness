@@ -2,6 +2,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   limit,
   onSnapshot,
@@ -9,10 +10,12 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -70,6 +73,7 @@ export default function Progress() {
   const [weight, setWeight] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [startingWeight, setStartingWeight] = useState("");
@@ -176,19 +180,31 @@ const saveWeight = async () => {
 
   try {
     setSaving(true);
+      const existingEntry = entries.find((entry) => entry.id === editingEntryId);
+      const entryDate = existingEntry?.date ?? localDate();
 
-    await addDoc(
-      collection(db, "users", signedInUser.uid, "weightEntries"),
-      {
+    if (editingEntryId) {
+      await updateDoc(
+        doc(db, "users", signedInUser.uid, "weightEntries", editingEntryId),
+        {
+          weightLb,
+          unit: "lb",
+          date: entryDate,
+          updatedAt: serverTimestamp(),
+        },
+      );
+    } else {
+      await addDoc(collection(db, "users", signedInUser.uid, "weightEntries"), {
         weightLb,
         unit: "lb",
         date: localDate(),
         recordedAt: serverTimestamp(),
-      },
-    );
+      });
+    }
 
     setWeight("");
     setFormError("");
+    setEditingEntryId(null);
     setAdding(false);
   } catch {
     setFormError("Unable to save your measurement. Please try again.");
@@ -196,6 +212,38 @@ const saveWeight = async () => {
     setSaving(false);
   }
 };
+
+  const editWeightEntry = (entry: WeightEntry) => {
+    setEditingEntryId(entry.id);
+    setWeight(String(entry.weightLb));
+    setFormError("");
+    setAdding(true);
+  };
+
+  const deleteWeightEntry = (entryId: string) => {
+    const signedInUser = auth.currentUser;
+    if (!signedInUser) {
+      setError("You must be logged in to delete a measurement.");
+      return;
+    }
+
+    Alert.alert("Delete measurement?", "This weight entry will be permanently deleted.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(
+              doc(db, "users", signedInUser.uid, "weightEntries", entryId),
+            );
+          } catch {
+            setError("Unable to delete your measurement. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
 
   const openGoalForm = () => {
     setGoalTitle(goal?.title ?? "Reach my target weight");
@@ -371,7 +419,7 @@ const saveWeight = async () => {
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.cardTitle}>Weight history</Text>
-              {!adding && <Pressable onPress={() => setAdding(true)}><Text style={styles.addLink}>Add</Text></Pressable>}
+              {!adding && <Pressable onPress={() => { setEditingEntryId(null); setWeight(""); setAdding(true); }}><Text style={styles.addLink}>Add</Text></Pressable>}
             </View>
 
             {adding && (
@@ -391,11 +439,11 @@ const saveWeight = async () => {
                 />
                 {formError ? <Text style={styles.error}>{formError}</Text> : null}
                 <View style={styles.actions}>
-                  <Pressable onPress={() => { setAdding(false); setWeight(""); setFormError(""); }} style={styles.cancel}>
+                  <Pressable onPress={() => { setAdding(false); setEditingEntryId(null); setWeight(""); setFormError(""); }} style={styles.cancel}>
                     <Text style={styles.cancelText}>Cancel</Text>
                   </Pressable>
                   <Pressable onPress={saveWeight} disabled={saving} style={styles.save}>
-                    <Text style={styles.saveText}>{saving ? "Saving..." : "Save"}</Text>
+                    <Text style={styles.saveText}>{saving ? "Saving..." : editingEntryId ? "Update" : "Save"}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -405,14 +453,27 @@ const saveWeight = async () => {
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>No weight history yet</Text>
                 <Text style={styles.emptyBody}>Add your first measurement to start tracking progress.</Text>
-                {!adding && <Pressable onPress={() => setAdding(true)} style={styles.save}><Text style={styles.saveText}>Add measurement</Text></Pressable>}
+                {!adding && <Pressable onPress={() => { setEditingEntryId(null); setWeight(""); setAdding(true); }} style={styles.save}><Text style={styles.saveText}>Add measurement</Text></Pressable>}
               </View>
             ) : (
               entries.map((entry, index) => (
                 <View key={entry.id} style={styles.entry}>
                   <Text style={styles.entryDate}>{displayDate(entry.date)}</Text>
                   <Text style={styles.entryWeight}>{displayWeight(entry.weightLb)}</Text>
-                  <Text style={styles.muted}>{index === 0 ? "Latest" : displayChange(entry.weightLb - entries[index - 1].weightLb)}</Text>
+                  <Text style={styles.muted}>
+                    {entries[index + 1]
+                    ? displayChange(entry.weightLb - entries[index + 1].weightLb)
+                    // message displayed for first weight entry
+                    : ""}
+                  </Text>
+                  <View style={styles.entryActions}>
+                    <Pressable onPress={() => editWeightEntry(entry)} accessibilityRole="button">
+                      <Text style={styles.actionText}>Edit</Text>
+                    </Pressable>
+                    <Pressable onPress={() => deleteWeightEntry(entry.id)} accessibilityRole="button">
+                      <Text style={styles.deleteText}>Delete</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))
             )}
@@ -611,5 +672,20 @@ const styles = StyleSheet.create({
     flex: 1, 
     fontSize: typography.body, 
     fontWeight: "600" 
+  },
+  entryActions: {
+    alignItems: "flex-end",
+    marginLeft: spacing.sm,
+  },
+  actionText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  deleteText: {
+    color: colors.danger,
+    fontSize: typography.label,
+    fontWeight: "700",
+    marginTop: spacing.xs,
   },
 });
