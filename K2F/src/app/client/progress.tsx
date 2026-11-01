@@ -424,42 +424,192 @@ const saveWeight = async () => {
 }
 
 function Stat({ label, value, highlighted = false }: { label: string; value: string; highlighted?: boolean }) {
-  return <View style={styles.stat}><Text style={[styles.statValue, highlighted && styles.highlighted]}>{value}</Text><Text style={styles.muted}>{label}</Text></View>;
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, highlighted && styles.highlighted]}>{value}</Text>
+      <Text style={styles.muted}>{label}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: { padding: spacing.lg },
-  centered: { alignItems: "center", flex: 1, justifyContent: "center" },
-  brand: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700", letterSpacing: 1 },
-  title: { color: colors.text, fontSize: typography.title, fontWeight: "300", marginTop: spacing.sm },
-  subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginTop: spacing.xs },
-  card: { backgroundColor: colors.surface, borderRadius: radii.card, marginTop: spacing.lg, padding: spacing.lg },
-  cardTitle: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
-  goalTitle: { color: colors.text, fontSize: typography.body, fontWeight: "700", marginTop: spacing.sm },
-  stats: { flexDirection: "row", marginTop: spacing.lg },
-  stat: { flex: 1 },
-  statValue: { color: colors.text, fontSize: 22, fontWeight: "300" },
-  highlighted: { color: colors.primaryDark, fontWeight: "600" },
-  track: { backgroundColor: colors.surfaceMuted, borderRadius: 8, height: 10, marginTop: spacing.lg, overflow: "hidden" },
-  fill: { backgroundColor: colors.primaryDark, borderRadius: 8, height: "100%" },
-  progressText: { color: colors.primaryDark, fontSize: typography.body, fontWeight: "700", marginTop: spacing.md },
-  muted: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
-  error: { color: colors.danger, fontSize: typography.label, marginTop: spacing.sm },
-  headerRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  addLink: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700" },
-  form: { backgroundColor: colors.surfaceMuted, borderRadius: radii.button, marginTop: spacing.md, padding: spacing.md },
-  formLabel: { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
-  input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.button, borderWidth: 1, color: colors.text, fontSize: typography.body, padding: spacing.md },
-  actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
-  cancel: { alignItems: "center", borderColor: colors.border, borderRadius: radii.button, borderWidth: 1, flex: 1, padding: spacing.sm },
-  cancelText: { color: colors.textMuted, fontWeight: "700" },
-  save: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: radii.button, marginTop: spacing.md, padding: spacing.sm },
-  saveText: { color: colors.surface, fontWeight: "700" },
-  emptyState: { marginTop: spacing.md },
-  emptyTitle: { color: colors.text, fontSize: typography.body, fontWeight: "700" },
-  emptyBody: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
-  entry: { alignItems: "center", borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", marginTop: spacing.sm, paddingTop: spacing.sm },
-  entryDate: { color: colors.textMuted, fontSize: typography.label, width: 72 },
-  entryWeight: { color: colors.text, flex: 1, fontSize: typography.body, fontWeight: "600" },
+  screen: { 
+    flex: 1 
+  },
+  content: { 
+    padding: spacing.lg 
+  },
+  centered: { 
+    alignItems: "center", 
+    flex: 1, 
+    justifyContent: "center" 
+  },
+  brand: { 
+    color: colors.primaryDark, 
+    fontSize: typography.label, 
+    fontWeight: "700", 
+    letterSpacing: 1 
+  },
+  title: { 
+    color: colors.text, 
+    fontSize: typography.title, 
+    fontWeight: "300", 
+    marginTop: spacing.sm 
+  },
+  subtitle: { 
+    color: colors.textMuted, 
+    fontSize: typography.body, 
+    fontWeight: "700", 
+    marginTop: spacing.xs 
+  },
+  card: { 
+    backgroundColor: colors.surface, 
+    borderRadius: radii.card, 
+    marginTop: spacing.lg, 
+    padding: spacing.lg 
+  },
+  cardTitle: { 
+    color: colors.text, 
+    fontSize: typography.heading, 
+    fontWeight: "300" 
+  },
+  goalTitle: { 
+    color: colors.text, 
+    fontSize: typography.body, 
+    fontWeight: "700", 
+    marginTop: spacing.sm 
+  },
+  stats: { 
+    flexDirection: "row", 
+    marginTop: spacing.lg 
+  },
+  stat: { 
+    flex: 1 
+  },
+  statValue: { 
+    color: colors.text, 
+    fontSize: 22, 
+    fontWeight: "300" 
+  },
+  highlighted: { 
+    color: colors.primaryDark, 
+    fontWeight: "600" 
+  },
+  track: { 
+    backgroundColor: colors.surfaceMuted, 
+    borderRadius: 8, 
+    height: 10, 
+    marginTop: spacing.lg, 
+    overflow: "hidden" 
+  },
+  fill: { 
+    backgroundColor: colors.primaryDark, 
+    borderRadius: 8, 
+    height: "100%" 
+  },
+  progressText: { 
+    color: colors.primaryDark, 
+    fontSize: typography.body, 
+    fontWeight: "700", 
+    marginTop: spacing.md 
+  },
+  muted: { 
+    color: colors.textMuted, 
+    fontSize: typography.label, 
+    marginTop: spacing.xs 
+  },
+  error: { 
+    color: colors.danger, 
+    fontSize: typography.label, 
+    marginTop: spacing.sm 
+  },
+  headerRow: { 
+    alignItems: "center", 
+    flexDirection: "row", 
+    justifyContent: "space-between" 
+  },
+  addLink: { 
+    color: colors.primaryDark, 
+    fontSize: typography.label,
+    fontWeight: "700" 
+  },
+  form: { 
+    backgroundColor: colors.surfaceMuted, 
+    borderRadius: radii.button, 
+    marginTop: spacing.md, 
+    padding: spacing.md 
+  },
+  formLabel: { 
+    color: colors.text, 
+    fontWeight: "700", 
+    marginBottom: spacing.xs 
+  },
+  input: { 
+    backgroundColor: colors.surface, 
+    borderColor: colors.border, 
+    borderRadius: radii.button, 
+    borderWidth: 1, 
+    color: colors.text, 
+    fontSize: typography.body, 
+    padding: spacing.md 
+  },
+  actions: { 
+    flexDirection: "row", 
+    gap: spacing.sm, 
+    marginTop: spacing.sm 
+  },
+  cancel: { 
+    alignItems: "center", 
+    borderColor: colors.border, 
+    borderRadius: radii.button, 
+    borderWidth: 1, flex: 1, 
+    padding: spacing.sm 
+  },
+  cancelText: { 
+    color: colors.textMuted, 
+    fontWeight: "700" 
+  },
+  save: { 
+    alignItems: "center", 
+    backgroundColor: colors.primaryDark, 
+    borderRadius: radii.button,
+    marginTop: spacing.md, 
+    padding: spacing.sm 
+  },
+  saveText: { 
+    color: colors.surface, 
+    fontWeight: "700" 
+  },
+  emptyState: { 
+    marginTop: spacing.md 
+  },
+  emptyTitle: { 
+    color: colors.text, 
+    fontSize: typography.body, 
+    fontWeight: "700" 
+  },
+  emptyBody: { 
+    color: colors.textMuted, 
+    fontSize: typography.label, 
+    marginTop: spacing.xs 
+  },
+  entry: { 
+    alignItems: "center", 
+    borderTopColor: colors.border, 
+    borderTopWidth: StyleSheet.hairlineWidth, 
+    flexDirection: "row", 
+    marginTop: spacing.sm, 
+    paddingTop: spacing.sm 
+  },
+  entryDate: { 
+    color: colors.textMuted, 
+    fontSize: typography.label, 
+    width: 72 
+  },
+  entryWeight: { 
+    color: colors.text, 
+    flex: 1, 
+    fontSize: typography.body, 
+    fontWeight: "600" 
+  },
 });
