@@ -145,7 +145,7 @@ export default function SignupScreen() {
               autoCorrect={false}
             />
 
-            /{/* password text fields */}
+            {/* password text fields */}
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}

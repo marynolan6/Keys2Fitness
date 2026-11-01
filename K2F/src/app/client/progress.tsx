@@ -1,330 +1,465 @@
-import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-
-import { GoalProgressBar } from "@/components/GoalProgressBar";
-import { GoalAchievedBanner, GoalNoDataNotice } from "@/components/GoalStatusBanner";
+import { onAuthStateChanged } from "firebase/auth";
 import {
-  describeGoalProgress,
-  FitnessGoal,
-  formatGoalDate,
-  formatMeasurement,
-  formatShortGoalDate,
-  formatSignedMeasurement,
-  getGoalProgress,
-  sortEntriesNewestFirst,
-} from "@/goals/goal";
-import { mockCurrentGoal } from "@/goals/mockGoal";
+  addDoc,
+  collection,
+  doc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { auth, db } from "@/lib/firebase";
 import { colors, radii, spacing, typography } from "@/theme";
+import { ThemedBackground } from "@/components/ThemedBackground";
 
-const RECENT_ENTRY_COUNT = 5;
+const MAX_HISTORY = 5;
+const TAB_BAR_CLEARANCE = 96;
 
-export default function Progress() {
-  const router = useRouter();
-  const goal = mockCurrentGoal;
-  const messageCoach = () => router.push("/client/messages");
-
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
-      <Text style={styles.brand}>KEYS2FITNESS</Text>
-      <Text style={styles.title}>Your Progress</Text>
-      <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
-
-      {goal ? (
-        <GoalProgressSection goal={goal} onMessageCoach={messageCoach} />
-      ) : (
-        <View style={[styles.card, styles.firstCard]}>
-          <Text style={styles.cardTitle}>Goal progress</Text>
-          <Text style={styles.emptyTitle}>No active goal yet</Text>
-          <Text style={styles.emptyBody}>
-            Once your coach sets a goal with you, your progress toward it will show up here.
-          </Text>
-          <SecondaryButton label="Message your coach" onPress={messageCoach} />
-        </View>
-      )}
-    </ScrollView>
-  );
-}
-
-type GoalProgressSectionProps = {
-  goal: FitnessGoal;
-  onMessageCoach: () => void;
+type Goal = {
+  title: string;
+  startWeightLb: number;
+  targetWeightLb: number;
+  startDate: string;
 };
 
-function GoalProgressSection({ goal, onMessageCoach }: GoalProgressSectionProps) {
-  const progress = getGoalProgress(goal);
-  const achieved = progress.status === "achieved";
-  const entries = sortEntriesNewestFirst(goal.entries);
-  const recent = entries.slice(0, RECENT_ENTRY_COUNT);
-  const netChange = progress.currentValue - goal.startValue;
+type WeightEntry = { id: string; weightLb: number; date: string };
+
+const localDate = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+};
+
+const displayDate = (date: string) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+const displayWeight = (weight: number) => `${Number(weight.toFixed(1))} lb`;
+
+const displayChange = (change: number) =>
+  change === 0 ? "No change" : `${change > 0 ? "+" : "−"}${displayWeight(Math.abs(change))}`;
+
+export default function Progress() {
+  const insets = useSafeAreaInsets();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [goal, setGoal] = useState<Goal | null>(null);
+  const [entries, setEntries] = useState<WeightEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [weight, setWeight] = useState("");
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalTitle, setGoalTitle] = useState("");
+  const [startingWeight, setStartingWeight] = useState("");
+  const [targetWeight, setTargetWeight] = useState("");
+  const [goalError, setGoalError] = useState("");
+  const [savingGoal, setSavingGoal] = useState(false);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
+      setAuthReady(true);
+
+      if (user) {
+        setError("");
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    if (!userId) {
+      setError("You must be logged in to view your progress.");
+      setLoading(false);
+      return;
+    }
+
+    const goalUnsubscribe = onSnapshot(
+      doc(db, "users", userId, "goals", "current"),
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          setGoal(null);
+        } else {
+          const data = snapshot.data();
+          setGoal({
+            title: data.title ?? "Weight goal",
+            startWeightLb: Number(data.startWeightLb),
+            targetWeightLb: Number(data.targetWeightLb),
+            startDate: data.startDate ?? localDate(),
+          });
+        }
+        setLoading(false);
+      },
+      () => {
+        setError("Unable to load your goal.");
+        setLoading(false);
+      },
+    );
+
+    const entriesUnsubscribe = onSnapshot(
+      query(
+        collection(db, "users", userId, "weightEntries"),
+        orderBy("date", "desc"),
+        limit(MAX_HISTORY),
+      ),
+      (snapshot) =>
+        setEntries(
+          snapshot.docs.map((item) => ({
+            id: item.id,
+            weightLb: Number(item.data().weightLb),
+            date: item.data().date,
+          })),
+        ),
+      () => setError("Unable to load your weight history."),
+    );
+
+    return () => {
+      goalUnsubscribe();
+      entriesUnsubscribe();
+    };
+  }, [authReady, userId]);
+
+  const currentWeight = entries[0]?.weightLb ?? goal?.startWeightLb;
+  const progress = useMemo(() => {
+    if (!goal || currentWeight === undefined) return null;
+    const lossGoal = goal.targetWeightLb < goal.startWeightLb;
+    const total = Math.abs(goal.targetWeightLb - goal.startWeightLb);
+    const completed = lossGoal
+      ? goal.startWeightLb - currentWeight
+      : currentWeight - goal.startWeightLb;
+    const remaining = lossGoal
+      ? currentWeight - goal.targetWeightLb
+      : goal.targetWeightLb - currentWeight;
+    const percent = total === 0 ? 100 : Math.round(Math.max(0, Math.min(1, completed / total)) * 100);
+    const achieved = lossGoal ? currentWeight <= goal.targetWeightLb : currentWeight >= goal.targetWeightLb;
+    return { percent, remaining: Math.max(0, remaining), achieved };
+  }, [currentWeight, goal]);
+
+const saveWeight = async () => {
+  const signedInUser = auth.currentUser;
+  const weightLb = Number(weight.trim());
+
+  if (!signedInUser) {
+    setFormError("You must be logged in to save a measurement.");
+    return;
+  }
+
+  if (!Number.isFinite(weightLb) || weightLb <= 0 || weightLb > 1000) {
+    setFormError("Enter a valid weight between 1 and 1,000 lb.");
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    await addDoc(
+      collection(db, "users", signedInUser.uid, "weightEntries"),
+      {
+        weightLb,
+        unit: "lb",
+        date: localDate(),
+        recordedAt: serverTimestamp(),
+      },
+    );
+
+    setWeight("");
+    setFormError("");
+    setAdding(false);
+  } catch {
+    setFormError("Unable to save your measurement. Please try again.");
+  } finally {
+    setSaving(false);
+  }
+};
+
+  const openGoalForm = () => {
+    setGoalTitle(goal?.title ?? "Reach my target weight");
+    setStartingWeight(String(goal?.startWeightLb ?? currentWeight ?? ""));
+    setTargetWeight(String(goal?.targetWeightLb ?? ""));
+    setGoalError("");
+    setEditingGoal(true);
+  };
+
+  const saveGoal = async () => {
+    const startWeightLb = Number(startingWeight.trim());
+    const targetWeightLb = Number(targetWeight.trim());
+
+    if (!userId) {
+      setGoalError("You must be logged in to save a goal.");
+      return;
+    }
+
+    if (!goalTitle.trim()) {
+      setGoalError("Enter a name for your goal.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(startWeightLb) ||
+      !Number.isFinite(targetWeightLb) ||
+      startWeightLb <= 0 ||
+      targetWeightLb <= 0
+    ) {
+      setGoalError("Enter valid starting and target weights.");
+      return;
+    }
+
+    if (startWeightLb === targetWeightLb) {
+      setGoalError("Your target weight must be different from your starting weight.");
+      return;
+    }
+
+    try {
+      setSavingGoal(true);
+      const newGoal = {
+        title: goalTitle.trim(),
+        startWeightLb,
+        targetWeightLb,
+        startDate: goal?.startDate ?? localDate(),
+        unit: "lb",
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, "users", userId, "goals", "current"), newGoal, {
+        merge: true,
+      });
+
+      setGoal({
+        title: newGoal.title,
+        startWeightLb,
+        targetWeightLb,
+        startDate: newGoal.startDate,
+      });
+      setEditingGoal(false);
+      setGoalError("");
+    } catch {
+      setGoalError("Unable to save your goal. Please try again.");
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ThemedBackground>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primaryDark} />
+          <Text style={styles.muted}>Loading your progress...</Text>
+        </View>
+      </ThemedBackground>
+    );
+  }
 
   return (
-    <>
-      <View style={[styles.card, styles.firstCard]}>
-        <Text style={styles.cardTitle}>Goal progress</Text>
-        <Text style={styles.goalTitle}>{goal.title}</Text>
+    <ThemedBackground>
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: Math.max(insets.top + spacing.sm, spacing.xl), paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
+          ]}
+        >
+          <Text style={styles.brand}>KEYS2FITNESS</Text>
+          <Text style={styles.title}>Your Progress</Text>
+          <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {progress.status === "no-data" ? (
-          <>
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{formatMeasurement(goal.startValue, goal.unit)}</Text>
-                <Text style={styles.statLabel}>Starting point</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={[styles.statValue, styles.targetValue]}>
-                  {formatMeasurement(goal.targetValue, goal.unit)}
-                </Text>
-                <Text style={styles.statLabel}>Target</Text>
-              </View>
+          <View style={styles.card}>
+            <View style={styles.headerRow}>
+              <Text style={styles.cardTitle}>Goal progress</Text>
+              {!editingGoal && (
+                <Pressable onPress={openGoalForm} accessibilityRole="button">
+                  <Text style={styles.addLink}>{goal ? "Edit" : "Set goal"}</Text>
+                </Pressable>
+              )}
             </View>
-            <GoalNoDataNotice
-              title="No measurements yet"
-              body="Progress is measured from your check-ins. After your first one is recorded, you'll see how far you've come."
-            />
-            <SecondaryButton label="Ask your coach to log a check-in" onPress={onMessageCoach} />
-          </>
-        ) : (
-          <>
-            {achieved && (
-              <GoalAchievedBanner
-                detail={
-                  progress.achievedOn
-                    ? `You hit ${formatMeasurement(goal.targetValue, goal.unit)} on ${formatGoalDate(progress.achievedOn)}.`
-                    : undefined
-                }
-              />
-            )}
-
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>
-                  {formatMeasurement(progress.currentValue, goal.unit)}
-                </Text>
-                <Text style={styles.statLabel}>Current</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={[styles.statValue, achieved ? styles.achievedValue : styles.targetValue]}>
-                  {formatMeasurement(goal.targetValue, goal.unit)}
-                </Text>
-                <Text style={styles.statLabel}>{achieved ? "Target ✓" : "Target"}</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{formatSignedMeasurement(netChange, goal.unit)}</Text>
-                <Text style={styles.statLabel}>Since {formatShortGoalDate(goal.startDate)}</Text>
-              </View>
-            </View>
-
-            <GoalProgressBar
-              fraction={progress.fraction}
-              percent={progress.percent}
-              startValue={goal.startValue}
-              currentValue={progress.currentValue}
-              targetValue={goal.targetValue}
-              unit={goal.unit}
-              achieved={achieved}
-            />
-
-            <Text style={[styles.progressHeadline, achieved && styles.achievedHeadline]}>
-              {achieved ? "100% · Goal complete" : `${progress.percent}% of goal reached`}
-            </Text>
-            <Text style={styles.summary}>{describeGoalProgress(goal, progress)}</Text>
-            <Text style={styles.asOf}>
-              Based on your latest measurement, {formatGoalDate(progress.asOf)}
-            </Text>
-            {achieved && (
-              <SecondaryButton label="Plan your next goal with your coach" onPress={onMessageCoach} />
-            )}
-          </>
-        )}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Recorded measurements</Text>
-        {recent.length === 0 ? (
-          <Text style={styles.emptyBody}>
-            No check-ins yet. Measurements you or your coach record will appear here, newest first.
-          </Text>
-        ) : (
-          recent.map((entry, index) => {
-            // Compare against the next-older entry, or the start value for the oldest one.
-            const previous = entries[index + 1]?.value ?? goal.startValue;
-            const isAchievedEntry = entry.date === progress.achievedOn;
-            return (
-              <View key={entry.date} style={styles.entryRow}>
-                <Text style={styles.entryDate}>{formatShortGoalDate(entry.date)}</Text>
-                <View style={styles.entryMain}>
-                  <Text style={styles.entryValue}>{formatMeasurement(entry.value, goal.unit)}</Text>
-                  {isAchievedEntry && <Text style={styles.entryTag}>✓ Target reached</Text>}
+            {editingGoal && (
+              <View style={styles.form}>
+                <Text style={styles.formLabel}>Goal name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Example: Reach my target weight"
+                  placeholderTextColor={colors.textMuted}
+                  value={goalTitle}
+                  onChangeText={setGoalTitle}
+                />
+                <Text style={styles.formLabel}>Starting weight in lb</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your starting weight"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="decimal-pad"
+                  value={startingWeight}
+                  onChangeText={setStartingWeight}
+                />
+                <Text style={styles.formLabel}>Target weight in lb</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your target weight"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="decimal-pad"
+                  value={targetWeight}
+                  onChangeText={setTargetWeight}
+                />
+                {goalError ? <Text style={styles.error}>{goalError}</Text> : null}
+                <View style={styles.actions}>
+                  <Pressable
+                    onPress={() => {
+                      setEditingGoal(false);
+                      setGoalError("");
+                    }}
+                    style={styles.cancel}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={saveGoal} disabled={savingGoal} style={styles.save}>
+                    <Text style={styles.saveText}>{savingGoal ? "Saving..." : "Save goal"}</Text>
+                  </Pressable>
                 </View>
-                <Text style={styles.entryChange}>
-                  {formatSignedMeasurement(entry.value - previous, goal.unit)}
-                </Text>
               </View>
-            );
-          })
-        )}
-      </View>
-    </>
+            )}
+            {goal && progress ? (
+              <>
+                <Text style={styles.goalTitle}>{goal.title}</Text>
+                <View style={styles.stats}>
+                  <Stat label="Current" value={displayWeight(currentWeight ?? 0)} />
+                  <Stat label="Target" value={displayWeight(goal.targetWeightLb)} highlighted />
+                  <Stat label={progress.achieved ? "Status" : "Remaining"} value={progress.achieved ? "Complete" : displayWeight(progress.remaining)} />
+                </View>
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${progress.percent}%` }]} />
+                </View>
+                <Text style={styles.progressText}>
+                  {progress.achieved ? "Goal complete" : `${progress.percent}% of goal reached`}
+                </Text>
+                <Text style={styles.muted}>Started {displayDate(goal.startDate)}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyTitle}>No active goal yet</Text>
+                
+              </>
+            )}
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.headerRow}>
+              <Text style={styles.cardTitle}>Weight history</Text>
+              {!adding && <Pressable onPress={() => setAdding(true)}><Text style={styles.addLink}>Add</Text></Pressable>}
+            </View>
+
+            {adding && (
+              <View style={styles.form}>
+                <Text style={styles.formLabel}>New weight</Text>
+                <TextInput
+                  autoFocus
+                  style={styles.input}
+                  placeholder="Enter weight in lb"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="decimal-pad"
+                  value={weight}
+                  onChangeText={(value) => {
+                    setWeight(value);
+                    setFormError("");
+                  }}
+                />
+                {formError ? <Text style={styles.error}>{formError}</Text> : null}
+                <View style={styles.actions}>
+                  <Pressable onPress={() => { setAdding(false); setWeight(""); setFormError(""); }} style={styles.cancel}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable onPress={saveWeight} disabled={saving} style={styles.save}>
+                    <Text style={styles.saveText}>{saving ? "Saving..." : "Save"}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {entries.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>No weight history yet</Text>
+                <Text style={styles.emptyBody}>Add your first measurement to start tracking progress.</Text>
+                {!adding && <Pressable onPress={() => setAdding(true)} style={styles.save}><Text style={styles.saveText}>Add measurement</Text></Pressable>}
+              </View>
+            ) : (
+              entries.map((entry, index) => (
+                <View key={entry.id} style={styles.entry}>
+                  <Text style={styles.entryDate}>{displayDate(entry.date)}</Text>
+                  <Text style={styles.entryWeight}>{displayWeight(entry.weightLb)}</Text>
+                  <Text style={styles.muted}>{index === 0 ? "Latest" : displayChange(entry.weightLb - entries[index - 1].weightLb)}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedBackground>
   );
 }
 
-function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.emptyButton, pressed && styles.emptyButtonPressed]}
-    >
-      <Text style={styles.emptyButtonText}>{label}</Text>
-    </Pressable>
-  );
+function Stat({ label, value, highlighted = false }: { label: string; value: string; highlighted?: boolean }) {
+  return <View style={styles.stat}><Text style={[styles.statValue, highlighted && styles.highlighted]}>{value}</Text><Text style={styles.muted}>{label}</Text></View>;
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
-  screenContent: {
-    padding: spacing.lg,
-  },
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-    marginTop: spacing.xl,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginTop: spacing.xs,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-  },
-  firstCard: {
-    marginTop: spacing.lg,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "300",
-  },
-  goalTitle: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginTop: spacing.sm,
-  },
-  statsRow: {
-    flexDirection: "row",
-    marginTop: spacing.md,
-  },
-  stat: {
-    flex: 1,
-  },
-  statValue: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: "300",
-  },
-  targetValue: {
-    color: colors.primaryDark,
-    fontWeight: "500",
-  },
-  achievedValue: {
-    color: colors.achieved,
-    fontWeight: "500",
-  },
-  statLabel: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.xs,
-  },
-  progressHeadline: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginTop: spacing.md,
-  },
-  achievedHeadline: {
-    color: colors.achieved,
-  },
-  summary: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.xs,
-  },
-  asOf: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: spacing.sm,
-  },
-  entryRow: {
-    alignItems: "center",
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-  entryDate: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    width: 64,
-  },
-  entryMain: {
-    flex: 1,
-  },
-  entryValue: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "600",
-  },
-  entryTag: {
-    color: colors.achieved,
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  entryChange: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginTop: spacing.sm,
-  },
-  emptyBody: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.xs,
-  },
-  emptyButton: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm + spacing.xs,
-  },
-  emptyButtonPressed: {
-    opacity: 0.8,
-  },
-  emptyButtonText: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
+  screen: { flex: 1 },
+  content: { padding: spacing.lg },
+  centered: { alignItems: "center", flex: 1, justifyContent: "center" },
+  brand: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700", letterSpacing: 1 },
+  title: { color: colors.text, fontSize: typography.title, fontWeight: "300", marginTop: spacing.sm },
+  subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginTop: spacing.xs },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, marginTop: spacing.lg, padding: spacing.lg },
+  cardTitle: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
+  goalTitle: { color: colors.text, fontSize: typography.body, fontWeight: "700", marginTop: spacing.sm },
+  stats: { flexDirection: "row", marginTop: spacing.lg },
+  stat: { flex: 1 },
+  statValue: { color: colors.text, fontSize: 22, fontWeight: "300" },
+  highlighted: { color: colors.primaryDark, fontWeight: "600" },
+  track: { backgroundColor: colors.surfaceMuted, borderRadius: 8, height: 10, marginTop: spacing.lg, overflow: "hidden" },
+  fill: { backgroundColor: colors.primaryDark, borderRadius: 8, height: "100%" },
+  progressText: { color: colors.primaryDark, fontSize: typography.body, fontWeight: "700", marginTop: spacing.md },
+  muted: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
+  error: { color: colors.danger, fontSize: typography.label, marginTop: spacing.sm },
+  headerRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  addLink: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700" },
+  form: { backgroundColor: colors.surfaceMuted, borderRadius: radii.button, marginTop: spacing.md, padding: spacing.md },
+  formLabel: { color: colors.text, fontWeight: "700", marginBottom: spacing.xs },
+  input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.button, borderWidth: 1, color: colors.text, fontSize: typography.body, padding: spacing.md },
+  actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+  cancel: { alignItems: "center", borderColor: colors.border, borderRadius: radii.button, borderWidth: 1, flex: 1, padding: spacing.sm },
+  cancelText: { color: colors.textMuted, fontWeight: "700" },
+  save: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: radii.button, marginTop: spacing.md, padding: spacing.sm },
+  saveText: { color: colors.surface, fontWeight: "700" },
+  emptyState: { marginTop: spacing.md },
+  emptyTitle: { color: colors.text, fontSize: typography.body, fontWeight: "700" },
+  emptyBody: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
+  entry: { alignItems: "center", borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", marginTop: spacing.sm, paddingTop: spacing.sm },
+  entryDate: { color: colors.textMuted, fontSize: typography.label, width: 72 },
+  entryWeight: { color: colors.text, flex: 1, fontSize: typography.body, fontWeight: "600" },
 });

@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRef, useState, type ComponentRef } from "react";
 import {
   KeyboardAvoidingView,
@@ -13,6 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import { colors } from "@/theme";
+import { getDoc, doc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import type { LoginFields } from "@/validation/login";
 import { validateLogin } from "@/validation/login";
 
@@ -23,6 +26,8 @@ export default function LoginScreen() {
     password: false,
   });
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const errors = validateLogin(fields);
@@ -38,11 +43,60 @@ export default function LoginScreen() {
   const markTouched = (field: keyof LoginFields) => () =>
     setTouched((current) => ({ ...current, [field]: true }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitAttempted(true);
+    setAuthError("");
     // Stay on the login screen until every field passes validation.
     if (hasErrors) return;
-    router.replace("/client/home");
+
+    try {
+      setIsSubmitting(true);
+
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        fields.email.trim(),
+        fields.password,
+      );
+
+      const userId = credential.user.uid;
+
+      const profileSnapshot = await getDoc(doc(db, "users", userId,));
+
+      const role = profileSnapshot.data()?.role;
+
+      console.log("Logged-in Firebase user:", userId);
+      console.log("User role:", role);
+
+      if (role === "coach") {
+        router.replace("/coach");
+      } else {
+        router.replace("/client/home");
+      }
+    } catch (loginError: unknown) {
+      if (
+        loginError &&
+        typeof loginError === "object" &&
+        "code" in loginError
+      ) {
+        const code = String(loginError.code);
+
+        if (
+          code === "auth/invalid-credential" ||
+          code === "auth/user-not-found" ||
+          code === "auth/wrong-password"
+        ) {
+          setAuthError("The email or password is incorrect.");
+        } else if (code === "auth/too-many-requests") {
+          setAuthError("Too many attempts. Please try again later.");
+        } else {
+          setAuthError("Unable to log in. Please try again.");
+        }
+      } else {
+        setAuthError("Unable to log in. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSignUp = () => {
@@ -70,6 +124,12 @@ export default function LoginScreen() {
                 </Text>
               </View>
             )}
+
+            {authError ? (
+              <View style={styles.formError} accessibilityRole="alert">
+                <Text style={styles.formErrorText}>{authError}</Text>
+              </View>
+            ) : null}
 
             {/* email text field */}
             <Text style={styles.label}>Email</Text>
@@ -110,8 +170,14 @@ export default function LoginScreen() {
             />
             {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleSubmit}>
-              <Text style={styles.loginButtonText}>Log In</Text>
+            <TouchableOpacity
+              style={[styles.loginButton, isSubmitting && styles.disabledButton]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.loginButtonText}>
+                {isSubmitting ? "Logging in..." : "Log In"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={handleSignUp}>
@@ -205,6 +271,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   signupText: {
     color: "#2563eb",
