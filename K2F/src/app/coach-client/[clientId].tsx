@@ -14,11 +14,52 @@ import { colors, radii, spacing, typography, layout } from "@/theme";
 // Import the same gradient background used in Keys2Fitness
 import { ThemedBackground } from "@/components/ThemedBackground";
 
+// K2F-153: Get the selected client's information
+import { getClientById } from "@/clients/mockClients";
+import { ClientAvatar } from "@/components/ClientAvatar";
+
 // K2F-238: Create an individual client profile screen for the coach
 export default function ClientProfile() {
 
   // Get the selected client ID from the URL
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
+
+  // K2F-153: Find the selected client
+  const client = getClientById(clientId);
+
+  // K2F-153 / K2F-237: Go back to the screen that opened this profile
+  // (client list or dashboard), or the client list if there is no history
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/coach/client_list");
+    }
+  };
+
+  // K2F-153: Shown if the client ID doesn't match a client
+  if (!client) {
+    return (
+      <ThemedBackground>
+        <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={goBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={styles.back}>← Back</Text>
+          </TouchableOpacity>
+          <View style={[styles.card, styles.profileCard]}>
+            <Text style={styles.sectionTitle}>Client not found</Text>
+            <Text style={styles.description}>
+              No client matches ID {clientId ?? "(none)"}.
+            </Text>
+          </View>
+        </ScrollView>
+      </ThemedBackground>
+    );
+  }
 
   // K2F-239: Sample workout progress information
   // These values will eventually come from the selected client's data
@@ -36,12 +77,14 @@ export default function ClientProfile() {
         contentContainerStyle={styles.content}
       >
 
-      {/* Back button returns to the coach's client list */}
+      {/* Back button returns to the previous screen (client list or dashboard) */}
       <TouchableOpacity
          style={styles.backButton}
-         onPress={() => router.replace("/coach/client_list")}
+         onPress={goBack}
+         accessibilityRole="button"
+         accessibilityLabel="Go back"
       >
-       <Text style={styles.back}>← Back to Clients</Text>
+       <Text style={styles.back}>← Back</Text>
        </TouchableOpacity>
 
         {/* Keys2Fitness branding */}
@@ -54,12 +97,10 @@ export default function ClientProfile() {
         <View style={[styles.card, styles.profileCard]}>
 
           {/* Circular avatar with the client's initial */}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
-          </View>
+          <ClientAvatar name={client.name} size={64} />
 
-          {/* Sample client name; will be dynamic later */}
-          <Text style={styles.name}>Spencer</Text>
+          {/* K2F-153: Selected client's name */}
+          <Text style={styles.name}>{client.name}</Text>
 
           {/* Displays the ID of the selected client */}
           <Text style={styles.detail}>Client ID: {clientId}</Text>
@@ -70,7 +111,7 @@ export default function ClientProfile() {
           <Text style={styles.sectionTitle}>Current Fitness Plan</Text>
 
           <Text style={styles.description}>
-            Strength Training · 4 days per week
+            {client.plan}
           </Text>
         </View>
 
@@ -79,7 +120,7 @@ export default function ClientProfile() {
           <Text style={styles.sectionTitle}>Fitness Goals</Text>
 
           <Text style={styles.description}>
-            Build muscle, improve strength, and increase endurance
+            {client.goal}
           </Text>
         </View>
 
@@ -156,7 +197,6 @@ export default function ClientProfile() {
 
 // Styles control the appearance of the profile screen
 const styles = StyleSheet.create({
-
   // Transparent screen allows the gradient to show
   screen: {
     flex: 1,
@@ -211,22 +251,6 @@ const styles = StyleSheet.create({
   // Center only the client's identity information
   profileCard: {
     alignItems: "center",
-  },
-
-  // Circular blue avatar
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 26,
-    fontWeight: "700",
   },
 
   // Client's name
