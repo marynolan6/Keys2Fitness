@@ -1,13 +1,20 @@
-import { Button, Text, View, StyleSheet } from "react-native";
+// Dashboard selection screen for coach or client
 import { useRouter } from "expo-router";
-
-// for the door opening animation on the first visit to the login screen
 import { useState } from "react";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+} from "react-native";
+
+// door opening animation component
 import DoorOpeningIntro from "../components/DoorOpeningIntro";
 
 export default function Index() {
   const router = useRouter();
-  // Show the door opening animation on the first visit to the login screen
+
+  // Show the door animation when this screen mounts
   const [showIntro, setShowIntro] = useState(true);
 
   return (
@@ -27,7 +34,7 @@ export default function Index() {
           onPress={() => router.push("/client/home")}
         />
       </View>
-           
+
       {/* Door opening animation */}
       {showIntro && (
         <View style={StyleSheet.absoluteFill}>
@@ -36,7 +43,6 @@ export default function Index() {
           />
         </View>
       )}
-
     </View>
   );
 }
