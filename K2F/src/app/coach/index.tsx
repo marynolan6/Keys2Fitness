@@ -1,11 +1,17 @@
 
 import { useRouter } from "expo-router";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from "react-native";
+
+// K2F-236: Client data shared with the client list
+import { demoClients, getClientById } from "@/clients/mockClients";
+import { ClientAvatar } from "@/components/ClientAvatar";
 
 // Coach messages widget
 import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
@@ -13,11 +19,45 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 import { coachMessages } from "@/messages/mockMessagesCoach";
 
 // Shared Keys2Fitness theme
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, typography } from "@/theme";
+
+// Max items shown in each dashboard section
+const MAX_SUMMARY_CLIENTS = 3;
+const MAX_RECENT_ACTIVITY = 3;
+
+// K2F-235: Recent activity (client messages for now, newest first)
+const recentActivity = coachMessages
+  .filter((message) => !message.fromCoach)
+  .sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+  .slice(0, MAX_RECENT_ACTIVITY);
+
+// Formats the date and time for each activity item
+function formatActivityTime(createdAt: string, time: string): string {
+  const day = new Date(createdAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  return `${day} · ${time}`;
+}
 
 // Coach Dashboard screen
 export default function CoachHome() {
   const router = useRouter();
+
+  const summaryClients = demoClients.slice(0, MAX_SUMMARY_CLIENTS);
+
+  // K2F-237: Open client details from the dashboard
+  const openClientProfile = (clientId: string) =>
+    router.push({ pathname: "/coach-client/[clientId]", params: { clientId } });
+
+  const openConversation = (clientId: string) =>
+    router.push({
+      pathname: "/coach-client/[clientId]/conversation",
+      params: { clientId },
+    });
 
   return (
     // Keep the gradient background from main
@@ -26,6 +66,112 @@ export default function CoachHome() {
 
         {/* Dashboard heading */}
         <Text style={styles.title}>Coach Dashboard</Text>
+
+        {/* K2F-235 / K2F-236: Current clients summary */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Current Clients
+            </Text>
+            <Text style={styles.demoLabel}>Demo data</Text>
+          </View>
+
+          {demoClients.length === 0 ? (
+            // Shown when there are no clients
+            <Text style={styles.emptyText}>
+              No clients yet. Clients assigned to you will appear here.
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.sectionMeta}>
+                {demoClients.length} active{" "}
+                {demoClients.length === 1 ? "client" : "clients"}
+              </Text>
+
+              {summaryClients.map((client) => (
+                <Pressable
+                  key={client.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${client.name}, ${client.goal}. Open client profile`}
+                  onPress={() => openClientProfile(client.id)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    pressed && styles.rowPressed,
+                  ]}
+                >
+                  <ClientAvatar name={client.name} size={40} />
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowTitle}>{client.name}</Text>
+                    <Text style={styles.rowSubtitle}>{client.goal}</Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
+                </Pressable>
+              ))}
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="See all clients"
+                onPress={() => router.push("/coach/client_list")}
+                style={({ pressed }) => [
+                  styles.linkButton,
+                  pressed && styles.rowPressed,
+                ]}
+              >
+                <Text style={styles.linkText}>See all clients →</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+
+        {/* K2F-235: Recent activity */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Recent Activity
+            </Text>
+            <Text style={styles.demoLabel}>Demo data</Text>
+          </View>
+
+          {recentActivity.length === 0 ? (
+            <Text style={styles.emptyText}>No recent client activity.</Text>
+          ) : (
+            recentActivity.map((item, index) => {
+              const clientName =
+                getClientById(item.clientId)?.name ?? item.clientName;
+              const isLatest = index === 0;
+
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isLatest ? "Latest: " : ""}${clientName} sent a message: ${item.message}. Open conversation`}
+                  onPress={() => openConversation(item.clientId)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    isLatest && styles.latestRow,
+                    pressed && styles.rowPressed,
+                  ]}
+                >
+                  <ClientAvatar name={clientName} size={40} />
+                  <View style={styles.rowText}>
+                    {/* Label the most recent item */}
+                    {isLatest && <Text style={styles.latestBadge}>Latest</Text>}
+                    <Text style={styles.rowTitle}>
+                      {clientName} sent a message
+                    </Text>
+                    <Text style={styles.rowSubtitle} numberOfLines={2}>
+                      "{item.message}"
+                    </Text>
+                    <Text style={styles.rowMeta}>
+                      {formatActivityTime(item.createdAt, item.time)}
+                    </Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
 
         {/* Display recent coach messages */}
         <NewCoachMessagesWidget
@@ -55,6 +201,9 @@ export default function CoachHome() {
 const styles = StyleSheet.create({
   // Dashboard spacing
   container: {
+    width: "100%",
+    maxWidth: layout.maxContentWidth,
+    alignSelf: "center",
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -63,6 +212,125 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.title,
+    fontWeight: "700",
+  },
+
+  // K2F-235: Card for each dashboard section
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+
+  // Section title and demo label
+  sectionHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+
+  sectionTitle: {
+    color: colors.text,
+    fontSize: typography.heading,
+    fontWeight: "700",
+  },
+
+  sectionMeta: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  demoLabel: {
+    color: colors.primaryDark,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: typography.label,
+    fontWeight: "700",
+    overflow: "hidden",
+  },
+
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+  },
+
+  // Client and activity rows
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    minHeight: layout.minTouchTarget,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  // Highlights the most recent activity
+  latestRow: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceMuted,
+  },
+
+  // Feedback when a row is pressed
+  rowPressed: {
+    opacity: 0.7,
+  },
+
+  rowText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+
+  rowTitle: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  rowSubtitle: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  rowMeta: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  latestBadge: {
+    alignSelf: "flex-start",
+    color: colors.surface,
+    backgroundColor: colors.primaryDark,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: typography.label,
+    fontWeight: "700",
+    overflow: "hidden",
+  },
+
+  chevron: {
+    color: colors.primaryDark,
+    fontSize: typography.heading,
+  },
+
+  linkButton: {
+    minHeight: layout.minTouchTarget,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: radii.button,
+  },
+
+  linkText: {
+    color: colors.primaryDark,
+    fontSize: typography.body,
     fontWeight: "700",
   },
 
