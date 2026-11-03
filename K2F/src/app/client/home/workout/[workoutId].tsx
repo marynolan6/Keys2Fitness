@@ -2,9 +2,15 @@ import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/t
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-
+// K2F-43: useEffect loads a previously paused workout when the client opens the workout screen.
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+// K2F-43: Functions used to save, restore, and clear a paused workout from local storage.
+import {
+  saveWorkoutSession,
+  loadWorkoutSession,
+  clearWorkoutSession,
+} from "@/workouts/workoutSession";
 import { getWorkoutById } from "@/workouts/mockWorkout";
 import type { AssignedWorkout } from "@/workouts/workout";
 
@@ -35,11 +41,54 @@ export default function WorkoutDetails() {
 }
 
 function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
+    // Used to navigate back to the client dashboard.
+    const router = useRouter();
     const { width, fontScale } = useWindowDimensions();
-    const compact = isCompactLayout(width, fontScale);
-    const [exercises, setExercises] = useState(workout.exercises);
+    const compact = isCompactLayout(width, fontScale);    
     const [showNotes, setShowNotes] = useState(false);
+    const [exercises, setExercises] = useState(workout.exercises);
     
+    // K2F-43: Tracks whether the current workout is paused.
+    const [isPaused, setIsPaused] = useState(false);
+
+    // Prevents workout interactions until saved data is loaded.
+    const [isLoadingSession, setIsLoadingSession] = useState(true);
+
+    // Prevents duplicate pause/resume actions while saving.
+    const [isSavingSession, setIsSavingSession] = useState(false);
+
+    // K2F-186: Restore the paused session when the screen opens.
+    useEffect(() => {
+      let active = true;
+
+      async function restoreWorkout() {
+        try {
+          const saved = await loadWorkoutSession(workout.id);
+
+          if (!active) return;
+
+          if (saved) {
+            // Restore the exercise list and completion state.
+            setExercises(saved.exercises);
+            setIsPaused(saved.paused);
+          }
+        } catch (error) {
+          // Keep the original workout available if loading fails.
+          console.error("Unable to restore workout:", error);
+        } finally {
+          if (active) {
+            setIsLoadingSession(false);
+          }
+        }
+      }
+      restoreWorkout();
+
+      // Avoid updating state after this screen unmounts.
+      return () => {
+        active = false;
+      };
+    }, [workout.id]);
+
     // K2F-32: Store the ID of the exercise currently being viewed.
     // Using the ID lets us retrieve the latest exercise information
     // from state whenever that exercise is updated.
@@ -54,13 +103,77 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     const completedCount = exercises.filter((exercise) => exercise.completed).length;
     const progress = exercises.length ? Math.round((completedCount / exercises.length) * 100) : 0;
 
+    // Clients can only change completion while the workout is active.
     function toggleExercise(id: string) {
-        setExercises((current) =>
+      if (isPaused || isLoadingSession || isSavingSession) return;
+          setExercises((current) =>
             current.map((exercise) =>
                 exercise.id === id ? { ...exercise, completed: !exercise.completed } : exercise,
             ),
         );
     }
+    
+    // K2F-184 and K2F-185: Pause the workout and save its current progress.
+    async function pauseWorkout() {
+    // K2F-43: Prevent saving before workout data finishes loading.
+    if (isPaused || isLoadingSession || isSavingSession) return;
+      setIsSavingSession(true);
+
+      try {
+        // Save the entire current exercise list.
+        // This includes completed exercises and any edited values.
+        await saveWorkoutSession({
+          workoutId: workout.id,
+          exercises,
+          paused: true,
+        });
+
+        // Only mark the workout paused after saving succeeds.
+        setIsPaused(true);
+      } catch (error) {
+        console.error("Unable to pause workout:", error);
+      } finally {
+        setIsSavingSession(false);
+      }
+    }
+
+// K2F-186: Resume the saved workout.
+// Existing exercise data stays in React state.
+async function resumeWorkout() {
+  // K2F-43: Prevent resuming while session data is loading.
+  if (!isPaused || isLoadingSession || isSavingSession) return;
+  setIsSavingSession(true);
+
+  try {
+    // Clear the saved paused flag.
+    // The restored exercises remain in memory.
+    await clearWorkoutSession(workout.id);
+
+    // Allow the client to continue the workout.
+    setIsPaused(false);
+  } catch (error) {
+    console.error("Unable to resume workout:", error);
+  } finally {
+    setIsSavingSession(false);
+  }
+}
+
+
+// Show a loading indicator until we know whether this workout
+// has saved progress that needs to be restored.
+if (isLoadingSession) {
+  return (
+    <ThemedBackground>
+      <View style={styles.sessionLoading}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.subtitle}>
+          Loading workout...
+        </Text>
+      </View>
+    </ThemedBackground>
+  );
+}
+
 
 return (
     <ThemedBackground>
@@ -100,6 +213,64 @@ return (
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
         </View>
+        
+
+      {/* K2F-43: Displays Pause or Resume controls. */}
+      <View style={styles.sessionCard}>
+        {isPaused ? (
+          <>
+            {/* K2F-186: Show confirmation when the workout is paused. */}
+            <Text style={styles.sessionMessage}>
+              Workout paused. Your progress is saved.
+            </Text>
+
+            {/* K2F-186: Resume the paused workout. */}
+            <Pressable
+              accessibilityRole="button"
+              // Prevent interactions while loading or saving workout data.
+              disabled={isLoadingSession || isSavingSession}
+              onPress={resumeWorkout}
+              style={({ pressed }) => [
+                styles.sessionButton,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.sessionButtonText}>
+                {isSavingSession ? "Resuming..." : "▶ Resume Workout"}
+              </Text>
+            </Pressable>
+
+            {/* K2F-185: Return to the dashboard while keeping
+                the saved workout progress in local storage.
+                This button is SEPARATE from Resume Workout.
+            */}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/client/home")}
+              style={styles.leaveButton}
+            >
+              <Text style={styles.leaveButtonText}>
+                Back to Dashboard
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          // K2F-184: Pause the active workout.
+          <Pressable
+            accessibilityRole="button"
+            disabled={isSavingSession}
+            onPress={pauseWorkout}
+            style={({ pressed }) => [
+              styles.sessionButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <Text style={styles.sessionButtonText}>
+              {isSavingSession ? "Saving..." : "Ⅱ Pause Workout"}
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
         {exercises.map((exercise) => (
           <View key={exercise.id} style={styles.exerciseCard}>
@@ -116,19 +287,39 @@ return (
                 {exercise.weight ? ` · ${exercise.weight}` : ""}
               </Text>
              
-              </View>
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityLabel={`${exercise.name} completed`}
-                accessibilityState={{ checked: exercise.completed }}
-                onPress={() => toggleExercise(exercise.id)}
-                style={[
-                  styles.checkbox,
-                  exercise.completed && styles.checkboxCompleted,
-                ]}
-              >
-                {exercise.completed && <Text style={styles.checkmark}>✓</Text>}
-              </Pressable>
+
+            </View>
+
+            {/* K2F-43: Checkbox for marking an exercise completed.
+                Disable it while the workout is paused or saving.
+            */}
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel={`${exercise.name} completed`}
+
+              // Prevents clicking the checkbox while paused or saving.
+              disabled={isPaused || isSavingSession || isLoadingSession}
+
+              // Tells accessibility tools whether the checkbox is
+              // checked or disabled.
+              accessibilityState={{
+                checked: exercise.completed,
+                disabled: isPaused || isSavingSession || isLoadingSession,
+              }}
+
+              // Updates exercise completion when the checkbox is clicked.
+              onPress={() => toggleExercise(exercise.id)}
+
+              style={[
+                styles.checkbox,
+                exercise.completed && styles.checkboxCompleted,
+              ]}
+            >
+              {/* Shows a checkmark when the exercise is completed. */}
+              {exercise.completed && (
+                <Text style={styles.checkmark}>✓</Text>
+              )}
+            </Pressable>
             </View>
 
             <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
@@ -167,7 +358,7 @@ return (
         </Pressable>
 
       </ScrollView>
-      
+
       {/* K2F-32: Display the latest information for the selected exercise.
           Closing the modal clears the selected exercise ID.
       */}
@@ -181,6 +372,65 @@ return (
 }
 
 const styles = StyleSheet.create({
+  
+  // K2F-43: Centers the loading indicator while restoring progress.
+  sessionLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+  },
+
+  // Container for the pause/resume controls.
+  sessionCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radii.card,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+
+  // Message shown when the workout is paused.
+  sessionMessage: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: spacing.md,
+  },
+
+  // Main pause/resume button, using existing app colors.
+  sessionButton: {
+    backgroundColor: colors.primaryDark,
+    borderRadius: radii.button,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: layout.minTouchTarget + spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+
+  sessionButtonText: {
+    color: colors.surface,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  // Secondary button that returns to the client dashboard.
+  leaveButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: layout.minTouchTarget,
+    marginTop: spacing.sm,
+  },
+
+  leaveButtonText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xl + spacing.md,
