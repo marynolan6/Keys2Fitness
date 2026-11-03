@@ -1,5 +1,7 @@
+// Login screen for Keys2Fitness app
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { useRef, useState, type ComponentRef } from "react";
 import {
   KeyboardAvoidingView,
@@ -11,43 +13,66 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context"
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import DoorOpeningIntro from "../../components/DoorOpeningIntro";
 import { colors } from "@/theme";
-import { getDoc, doc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { LoginFields } from "@/validation/login";
 import { validateLogin } from "@/validation/login";
 
 export default function LoginScreen() {
-  const [fields, setFields] = useState<LoginFields>({ email: "", password: "" });
-  const [touched, setTouched] = useState<Record<keyof LoginFields, boolean>>({
+  const [fields, setFields] = useState<LoginFields>({
+    email: "",
+    password: "",
+  });
+
+  const [touched, setTouched] = useState<
+    Record<keyof LoginFields, boolean>
+  >({
     email: false,
     password: false,
   });
+
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Controls the opening door animation
+  const [showIntro, setShowIntro] = useState(true);
+
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const errors = validateLogin(fields);
+
   const visibleError = (field: keyof LoginFields) =>
-    submitAttempted || touched[field] ? errors[field] : undefined;
+    submitAttempted || touched[field]
+      ? errors[field]
+      : undefined;
+
   const emailError = visibleError("email");
   const passwordError = visibleError("password");
   const hasErrors = Object.keys(errors).length > 0;
 
-  const updateField = (field: keyof LoginFields) => (value: string) =>
-    setFields((current) => ({ ...current, [field]: value }));
+  const updateField =
+    (field: keyof LoginFields) => (value: string) =>
+      setFields((current) => ({
+        ...current,
+        [field]: value,
+      }));
 
   const markTouched = (field: keyof LoginFields) => () =>
-    setTouched((current) => ({ ...current, [field]: true }));
+    setTouched((current) => ({
+      ...current,
+      [field]: true,
+    }));
 
+  // Firebase login
   const handleSubmit = async () => {
     setSubmitAttempted(true);
     setAuthError("");
-    // Stay on the login screen until every field passes validation.
-    if (hasErrors) return;
+
+    if (hasErrors || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
@@ -55,18 +80,21 @@ export default function LoginScreen() {
       const credential = await signInWithEmailAndPassword(
         auth,
         fields.email.trim(),
-        fields.password,
+        fields.password
       );
 
       const userId = credential.user.uid;
 
-      const profileSnapshot = await getDoc(doc(db, "users", userId,));
+      const profileSnapshot = await getDoc(
+        doc(db, "users", userId)
+      );
 
       const role = profileSnapshot.data()?.role;
 
       console.log("Logged-in Firebase user:", userId);
       console.log("User role:", role);
 
+      // Navigate based on user role
       if (role === "coach") {
         router.replace("/coach");
       } else {
@@ -115,26 +143,42 @@ export default function LoginScreen() {
         >
           <View style={styles.content}>
             <Text style={styles.title}>Welcome</Text>
-            <Text style={styles.subtitle}>Log in to continue</Text>
+            <Text style={styles.subtitle}>
+              Log in to continue
+            </Text>
 
+            {/* Form validation error */}
             {submitAttempted && hasErrors && (
-              <View style={styles.formError} accessibilityRole="alert">
+              <View
+                style={styles.formError}
+                accessibilityRole="alert"
+              >
                 <Text style={styles.formErrorText}>
                   Please fix the highlighted fields to log in.
                 </Text>
               </View>
             )}
 
+            {/* Firebase authentication error */}
             {authError ? (
-              <View style={styles.formError} accessibilityRole="alert">
-                <Text style={styles.formErrorText}>{authError}</Text>
+              <View
+                style={styles.formError}
+                accessibilityRole="alert"
+              >
+                <Text style={styles.formErrorText}>
+                  {authError}
+                </Text>
               </View>
             ) : null}
 
-            {/* email text field */}
+            {/* Email */}
             <Text style={styles.label}>Email</Text>
+
             <TextInput
-              style={[styles.input, emailError && styles.inputError]}
+              style={[
+                styles.input,
+                emailError && styles.inputError,
+              ]}
               placeholder="Enter your email"
               placeholderTextColor="#999"
               keyboardType="email-address"
@@ -145,17 +189,28 @@ export default function LoginScreen() {
               value={fields.email}
               onChangeText={updateField("email")}
               onBlur={markTouched("email")}
-              onSubmitEditing={() => passwordRef.current?.focus()}
+              onSubmitEditing={() =>
+                passwordRef.current?.focus()
+              }
               accessibilityLabel="Email"
               accessibilityHint={emailError}
             />
-            {emailError && <Text style={styles.errorText}>{emailError}</Text>}
 
-            {/* password text field */}
+            {emailError && (
+              <Text style={styles.errorText}>
+                {emailError}
+              </Text>
+            )}
+
+            {/* Password */}
             <Text style={styles.label}>Password</Text>
+
             <TextInput
               ref={passwordRef}
-              style={[styles.input, passwordError && styles.inputError]}
+              style={[
+                styles.input,
+                passwordError && styles.inputError,
+              ]}
               placeholder="Enter your password"
               placeholderTextColor="#999"
               secureTextEntry
@@ -168,18 +223,28 @@ export default function LoginScreen() {
               accessibilityLabel="Password"
               accessibilityHint={passwordError}
             />
-            {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
 
+            {passwordError && (
+              <Text style={styles.errorText}>
+                {passwordError}
+              </Text>
+            )}
+
+            {/* Login button */}
             <TouchableOpacity
-              style={[styles.loginButton, isSubmitting && styles.disabledButton]}
+              style={[
+                styles.loginButton,
+                isSubmitting && styles.disabledButton,
+              ]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || showIntro}
             >
               <Text style={styles.loginButtonText}>
                 {isSubmitting ? "Logging in..." : "Log In"}
               </Text>
             </TouchableOpacity>
 
+            {/* Signup */}
             <TouchableOpacity onPress={handleSignUp}>
               <Text style={styles.signupText}>
                 Don't have an account? Sign up here
@@ -188,6 +253,15 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Door opening animation above login screen */}
+      {showIntro && (
+        <View style={StyleSheet.absoluteFill}>
+          <DoorOpeningIntro
+            onComplete={() => setShowIntro(false)}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -197,7 +271,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f7f8fa",
   },
-  // allows text fields to be seen when keyboard would cover it
   keyboardView: {
     flex: 1,
   },
