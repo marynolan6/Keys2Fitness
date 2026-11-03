@@ -39,7 +39,17 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     const compact = isCompactLayout(width, fontScale);
     const [exercises, setExercises] = useState(workout.exercises);
     const [showNotes, setShowNotes] = useState(false);
-    const [selectedExercise, setSelectedExercise] = useState<AssignedWorkout["exercises"][number] | null>(null);
+    
+    // K2F-32: Store the ID of the exercise currently being viewed.
+    // Using the ID lets us retrieve the latest exercise information
+    // from state whenever that exercise is updated.
+    const [selectedExerciseId, setSelectedExerciseId] =
+      useState<string | null>(null);
+
+    // Find the latest data for the selected exercise.
+    // If no exercise is selected, the modal receives null.
+    const selectedExercise =
+      exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
 
     const completedCount = exercises.filter((exercise) => exercise.completed).length;
     const progress = exercises.length ? Math.round((completedCount / exercises.length) * 100) : 0;
@@ -96,9 +106,16 @@ return (
             <View style={styles.rowBetween}>
               <View style={styles.exerciseText}>
                 <Text style={styles.exerciseName}>{exercise.name}</Text>
-                <Text style={styles.prescription}>
-                  {exercise.sets} sets × {exercise.reps} reps · {exercise.weight}
-                </Text>
+             
+              {/* K2F-166: Display the prescribed sets and repetitions.
+                  Only show the weight if one is assigned to the exercise.
+                  This prevents empty weights from appearing on the screen.
+              */}
+              <Text style={styles.prescription}>
+                {exercise.sets} sets × {exercise.reps} reps
+                {exercise.weight ? ` · ${exercise.weight}` : ""}
+              </Text>
+             
               </View>
               <Pressable
                 accessibilityRole="checkbox"
@@ -126,7 +143,9 @@ return (
               accessibilityRole="button"
               accessibilityLabel={`View ${exercise.name} details`}
               style={({ pressed }) => [styles.secondaryButton, styles.detailsButton, pressed && styles.buttonPressed]}
-              onPress={() => setSelectedExercise(exercise)}
+
+              // K2F-32: Open the details for the exercise the client selects.
+              onPress={() => setSelectedExerciseId(exercise.id)}
             >
               <Text style={styles.secondaryButtonText}>View Details</Text>
             </Pressable>
@@ -148,10 +167,15 @@ return (
         </Pressable>
 
       </ScrollView>
+      
+      {/* K2F-32: Display the latest information for the selected exercise.
+          Closing the modal clears the selected exercise ID.
+      */}
       <ExerciseDetailsModal
         exercise={selectedExercise}
-        onClose={() => setSelectedExercise(null)}
+        onClose={() => setSelectedExerciseId(null)}
       />
+
     </ThemedBackground>
   );
 }

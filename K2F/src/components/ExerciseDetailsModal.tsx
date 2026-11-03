@@ -34,36 +34,64 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
             <ScrollView contentContainerStyle={styles.content}>
               <Text style={styles.title}>{exercise.name}</Text>
 
-              <View style={styles.prescriptionRow}>
-                <View style={styles.prescriptionItem}>
-                  <Text style={styles.label}>Sets</Text>
-                  <Text style={styles.value}>{exercise.sets}</Text>
-                </View>
-                <View style={styles.prescriptionItem}>
-                  <Text style={styles.label}>Reps</Text>
-                  <Text style={styles.value}>{exercise.reps}</Text>
-                </View>
+
+            {/* K2F-166: Display the prescribed sets, repetitions,
+                and weight for the selected exercise.
+                Weight is only shown when applicable.
+            */}
+            <View style={styles.prescriptionRow}>
+
+              {/* Display the number of assigned sets. */}
+              <View style={styles.prescriptionItem}>
+                <Text style={styles.label}>Sets</Text>
+                <Text style={styles.value}>{exercise.sets}</Text>
+              </View>
+
+              {/* Display the number of repetitions. */}
+              <View style={styles.prescriptionItem}>
+                <Text style={styles.label}>Reps</Text>
+                <Text style={styles.value}>{exercise.reps}</Text>
+              </View>
+
+              {/* Only show weight if the exercise has one assigned. */}
+              {exercise.weight?.trim() ? (
                 <View style={styles.prescriptionItem}>
                   <Text style={styles.label}>Weight</Text>
                   <Text style={styles.value}>{exercise.weight}</Text>
                 </View>
-              </View>
+              ) : null}
 
-              {exercise.instructions && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Instructions</Text>
-                  <Text style={styles.body}>{exercise.instructions}</Text>
-                </View>
-              )}
+            </View>
+
+            {/* K2F-167: Display instructions for the selected exercise.
+                Hide the section when instructions are missing or empty.
+            */}
+            {exercise.instructions?.trim() ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Instructions</Text>
+                <Text style={styles.body}>
+                  {exercise.instructions}
+                </Text>
+              </View>
+            ) : null}
 
               {exercise.demonstrationAvailable && <VideoPlaceholder />}
 
-              {exercise.coachNotes && (
-                <View style={styles.notesCard}>
-                  <Text style={styles.sectionTitle}>Coach recommendation</Text>
-                  <Text style={styles.body}>{exercise.coachNotes}</Text>
-                </View>
-              )}
+
+            {/* K2F-167: Display additional recommendations from the coach.
+                Exercises without coach notes do not show an empty card.
+            */}
+            {exercise.coachNotes?.trim() ? (
+              <View style={styles.notesCard}>
+                <Text style={styles.sectionTitle}>
+                  Coach recommendation
+                </Text>
+                <Text style={styles.body}>
+                  {exercise.coachNotes}
+                </Text>
+              </View>
+            ) : null}
+
             </ScrollView>
           )}
         </View>
@@ -135,16 +163,25 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: "300",
   },
+
+  // K2F-168: Display prescription values in a flexible row.
+  // Allows the values to wrap on smaller mobile screens.
   prescriptionRow: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radii.button,
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.sm,
     padding: spacing.md,
   },
+  // Each prescription field has space for its label and value.
+  // Prevents sets, repetitions, and weights from overlapping.
   prescriptionItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 90,
+    minWidth: 0,
   },
+
   label: {
     color: colors.textMuted,
     fontSize: typography.label,
