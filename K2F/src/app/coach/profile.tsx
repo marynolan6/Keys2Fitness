@@ -10,6 +10,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
@@ -31,9 +36,26 @@ export default function CoachProfile() {
     setEditing(false);
   };
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    try {
+      setLoggingOut(true);
+      await signOut(auth);
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <ThemedBackground>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent,
+        { paddingTop: Math.max(useSafeAreaInsets().top + spacing.sm, spacing.xl), 
+        paddingBottom: useSafeAreaInsets().bottom + 32 },]}>
         <View style={styles.content}>
           <Text style={styles.brand}>KEYS2FITNESS</Text>
 
@@ -104,6 +126,22 @@ export default function CoachProfile() {
             <ProfileLink label="Preferences" description="Notifications, appearance, and app behavior" onPress={() => router.push("/coach/subscreens/preferences")} />
             <ProfileLink label="Account settings" description="Password, email, and account security" onPress={() => router.push("/coach/subscreens/settings")} />
           </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            disabled={loggingOut}
+            onPress={handleLogout}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && styles.pressed,
+              loggingOut && styles.disabledButton,
+            ]}
+          >
+            <Text style={styles.logoutButtonText}>
+              {loggingOut ? "Logging out..." : "Log out"}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </ThemedBackground>
@@ -195,4 +233,25 @@ const styles = StyleSheet.create({
   profileLink: { alignItems: "center", borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row", gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
   chevron: { color: colors.primaryDark, fontSize: 30, lineHeight: 30 },
   pressed: { opacity: 0.75 },
+  logoutButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginTop: spacing.md,
+    minHeight: layout.minTouchTarget,
+    paddingHorizontal: spacing.md,
+    backgroundColor: "#ffff"
+  },
+
+  logoutButtonText: {
+    color: colors.danger,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  disabledButton: {
+    opacity: 0.6,
+  },
 });

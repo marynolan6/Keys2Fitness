@@ -11,6 +11,10 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 import { CheckInHistory } from "@/components/CheckInHistory";
 import { ProgressEmptyState } from "@/components/ProgressEmptyState";
@@ -120,9 +124,27 @@ export default function Profile() {
     heightCm: mockClientStats.heightCm === null ? null : Number(profile.heightInches) * 2.54,
     age: mockClientStats.age === null ? null : Number(profile.age),
   };
+
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    try {
+      setLoggingOut(true);
+      await signOut(auth);
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <ThemedBackground>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent,
+        { paddingTop: Math.max(useSafeAreaInsets().top + spacing.sm, spacing.xl), 
+        paddingBottom: useSafeAreaInsets().bottom + 32 },]}>
         <View style={styles.content}>
           <Text style={styles.brand}>KEYS2FITNESS</Text>
           <View style={styles.titleRow}>
@@ -213,6 +235,22 @@ export default function Profile() {
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
           >
             <Text style={styles.secondaryButtonText}>View Progress</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            disabled={loggingOut}
+            onPress={handleLogout}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && styles.pressed,
+              loggingOut && styles.disabledButton,
+            ]}
+          >
+            <Text style={styles.logoutButtonText}>
+              {loggingOut ? "Logging out..." : "Log out"}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -310,4 +348,25 @@ const styles = StyleSheet.create({
   secondaryButton: { alignItems: "center", backgroundColor: colors.surfaceMuted, borderRadius: radii.button, justifyContent: "center", marginTop: spacing.md, minHeight: layout.minTouchTarget, paddingHorizontal: spacing.md },
   secondaryButtonText: { color: colors.primaryDark, fontSize: typography.body, fontWeight: "700" },
   pressed: { opacity: 0.75 },
+  logoutButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginTop: spacing.md,
+    minHeight: layout.minTouchTarget,
+    paddingHorizontal: spacing.md,
+    backgroundColor: "#ffff"
+  },
+
+  logoutButtonText: {
+    color: colors.danger,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  disabledButton: {
+    opacity: 0.6,
+  },
 });
