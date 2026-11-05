@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -38,17 +39,32 @@ export default function CoachProfile() {
 
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = async () => {
-    if (loggingOut) return;
-
-    try {
-      setLoggingOut(true);
-      await signOut(auth);
-      router.replace("/auth/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setLoggingOut(false);
-    }
+  const handleLogout = () => {
+    Alert.alert(
+      "Log out",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoggingOut(true);
+              await signOut(auth);
+              router.replace("/auth/login");
+            } catch (error) {
+              console.error("Logout failed:", error);
+              setLoggingOut(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
