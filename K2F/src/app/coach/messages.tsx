@@ -3,14 +3,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { coachMessages } from "@/messages/mockMessagesCoach";
+import { isUnreadFor, mockMessages } from "@/messages/mockMessageCoachClient";
 import { colors, radii, spacing, typography } from "@/theme";
 
 export default function CoachMessages() {
   const router = useRouter();
 
   const conversations = Object.values(
-    coachMessages.reduce<Record<string, typeof coachMessages>>(
+    mockMessages.reduce<Record<string, typeof mockMessages>>(
       (groups, message) => {
         if (!groups[message.clientId]) {
           groups[message.clientId] = [];
@@ -43,7 +43,7 @@ export default function CoachMessages() {
           const latestMessage = messages[messages.length - 1];
 
           const unreadCount = messages.filter(
-            (message) => message.unread,
+            (message) => isUnreadFor(message, "coach"),
           ).length;
 
           return (
@@ -68,7 +68,14 @@ export default function CoachMessages() {
                   </Text>
                 </View>
 
-                <Text style={styles.time}>{latestMessage.time}</Text>
+                <Text style={styles.time}>
+                  {new Date(
+                    latestMessage.createdAt,
+                  ).toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </Text>
               </View>
 
               <Text style={styles.message}>
