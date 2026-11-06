@@ -2,6 +2,7 @@
 import { useRouter } from "expo-router";
 import {
   Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -220,11 +221,17 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  // Dashboard title from main
+  // Coach Dashboard title.
+  // On Expo Web, leave room for the navigation tabs
+  // so they don't overlap the heading.
   title: {
     color: colors.text,
     fontSize: typography.title,
     fontWeight: "700",
+
+    // Add extra spacing only on web.
+    // Native mobile layouts keep their original spacing.
+    marginTop: Platform.OS === "web" ? 48 : 0,
   },
 
   // K2F-235: Card for each dashboard section

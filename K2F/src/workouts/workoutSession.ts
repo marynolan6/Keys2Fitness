@@ -1,7 +1,9 @@
-// K2F-43: Save and load paused workout sessions for the client app.
+// Save and load workout checkpoints, including active-time and ended state.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { AssignedWorkout } from "./workout";
+import type { WorkoutTimer } from "./workoutTimer";
+import { isValidPerformedSets } from "./setPerformance";
 
 // K2F-43: Defines the saved information for one workout.
 // We save the entire exercise array to preserve completion
@@ -10,6 +12,7 @@ export type WorkoutSession = {
   workoutId: string;
   exercises: AssignedWorkout["exercises"];
   paused: boolean;
+  timer?: WorkoutTimer;
 };
 
 // Gives each workout its own storage key.
@@ -28,7 +31,7 @@ export async function saveWorkoutSession(
 }
 
 // K2F-186: Read a previously saved workout session.
-// Returns null when no paused session exists.
+// Legacy paused records without a timer restore at zero elapsed time.
 export async function loadWorkoutSession(
   workoutId: string
 ): Promise<WorkoutSession | null> {
@@ -50,7 +53,7 @@ export async function loadWorkoutSession(
     !("workoutId" in session) ||
     session.workoutId !== workoutId ||
     !("paused" in session) ||
-    session.paused !== true ||
+    typeof session.paused !== "boolean" ||
     !("exercises" in session) ||
     !Array.isArray(session.exercises) ||
     !session.exercises.every(
@@ -60,13 +63,25 @@ export async function loadWorkoutSession(
         "id" in exercise &&
         typeof exercise.id === "string" &&
         "completed" in exercise &&
-        typeof exercise.completed === "boolean"
+        typeof exercise.completed === "boolean" &&
+        (!("actualSets" in exercise) || isValidPerformedSets(exercise.actualSets))
     )
   ) {
     return null;
   }
 
-  return session as WorkoutSession;
+  const restored = session as WorkoutSession;
+  if (restored.timer) {
+    const timer = restored.timer;
+    if (!["running", "paused", "ended"].includes(timer.status) ||
+        !Number.isFinite(timer.elapsedMs) || timer.elapsedMs < 0 ||
+        (timer.status === "running"
+          ? typeof timer.runningSince !== "number" || !Number.isFinite(timer.runningSince)
+          : timer.runningSince !== null)) return null;
+  } else if (!restored.paused) {
+    return null;
+  }
+  return restored;
 }
 
 // Clears the paused session once the client resumes.

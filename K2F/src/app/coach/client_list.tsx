@@ -5,6 +5,7 @@
 import { router } from "expo-router";
 import {
   Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -89,11 +90,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
   },
-
+  
   title: {
     color: colors.text,
     fontSize: typography.title,
     fontWeight: "300",
+
+    // Add space above the title on Expo Web only.
+    // Keep the original spacing on native mobile.
+    marginTop: Platform.OS === "web" ? 48 : 0,
   },
 
   metaRow: {

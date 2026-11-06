@@ -3,6 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { coachMessages } from "@/messages/mockMessagesCoach";
+// K2F-282: Find the selected client's profile using their ID.
+// This allows clients without messages to display their correct name.
+import { getClientById } from "@/clients/mockClients";
 import { colors, radii, spacing, typography } from "@/theme";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
@@ -10,6 +13,10 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 export default function CoachConversation() {
   const router = useRouter();
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
+
+  // K2F-282: Retrieve the client selected from the Messages list.
+  // Each client has a unique ID, so profiles won't get mixed up.
+  const selectedClient = getClientById(clientId);
 
   const oneHour = 30 * 60 * 1000;
 
@@ -28,15 +35,39 @@ export default function CoachConversation() {
           <Text style={styles.backButton}>← Back to Messages</Text>
         </Pressable>
 
-        <View style={styles.profileHeader}>
-          <ClientAvatar
-            name={orderedMessages[0]?.clientName ?? "Client"}
-          />
 
-          <Text style={styles.title}>
-            {orderedMessages[0]?.clientName ?? "Conversation"}
-          </Text>
+        {/* K2F-282: Show the selected client's name and profile.
+            Use mockClients instead of relying on existing messages.
+            This also supports clients without message history.
+        */}
+        <View style={styles.profileHeader}>
+          <ClientAvatar name={selectedClient?.name ?? "Client"} />
+
+          <View style={styles.profileText}>
+            {/* Display the selected client's name. */}
+            <Text style={styles.title}>
+              {selectedClient?.name ?? "Client unavailable"}
+            </Text>
+
+            {/* Display their fitness goal when available. */}
+            {selectedClient?.goal ? (
+              <Text style={styles.clientGoal}>
+                {selectedClient.goal}
+              </Text>
+            ) : null}
+          </View>
         </View>
+
+        {/* K2F-282: Display a message when the client has no
+            conversation history yet.
+        */}
+        {selectedClient && orderedMessages.length === 0 && (
+          <View style={styles.emptyConversation}>
+            <Text style={styles.emptyConversationText}>
+              No messages with {selectedClient.name} yet.
+            </Text>
+          </View>
+        )}
 
         {orderedMessages.map((item, index) => {
           const previousMessage = orderedMessages[index - 1];
@@ -155,4 +186,32 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: "700",
   },
+  
+  // K2F-97: Allows the client name and goal to fit on mobile.
+  profileText: {
+    flex: 1,
+  },
+
+  // Shows the selected client's fitness goal.
+  clientGoal: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+    marginTop: spacing.xs,
+  },
+
+  // Container displayed when there are no messages.
+  emptyConversation: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    padding: spacing.lg,
+    alignItems: "center",
+  },
+
+  // Explains that this client has no messages yet.
+  emptyConversationText: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    textAlign: "center",
+  },
+
 });
