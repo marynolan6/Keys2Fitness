@@ -1,14 +1,16 @@
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
+import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { saveWorkoutSession, loadWorkoutSession } from "@/workouts/workoutSession";
 import { elapsedWorkoutTime, formatWorkoutTime, initialWorkoutTimer, transitionWorkoutTimer } from "@/workouts/workoutTimer";
 
 import { getWorkoutById } from "@/workouts/mockWorkout";
 import { getWorkoutProgress } from "@/workouts/workoutProgress";
+import { addPerformedSet, initializeSetPerformance, removeLastPerformedSet, resetSetPerformance, toggleExercisePerformance, togglePerformedSet, updateSetPerformance } from "@/workouts/setPerformance";
 import type { AssignedWorkout } from "@/workouts/workout";
 
 export default function WorkoutDetails() {
@@ -41,10 +43,13 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     const router = useRouter();
     const { width, fontScale } = useWindowDimensions();
     const compact = isCompactLayout(width, fontScale);
-    const [exercises, setExercises] = useState(workout.exercises);
+    const [exercises, setExercises] = useState(() => workout.exercises.map(initializeSetPerformance));
+    const nextSetId = useRef(0);
     const [showNotes, setShowNotes] = useState(false);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
+    const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
+    const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
     const [timer, setTimer] = useState(initialWorkoutTimer);
     const [now, setNow] = useState(Date.now);
     const [showEndConfirmation, setShowEndConfirmation] = useState(false);
@@ -66,7 +71,7 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
         try {
           const saved = await loadWorkoutSession(workout.id);
           if (active && saved) {
-            setExercises(saved.exercises);
+            setExercises(saved.exercises.map(initializeSetPerformance));
             setTimer(saved.timer ?? { status: "paused", elapsedMs: 0, runningSince: null });
             setNow(Date.now());
           }
@@ -87,7 +92,7 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
       const next = transitionWorkoutTimer(timer, action, changedAt);
       if (next === timer) return;
       const nextExercises = action === "start" && timer.status === "ended"
-        ? workout.exercises.map((exercise) => ({ ...exercise, completed: false })) : exercises;
+        ? workout.exercises.map(resetSetPerformance) : exercises;
       setIsSavingSession(true);
       setSessionError("");
       try {
@@ -111,9 +116,14 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
         if (sessionDisabled) return;
         setExercises((current) =>
             current.map((exercise) =>
-                exercise.id === id ? { ...exercise, completed: !exercise.completed } : exercise,
+                exercise.id === id ? toggleExercisePerformance(exercise) : exercise,
             ),
         );
+    }
+
+    function changeExercise(id: string, update: (exercise: AssignedWorkout["exercises"][number]) => AssignedWorkout["exercises"][number]) {
+      if (sessionDisabled) return;
+      setExercises((current) => current.map((exercise) => exercise.id === id ? update(exercise) : exercise));
     }
 
 if (isLoadingSession) {
@@ -129,7 +139,8 @@ if (isLoadingSession) {
 
 return (
     <ThemedBackground>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text style={styles.brand}>KEYS2FITNESS</Text>
         <Text style={styles.screenNumber}>03</Text>
         <Text style={styles.title}>{workout.title}</Text>
@@ -232,16 +243,19 @@ return (
                   {exercise.completed ? "Completed" : "Not complete"}
                 </Text>
                 <Text style={styles.prescription}>
-                  {exercise.sets} sets × {exercise.reps} reps{exercise.weight ? ` · ${exercise.weight}` : ""}
+                  Coach prescribed: {exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight / no weight prescribed"}
+                </Text>
+                <Text style={styles.exerciseStatus}>
+                  {exercise.actualSets?.filter((set) => set.completed).length ?? 0} of {exercise.actualSets?.length ?? 0} performed sets complete
                 </Text>
               </View>
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityLabel={`${exercise.name} completed`}
-                disabled={sessionDisabled}
-                accessibilityState={{ checked: exercise.completed, disabled: sessionDisabled }}
+                disabled={sessionDisabled || exercise.actualSets?.length === 0}
+                accessibilityState={{ checked: exercise.completed, disabled: sessionDisabled || exercise.actualSets?.length === 0 }}
                 onPress={() => toggleExercise(exercise.id)}
-                accessibilityHint="Toggles completion for this exercise"
+                accessibilityHint="Toggles all performed sets. Completing untouched fields records the prescribed targets."
                 style={({ pressed }) => [
                   styles.checkbox,
                   exercise.completed && styles.checkboxCompleted,
@@ -253,21 +267,20 @@ return (
             </View>
 
             <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
-              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-                <Text style={styles.secondaryButtonText}>+ Add Set</Text>
-              </Pressable>
-              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-                <Text style={styles.secondaryButtonText}>− Remove Set</Text>
-              </Pressable>
-            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`View ${exercise.name} details`}
-              style={({ pressed }) => [styles.secondaryButton, styles.detailsButton, pressed && styles.buttonPressed]}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
               onPress={() => setSelectedExerciseId(exercise.id)}
             >
               <Text style={styles.secondaryButtonText}>View Details</Text>
             </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`View ${exercise.name} sets`}
+              onPress={() => setSelectedSetsId(exercise.id)}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
+              <Text style={styles.secondaryButtonText}>View Sets</Text>
+            </Pressable>
+            </View>
           </View>
         ))}
 
@@ -282,9 +295,27 @@ return (
         </View>
 
       </ScrollView>
+      </KeyboardAvoidingView>
       <ExerciseDetailsModal
         exercise={selectedExercise}
         onClose={() => setSelectedExerciseId(null)}
+      />
+      <ExerciseSetsModal
+        exercise={selectedSetsExercise}
+        disabled={sessionDisabled}
+        onClose={() => setSelectedSetsId(null)}
+        onChange={(setId, field, value) => {
+          if (selectedSetsId) changeExercise(selectedSetsId, (current) => updateSetPerformance(current, setId, field, value));
+        }}
+        onToggle={(setId) => {
+          if (selectedSetsId) changeExercise(selectedSetsId, (current) => togglePerformedSet(current, setId));
+        }}
+        onAdd={() => {
+          if (!selectedSetsId) return;
+          const id = `${selectedSetsId}-actual-${Date.now()}-${++nextSetId.current}`;
+          changeExercise(selectedSetsId, (current) => addPerformedSet(current, id));
+        }}
+        onRemove={() => { if (selectedSetsId) changeExercise(selectedSetsId, removeLastPerformedSet); }}
       />
       <Modal transparent visible={showEndConfirmation} animationType="fade"
         onRequestClose={() => { if (!isSavingSession) setShowEndConfirmation(false); }}>
@@ -315,6 +346,7 @@ return (
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   timerLabel: { color: colors.textMuted, fontSize: typography.label, textAlign: "center" },
   timerValue: { color: colors.text, fontSize: typography.title, fontVariant: ["tabular-nums"], textAlign: "center", marginBottom: spacing.md },
   sessionActions: { flexDirection: "row", gap: spacing.sm },

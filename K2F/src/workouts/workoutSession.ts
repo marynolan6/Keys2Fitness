@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { AssignedWorkout } from "./workout";
 import type { WorkoutTimer } from "./workoutTimer";
+import { isValidPerformedSets } from "./setPerformance";
 
 // K2F-43: Defines the saved information for one workout.
 // We save the entire exercise array to preserve completion
@@ -62,7 +63,8 @@ export async function loadWorkoutSession(
         "id" in exercise &&
         typeof exercise.id === "string" &&
         "completed" in exercise &&
-        typeof exercise.completed === "boolean"
+        typeof exercise.completed === "boolean" &&
+        (!("actualSets" in exercise) || isValidPerformedSets(exercise.actualSets))
     )
   ) {
     return null;
