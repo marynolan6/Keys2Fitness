@@ -17,7 +17,7 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 // Coach messages widget
 import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { coachMessages } from "@/messages/mockMessagesCoach";
+import { mockMessages } from "@/messages/mockMessageCoachClient";
 
 // Shared Keys2Fitness theme
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -27,20 +27,32 @@ const MAX_SUMMARY_CLIENTS = 3;
 const MAX_RECENT_ACTIVITY = 3;
 
 // K2F-235: Recent activity (client messages for now, newest first)
-const recentActivity = coachMessages
-  .filter((message) => !message.fromCoach)
+const recentActivity = mockMessages
+  .filter((message) => 
+      message.clientId === "1" &&
+      message.senderType === "coach",
+  )
   .sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+   (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
   )
   .slice(0, MAX_RECENT_ACTIVITY);
 
 // Formats the date and time for each activity item
-function formatActivityTime(createdAt: string, time: string): string {
-  const day = new Date(createdAt).toLocaleDateString("en-US", {
+function formatActivityTime(createdAt: string): string {
+  const date = new Date(createdAt);
+
+  const day = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
+
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
   return `${day} · ${time}`;
 }
 
@@ -161,10 +173,10 @@ export default function CoachHome() {
                       {clientName} sent a message
                     </Text>
                     <Text style={styles.rowSubtitle} numberOfLines={2}>
-                      "{item.message}"
+                       {`"${item.message}"`}
                     </Text>
                     <Text style={styles.rowMeta}>
-                      {formatActivityTime(item.createdAt, item.time)}
+                      {formatActivityTime(item.createdAt)}
                     </Text>
                   </View>
                   <Text style={styles.chevron}>›</Text>
@@ -176,7 +188,7 @@ export default function CoachHome() {
 
         {/* Display recent coach messages */}
         <NewCoachMessagesWidget
-          messages={coachMessages}
+          messages={mockMessages}
           onPress={() => router.push("/coach/messages")}
         />
 
