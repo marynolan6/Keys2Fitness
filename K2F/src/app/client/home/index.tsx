@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { CurrentGoalCard } from "@/components/CurrentGoalCard";
 import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
@@ -10,34 +10,10 @@ import { mockCurrentGoal } from "@/goals/mockGoal";
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
-
-type QuickAccessCardProps = {
-  label: string;
-  description: string;
-  onPress: () => void;
-  compact: boolean;
-};
-
-function QuickAccessCard({ label, description, onPress, compact }: QuickAccessCardProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      accessibilityLabel={`${label}: ${description}`}
-      style={({ pressed }) => [styles.quickAccessCard, compact && styles.quickAccessCardCompact, pressed && styles.quickAccessCardPressed]}
-    >
-      <Text style={styles.quickAccessLabel}>{label}</Text>
-      <Text style={styles.quickAccessDescription}>{description}</Text>
-    </Pressable>
-  );
-}
-
+import { colors, layout, spacing, typography } from "@/theme";
 
 export default function ClientHome() {
   const router = useRouter();
-  const { width, fontScale } = useWindowDimensions();
-  const compact = isCompactLayout(width, fontScale);
   const assignedWorkout = mockAssignedWorkout;
   const [firstName, setFirstName] = useState(defaultProfile.fullName.split(" ")[0]);
 
@@ -82,25 +58,6 @@ export default function ClientHome() {
 
           <RecentMessagesWidget />
 
-          <View style={styles.quickAccessSection}>
-            <Text style={styles.sectionTitle}>Quick access</Text>
-            <View style={styles.quickAccessGrid}>
-              {assignedWorkout && (
-                <QuickAccessCard
-                  label="Workout"
-                  description="Continue training"
-                  compact={compact}
-                  onPress={() => openWorkout(assignedWorkout.id)}
-                />
-              )}
-              <QuickAccessCard
-                label="Progress"
-                description="Review your progress"
-                compact={compact}
-                onPress={() => router.push("/client/progress")}
-              />
-            </View>
-          </View>
         </View>
       </ScrollView>
     </ThemedBackground>
@@ -141,50 +98,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: spacing.xs,
   },
-  quickAccessSection: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.md,
-  },
   sectionTitle: {
     color: colors.text,
     fontSize: typography.heading,
     fontWeight: "700",
     marginBottom: spacing.md,
   },
-  quickAccessGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  quickAccessCard: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    width: "48%",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget * 2,
-    padding: spacing.md,
-  },
-  quickAccessCardCompact: {
-    width: "100%",
-    minHeight: layout.minTouchTarget,
-  },
-  quickAccessCardPressed: {
-    backgroundColor: colors.border,
-  },
-  quickAccessLabel: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  quickAccessDescription: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.sm,
-    textAlign: "center",
-  },
-
 });

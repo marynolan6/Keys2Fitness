@@ -7,6 +7,7 @@ export const colors = {
   surfaceMuted: "#E6EFF4",
   primary: "#599FDB",
   primaryDark: "#176E96",
+  primaryDeep: "#125574",
   text: "#17232D",
   textMuted: "#5B7180",
   border: "#D5E4EF",
@@ -44,6 +45,7 @@ export const radii = {
 } as const;
 
 export const typography = {
+  caption: 12,
   body: 16,
   label: 15,
   heading: 25,
