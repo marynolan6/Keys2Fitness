@@ -2,12 +2,15 @@ import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/t
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
+import { CoachNoteButton, CoachNoteSheet } from "@/components/CoachNoteSheet";
+import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { saveWorkoutSession, loadWorkoutSession } from "@/workouts/workoutSession";
 import { elapsedWorkoutTime, formatWorkoutTime, initialWorkoutTimer, transitionWorkoutTimer } from "@/workouts/workoutTimer";
 
+import { getWorkoutCoachNote } from "@/workouts/coachNote";
 import { getWorkoutById } from "@/workouts/mockWorkout";
 import { getWorkoutProgress } from "@/workouts/workoutProgress";
 import { addPerformedSet, initializeSetPerformance, removeLastPerformedSet, resetSetPerformance, toggleExercisePerformance, togglePerformedSet, updateSetPerformance } from "@/workouts/setPerformance";
@@ -45,8 +48,11 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     const compact = isCompactLayout(width, fontScale);
     const [exercises, setExercises] = useState(() => workout.exercises.map(initializeSetPerformance));
     const nextSetId = useRef(0);
-    const [showNotes, setShowNotes] = useState(false);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+    // The note opens as an overlay on this screen, so viewing it never touches workout state.
+    const [showCoachNote, setShowCoachNote] = useState(false);
+    const [noteScrolledAway, setNoteScrolledAway] = useState(false);
+    const noteCardBottom = useRef<number | null>(null);
     const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
     const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
     const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
@@ -110,6 +116,13 @@ function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
     }
 
     const summary = getWorkoutProgress(exercises);
+    const coachNote = getWorkoutCoachNote(workout);
+    const sessionLabel = [workout.title, workout.scheduleLabel].filter(Boolean).join(" · ");
+    const noteStatusText = [
+      { ready: "Workout not started", running: "Workout running", paused: "Workout paused", ended: "Workout ended" }[timer.status],
+      timer.status === "ready" ? undefined : formatWorkoutTime(elapsedWorkoutTime(timer, now)),
+      `${summary.completed} of ${summary.total} exercises complete`,
+    ].filter(Boolean).join(" · ");
     const progress = summary.percentage;
 
     function toggleExercise(id: string) {
@@ -140,7 +153,18 @@ if (isLoadingSession) {
 return (
     <ThemedBackground>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView
+        contentContainerStyle={[styles.content, coachNote && styles.contentWithNoteButton]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        scrollEventThrottle={32}
+        onScroll={(event) => {
+          const bottom = noteCardBottom.current;
+          if (bottom === null) return;
+          const scrolledAway = event.nativeEvent.contentOffset.y > bottom;
+          if (scrolledAway !== noteScrolledAway) setNoteScrolledAway(scrolledAway);
+        }}
+      >
         <Text style={styles.brand}>KEYS2FITNESS</Text>
         <Text style={styles.screenNumber}>03</Text>
         <Text style={styles.title}>{workout.title}</Text>
@@ -148,22 +172,14 @@ return (
           <Text style={[styles.subtitle, styles.subtitleText]}>
             {[workout.status === "current" ? "Current workout" : "Upcoming workout", workout.scheduleLabel].filter(Boolean).join(" · ")}
           </Text>
-          {workout.notes?.trim() && <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showNotes }}
-            onPress={() => setShowNotes((visible) => !visible)}
-            style={[styles.notesToggle, compact && styles.notesToggleCompact]}
-          >
-            <Text style={styles.notesToggleText}>
-              {showNotes ? "Hide notes" : "Notes"}
-            </Text>
-          </Pressable>}
         </View>
 
-        {showNotes && workout.notes?.trim() && (
-          <View style={styles.notesCard}>
-            <Text style={styles.notesTitle}>Workout notes</Text>
-            <Text style={styles.notesText}>{workout.notes}</Text>
+        {coachNote && (
+          <View onLayout={(event) => {
+            const { y, height } = event.nativeEvent.layout;
+            noteCardBottom.current = y + height;
+          }}>
+            <WorkoutCoachNoteCard note={coachNote} sessionLabel={sessionLabel} />
           </View>
         )}
 
@@ -296,6 +312,18 @@ return (
 
       </ScrollView>
       </KeyboardAvoidingView>
+      {coachNote && noteScrolledAway && !showCoachNote && (
+        <CoachNoteButton onPress={() => setShowCoachNote(true)} />
+      )}
+      {coachNote && (
+        <CoachNoteSheet
+          note={coachNote}
+          sessionLabel={sessionLabel}
+          visible={showCoachNote}
+          statusText={noteStatusText}
+          onClose={() => setShowCoachNote(false)}
+        />
+      )}
       <ExerciseDetailsModal
         exercise={selectedExercise}
         onClose={() => setSelectedExerciseId(null)}
@@ -400,6 +428,8 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
     alignSelf: "center",
   },
+  // Room for the floating "Coach's note" button so it never covers the last actions.
+  contentWithNoteButton: { paddingBottom: spacing.xl + spacing.md + layout.minTouchTarget + spacing.lg },
   brand: {
     color: colors.primaryDark,
     fontSize: typography.label,
@@ -440,39 +470,6 @@ const styles = StyleSheet.create({
   subtitleText: {
     flex: 1,
     marginTop: 0,
-  },
-  notesToggle: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    marginLeft: spacing.sm,
-    minHeight: layout.minTouchTarget,
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  notesToggleCompact: { marginLeft: 0 },
-  notesToggleText: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-  },
-  notesCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.card,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-  },
-  notesTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
-  notesText: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-    marginTop: spacing.sm,
   },
   progressCard: {
     backgroundColor: colors.surface,

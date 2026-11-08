@@ -25,6 +25,10 @@ export type AssignedWorkout = {
   status: "current" | "upcoming";
   scheduleLabel?: string;
   durationMinutes?: number;
+  // Session-level note from the coach for this specific workout.
   notes?: string;
+  // Who wrote the note and when it was last updated ("YYYY-MM-DD"), when known.
+  notesAuthor?: string;
+  notesUpdatedAt?: string;
   exercises: WorkoutExercise[];
 };
