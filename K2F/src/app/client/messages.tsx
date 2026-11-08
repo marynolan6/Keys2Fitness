@@ -1,10 +1,13 @@
 import { useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { useReadState } from "@/messages/MessageReadState";
-import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View,} from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View, type ScrollViewInstance,} from "react-native";
 import { ConversationHeader, NewMessagesDivider,TypingIndicator,} from "@/messages/MessageFeatures";
 import { mockCoachTyping, mockMessages,type MockMessage,} from "@/messages/mockMessageCoachClient";
 import { MessageBubble } from "@/messages/MessageBubble";
+import { ConversationSearchBar } from "@/messages/ConversationSearchBar";
+import { searchMessages } from "@/messages/messageSearch";
+import { MessageSearchResults } from "@/messages/MessageSearchResults";
 import { MessageComposer } from "@/messages/MessageComposer";
 import { MessageState } from "@/messages/MessageState";
 import { MessageTimestamp } from "@/messages/MessageTimestamp";
@@ -15,7 +18,7 @@ type MessageStatus = "loading" | "ready" | "error";
 
 export default function Messages() {
   const router = useRouter();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   const [messageStatus, setMessageStatus] =
     useState<MessageStatus>("ready");
@@ -31,6 +34,17 @@ export default function Messages() {
   );
 
   const [message, setMessage] = useState("");
+
+  // Search lives in local state and only reads this conversation's messages; it never changes them.
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const isShowingResults = isSearchOpen && searchQuery.trim().length > 0;
+  const searchResults = isShowingResults ? searchMessages(messages, searchQuery) : [];
+
+  function closeSearch() {
+    setIsSearchOpen(false);
+    setSearchQuery("");
+  }
   const isTyping = message.trim().length > 0;
 
   const { isUnread } = useReadState({
@@ -70,22 +84,39 @@ export default function Messages() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        {/* Pinned above the conversation so search stays reachable however far the client has scrolled. */}
+        <View style={styles.headerArea}>
+          <ConversationHeader
+            name="COACH KEYS"
+            onBack={() => router.back()}
+            onSearchPress={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
+            isSearchActive={isSearchOpen}
+          />
+          {isSearchOpen && (
+            <ConversationSearchBar
+              query={searchQuery}
+              onChangeQuery={setSearchQuery}
+              onCancel={closeSearch}
+            />
+          )}
+        </View>
+
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={styles.messageList}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
-            scrollViewRef.current?.scrollToEnd({
-              animated: false,
-            })
+            // Results are newest first, so start them at the top; the conversation starts at the latest message.
+            isShowingResults
+              ? scrollViewRef.current?.scrollTo({ y: 0, animated: false })
+              : scrollViewRef.current?.scrollToEnd({
+                animated: false,
+              })
           }
         >
-          <ConversationHeader
-            name="COACH KEYS"
-            onBack={() => router.back()}
-          />
-
-          {messageStatus === "loading" ? (
+          {isShowingResults ? (
+            <MessageSearchResults query={searchQuery} results={searchResults} onClearQuery={() => setSearchQuery("")} />
+          ) : messageStatus === "loading" ? (
             <MessageState state="loading" />
           ) : messageStatus === "error" ? (
             <MessageState
@@ -190,9 +221,14 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  headerArea: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
   messageList: {
-    padding: spacing.lg,
     paddingBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
   composerContainer: {
     padding: spacing.sm,
