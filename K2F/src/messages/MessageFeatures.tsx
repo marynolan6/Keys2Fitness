@@ -1,18 +1,24 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { colors, spacing, typography } from "@/theme";
+import { SearchIcon } from "@/messages/ConversationSearchBar";
+import { colors, layout, spacing, typography } from "@/theme";
 
 type ConversationHeaderProps = {
   name: string;
   onBack: () => void;
   imageUrl?: string;
+  // Shows a search button on the right when provided.
+  onSearchPress?: () => void;
+  isSearchActive?: boolean;
 };
 
 export function ConversationHeader({
   name,
   onBack,
   imageUrl,
+  onSearchPress,
+  isSearchActive = false,
 }: ConversationHeaderProps) {
   return (
     <View style={styles.header}>
@@ -30,6 +36,22 @@ export function ConversationHeader({
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.brand}>KEYS2FITNESS</Text>
       </View>
+
+      {onSearchPress && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search conversation"
+          accessibilityState={{ expanded: isSearchActive }}
+          onPress={onSearchPress}
+          style={({ pressed }) => [
+            styles.searchButton,
+            isSearchActive && styles.searchButtonActive,
+            pressed && styles.searchButtonPressed,
+          ]}
+        >
+          <SearchIcon color={isSearchActive ? colors.surface : colors.primaryDark} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -116,6 +138,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.label,
     marginTop: spacing.xs,
+  },
+  searchButton: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: layout.minTouchTarget / 2,
+    height: layout.minTouchTarget,
+    justifyContent: "center",
+    width: layout.minTouchTarget,
+  },
+  searchButtonActive: {
+    backgroundColor: colors.primaryDark,
+  },
+  searchButtonPressed: {
+    opacity: 0.8,
   },
   dividerContainer: {
     alignItems: "center",
