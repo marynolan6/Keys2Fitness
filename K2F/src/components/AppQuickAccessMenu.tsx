@@ -3,14 +3,18 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { mockAssignedWorkout } from "@/workouts/mockWorkout";
+import { auth } from "@/lib/firebase";
 
-const items = [
+export type NavigationRole = "client" | "coach";
+
+const clientItems = [
   { label: "Home", path: "/client/home", icon: { ios: "house", android: "home", web: "home" } },
   { label: "Workout", path: "/client/home/workout", icon: { ios: "dumbbell", android: "fitness_center", web: "fitness_center" } },
   { label: "Nutrition", path: null, icon: { ios: "fork.knife", android: "restaurant", web: "restaurant" } },
@@ -19,22 +23,40 @@ const items = [
   { label: "Profile", path: "/client/profile", icon: { ios: "person", android: "person", web: "person" } },
 ] as const;
 
-export function ClientQuickAccessMenu({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+const coachItems = [
+  { label: "Home", path: "/coach", icon: { ios: "house", android: "home", web: "home" } },
+  { label: "Client List", path: "/coach/client_list", icon: { ios: "person.2", android: "group", web: "group" } },
+  { label: "Check-ins", path: "/coach-checkins", icon: { ios: "checkmark.circle", android: "task_alt", web: "task_alt" } },
+  { label: "Messages", path: "/coach/messages", icon: { ios: "message", android: "chat", web: "chat" } },
+  { label: "Profile", path: "/coach/profile", icon: { ios: "person", android: "person", web: "person" } },
+  { label: "Preferences", path: "/coach/subscreens/preferences", icon: { ios: "slider.horizontal.3", android: "tune", web: "tune" } },
+  { label: "Account settings", path: "/coach/subscreens/settings", icon: { ios: "gearshape", android: "settings", web: "settings" } },
+] as const;
+
+export function AppQuickAccessMenu({ role, visible, onClose }: {
+  role: NavigationRole;
+  visible: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
-  const [name, setName] = useState(defaultProfile.fullName);
+  const [name, setName] = useState(role === "client" ? defaultProfile.fullName : "Coach");
+  const items = role === "client" ? clientItems : coachItems;
 
   useEffect(() => {
     if (!visible) return;
+    if (role === "coach") {
+      return onAuthStateChanged(auth, (user) => setName(user?.displayName?.trim() || "Coach"));
+    }
     let active = true;
     loadProfile().then((profile) => {
       if (active) setName(profile.fullName.trim() || "Client");
     }).catch(() => { if (active) setName(defaultProfile.fullName); });
     return () => { active = false; };
-  }, [visible]);
+  }, [role, visible]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -57,7 +79,7 @@ export function ClientQuickAccessMenu({ visible, onClose }: { visible: boolean; 
               <ClientAvatar name={name} />
               <View style={styles.identityText}>
                 <Text style={styles.name}>{name}</Text>
-                <Text style={styles.subtitle}>Client · Keys2Fitness</Text>
+                <Text style={styles.subtitle}>{role === "client" ? "Client" : "Coach"} · Keys2Fitness</Text>
               </View>
             </View>
             <View style={styles.divider} />

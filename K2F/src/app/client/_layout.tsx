@@ -1,9 +1,9 @@
 import { Tabs } from "expo-router";
-import { ClientTabBar } from "@/components/ClientTabBar";
+import { AppTabBar } from "@/components/AppTabBar";
 
 export default function ClientLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <ClientTabBar {...props} />}>
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <AppTabBar {...props} role="client" />}>
       <Tabs.Screen name="home" options={{ title: "Home" }} />
       <Tabs.Screen name="progress" options={{ title: "Progress" }} />
       <Tabs.Screen name="messages" options={{ title: "Messages" }} />

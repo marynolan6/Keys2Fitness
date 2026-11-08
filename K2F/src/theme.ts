@@ -65,6 +65,20 @@ export function isCompactLayout(width: number, fontScale: number): boolean {
   return width < layout.compactWidth || fontScale >= layout.largeFontScale;
 }
 
+// Shared bottom navigation standard for both client and coach layouts.
+// Render through AppTabBar so role-specific destinations never fork the design.
+export const navigation = {
+  cornerRadius: radii.card,
+  overlap: spacing.md,
+  centerSlotWidth: layout.minTouchTarget + spacing.md,
+  actionSize: layout.minTouchTarget + spacing.sm,
+  actionRadius: radii.card + spacing.xs,
+  actionColor: colors.primaryDeep,
+  actionPressedColor: colors.primaryDark,
+  actionElevation: 4,
+  actionShadowOpacity: 0.2,
+} as const;
+
 export const theme = {
   colors,
   gradients,
@@ -72,4 +86,5 @@ export const theme = {
   radii,
   typography,
   layout,
+  navigation,
 } as const;
