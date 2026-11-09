@@ -44,16 +44,14 @@ def main():
     assert checkbox.get("enabled") == "false", "Paused checkbox must be disabled"
     tap(checkbox)
     assert_summary("All exercises complete")
-    tap(scroll_to("Back to Dashboard"))
+    tap(matching(snapshot(), "Open quick access menu")[0])
+    tap(matching(wait_for("Menu"), "Home")[0])
     # Reenter through the actual dashboard card, creating a new workout view.
-    card_label = "Current workout: Upper Body Strength. Week 5, Day 3 · 4 exercises · 45 min"
+    card_label = "Continue workout: Upper Body Strength. Current workout. Week 5, Day 3 · 4 exercises · 45 min"
     tap(scroll_to(card_label))
-    wait_for("Workout paused. Your progress is saved.")
-    assert_summary("All exercises complete")
-    tap(scroll_to("Resume"))
     wait_for("Ⅱ Pause Workout")
     assert_summary("All exercises complete")
-    print("PASS: pause disables completion; leave/reopen/resume restores complete state")
+    print("PASS: pause disables completion; dashboard Continue restores progress and resumes the clock")
     tap(scroll_to("View Hammer Curl details"))
     wait_for("Exercise details")
     adb("shell", "input", "keyevent", "KEYCODE_BACK")

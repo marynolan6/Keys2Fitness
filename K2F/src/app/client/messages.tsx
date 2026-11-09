@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { useRouter } from "expo-router";
 import { useReadState } from "@/messages/MessageReadState";
 import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View, type ScrollViewInstance,} from "react-native";
 import { ConversationHeader, NewMessagesDivider,TypingIndicator,} from "@/messages/MessageFeatures";
@@ -17,7 +16,6 @@ import { spacing } from "@/theme";
 type MessageStatus = "loading" | "ready" | "error";
 
 export default function Messages() {
-  const router = useRouter();
   const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   const [messageStatus, setMessageStatus] =
@@ -88,7 +86,6 @@ export default function Messages() {
         <View style={styles.headerArea}>
           <ConversationHeader
             name="COACH KEYS"
-            onBack={() => router.back()}
             onSearchPress={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
             isSearchActive={isSearchOpen}
           />

@@ -6,7 +6,7 @@ import { colors, layout, spacing, typography } from "@/theme";
 
 type ConversationHeaderProps = {
   name: string;
-  onBack: () => void;
+  onBack?: () => void;
   imageUrl?: string;
   // Shows a search button on the right when provided.
   onSearchPress?: () => void;
@@ -22,9 +22,10 @@ export function ConversationHeader({
 }: ConversationHeaderProps) {
   return (
     <View style={styles.header}>
-      <Pressable onPress={onBack} style={styles.backButton}>
+      {onBack && <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations"
+        onPress={onBack} style={styles.backButton}>
         <Text style={styles.backText}>←</Text>
-      </Pressable>
+      </Pressable>}
 
       <ClientAvatar
         name={name}

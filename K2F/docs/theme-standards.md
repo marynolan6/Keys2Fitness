@@ -21,6 +21,6 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 | Role | Visible tabs | Quick-access items |
 | --- | --- | --- |
 | Client | Home, Progress, Messages, Profile | Home, Workout, Nutrition, Messages, Progress, Profile |
-| Coach | Home, Client List, Messages, Profile | Home, Client List, Check-ins, Messages, Profile, Preferences, Account settings |
+| Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Messages, Profile, Preferences, Account settings |
 
 Nutrition retains its coming-soon message. Client Workout uses the existing dashboard mock assignment. Check-ins is an existing root-stack destination; Android Back returns to the coach screen. Coach identity uses Firebase's display name when available, otherwise “Coach”; it must not reuse the locally saved client profile.

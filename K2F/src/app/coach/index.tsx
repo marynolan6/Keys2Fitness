@@ -13,7 +13,6 @@ import {
 // K2F-236: Client data shared with the client list
 import { reloadCoachClients, useCoachClientsState } from "@/clients/clientStore";
 import { getActiveClients, getClientById } from "@/clients/mockClients";
-import { ActiveClientsCard } from "@/components/ActiveClientsCard";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 // Coach messages widget
@@ -85,14 +84,6 @@ export default function CoachHome() {
         {/* Dashboard heading */}
         <Text style={styles.title}>Coach Dashboard</Text>
 
-        {/* K2F-53: Active-client count */}
-        <ActiveClientsCard
-          loadStatus={loadStatus}
-          count={activeClients.length}
-          onRetry={reloadCoachClients}
-          onOpenClientList={() => router.push("/coach/client_list")}
-        />
-
         {/* K2F-235 / K2F-236: Current clients summary */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -106,9 +97,16 @@ export default function CoachHome() {
             <Text style={styles.emptyText}>Loading clients…</Text>
           ) : loadStatus === "error" ? (
             // No count or "no clients" message while the data is unavailable
-            <Text style={styles.emptyText}>
-              Clients couldn&apos;t be loaded right now.
-            </Text>
+            <>
+              <Text style={styles.emptyText}>
+                Clients couldn&apos;t be loaded right now.
+              </Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Retry loading clients"
+                onPress={reloadCoachClients}
+                style={({ pressed }) => [styles.linkButton, pressed && styles.rowPressed]}>
+                <Text style={styles.linkText}>Try again</Text>
+              </Pressable>
+            </>
           ) : activeClients.length === 0 ? (
             // Shown when there are no active clients
             <Text style={styles.emptyText}>

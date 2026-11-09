@@ -8,6 +8,7 @@ export default function CoachLayout() {
       <Tabs.Screen name="client_list" options={{ title: "Client List" }} />
       <Tabs.Screen name="messages" options={{ title: "Messages" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen name="workouts" options={{ title: "Workout Library" }} />
       {/* AppTabBar filters these out visually; keep them navigable. */}
       <Tabs.Screen name="subscreens/preferences" options={{ title: "Preferences" }} />
       <Tabs.Screen name="subscreens/settings" options={{ title: "Account settings" }} />

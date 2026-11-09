@@ -47,6 +47,7 @@ export const radii = {
 export const typography = {
   caption: 12,
   body: 16,
+  bodyLineHeight: 23,
   label: 15,
   heading: 25,
   title: 38,
