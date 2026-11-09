@@ -11,7 +11,9 @@ import {
 } from "react-native";
 
 // K2F-236: Client data shared with the client list
-import { demoClients, getClientById } from "@/clients/mockClients";
+import { reloadCoachClients, useCoachClientsState } from "@/clients/clientStore";
+import { getActiveClients, getClientById } from "@/clients/mockClients";
+import { ActiveClientsCard } from "@/components/ActiveClientsCard";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 // Coach messages widget
@@ -60,7 +62,10 @@ function formatActivityTime(createdAt: string): string {
 export default function CoachHome() {
   const router = useRouter();
 
-  const summaryClients = demoClients.slice(0, MAX_SUMMARY_CLIENTS);
+  // K2F-53: One source for every "active" number and list on the dashboard; re-renders when a client's status changes.
+  const { loadStatus, clients } = useCoachClientsState();
+  const activeClients = getActiveClients(clients);
+  const summaryClients = activeClients.slice(0, MAX_SUMMARY_CLIENTS);
 
   // K2F-237: Open client details from the dashboard
   const openClientProfile = (clientId: string) =>
@@ -80,6 +85,14 @@ export default function CoachHome() {
         {/* Dashboard heading */}
         <Text style={styles.title}>Coach Dashboard</Text>
 
+        {/* K2F-53: Active-client count */}
+        <ActiveClientsCard
+          loadStatus={loadStatus}
+          count={activeClients.length}
+          onRetry={reloadCoachClients}
+          onOpenClientList={() => router.push("/coach/client_list")}
+        />
+
         {/* K2F-235 / K2F-236: Current clients summary */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -89,16 +102,23 @@ export default function CoachHome() {
             <Text style={styles.demoLabel}>Demo data</Text>
           </View>
 
-          {demoClients.length === 0 ? (
-            // Shown when there are no clients
+          {loadStatus === "loading" ? (
+            <Text style={styles.emptyText}>Loading clients…</Text>
+          ) : loadStatus === "error" ? (
+            // No count or "no clients" message while the data is unavailable
             <Text style={styles.emptyText}>
-              No clients yet. Clients assigned to you will appear here.
+              Clients couldn&apos;t be loaded right now.
+            </Text>
+          ) : activeClients.length === 0 ? (
+            // Shown when there are no active clients
+            <Text style={styles.emptyText}>
+              No active clients yet. Clients assigned to you will appear here.
             </Text>
           ) : (
             <>
               <Text style={styles.sectionMeta}>
-                {demoClients.length} active{" "}
-                {demoClients.length === 1 ? "client" : "clients"}
+                {activeClients.length} active{" "}
+                {activeClients.length === 1 ? "client" : "clients"}
               </Text>
 
               {summaryClients.map((client) => (
