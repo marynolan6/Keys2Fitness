@@ -1,6 +1,149 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { colors, radii, spacing, typography } from "@/theme";
+import { mockMessages, isUnreadFor } from "@/messages/mockMessageCoachClient";
+
+export function RecentMessagesWidget() {
+  const router = useRouter();
+
+  const clientMessages = mockMessages.filter(
+    (message) =>
+      message.clientId === "1" &&
+      message.senderType === "coach",
+  );
+
+  const sortedMessages = [...clientMessages].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
+  );
+
+  const visibleMessages = sortedMessages.filter(
+    (message, index) =>
+      index < 2 || isUnreadFor(message, "client"),
+  );
+
+  return (
+    <View style={styles.messagesSection}>
+      <Text style={styles.sectionTitle}>Recent Messages</Text>
+
+      {visibleMessages.map((item) => {
+        const unread = isUnreadFor(item, "client");
+
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() =>
+              router.push({
+                pathname: "/client/messages",
+                params: { messageId: item.id },
+              })
+            }
+            style={[
+              styles.messageCard,
+              unread && styles.unreadMessageCard,
+            ]}
+          >
+            <View style={styles.messageHeader}>
+              <Text style={styles.coachName}>
+                {item.sender}
+              </Text>
+
+              {unread && (
+                <Text style={styles.unreadLabel}>NEW</Text>
+              )}
+            </View>
+
+            <Text style={styles.messageText}>
+              {item.message}
+            </Text>
+
+            <Text style={styles.messageTime}>
+              {new Date(item.createdAt).toLocaleTimeString(
+                "en-US",
+                {
+                  hour: "numeric",
+                  minute: "2-digit",
+                },
+              )}
+            </Text>
+          </Pressable>
+        );
+      })}
+
+      {visibleMessages.length < clientMessages.length && (
+        <Pressable
+          style={styles.viewMoreButton}
+          onPress={() => router.push("/client/messages")}
+        >
+          <Text style={styles.viewMoreText}>
+            View more messages
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  messagesSection: {
+    marginTop: spacing.lg,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: typography.heading,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
+  messageCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  messageHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  coachName: {
+    color: colors.primaryDark,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+  messageText: {
+    color: colors.text,
+    fontSize: typography.body,
+    marginTop: spacing.xs,
+  },
+  messageTime: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+    marginTop: spacing.sm,
+  },
+  unreadMessageCard: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  unreadLabel: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  viewMoreButton: {
+    alignItems: "center",
+    padding: spacing.sm,
+  },
+  viewMoreText: {
+    color: colors.primaryDark,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+});
+/*import { useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
 import { recentMessages } from "@/messages/mockMessagesClient";
 import { colors, radii, spacing, typography } from "@/theme";
 
@@ -115,4 +258,4 @@ const styles = StyleSheet.create({
         fontSize: typography.body,
         fontWeight: "700",
     },
-});
+});*/

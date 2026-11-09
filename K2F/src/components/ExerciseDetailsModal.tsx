@@ -76,6 +76,10 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
             ) : null}
 
               {exercise.demonstrationAvailable && <VideoPlaceholder />}
+              {exercise.alternative?.trim() && <View style={styles.notesCard}>
+                <Text style={styles.sectionTitle}>Alternative exercise</Text>
+                <Text style={styles.body}>{exercise.alternative}</Text>
+              </View>}
 
 
             {/* K2F-167: Display additional recommendations from the coach.

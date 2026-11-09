@@ -83,7 +83,7 @@ export default function RecentCheckIns() {
             <Text style={styles.brand}>KEYS2FITNESS</Text>
             <Text style={styles.heading}>Recent Check-ins</Text>
             <Text style={styles.subtitle}>
-              Review your clients' latest updates
+             Review your clients' latest updates
             </Text>
           </View>
         }

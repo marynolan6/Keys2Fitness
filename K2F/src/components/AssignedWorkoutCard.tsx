@@ -2,13 +2,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import type { AssignedWorkout } from "@/workouts/workout";
+import { getWorkoutCardLabels, type WorkoutSession } from "@/workouts/workoutSessionStore";
 
 type Props = {
   workout: AssignedWorkout | null;
   onOpen: (workoutId: string) => void;
+  session?: WorkoutSession | null;
+  loading?: boolean;
 };
 
-export function AssignedWorkoutCard({ workout, onOpen }: Props) {
+export function AssignedWorkoutCard({ workout, onOpen, session = null, loading = false }: Props) {
   if (!workout) {
     return (
       <View style={styles.card}>
@@ -18,7 +21,9 @@ export function AssignedWorkoutCard({ workout, onOpen }: Props) {
     );
   }
 
-  const status = workout.status === "current" ? "Current workout" : "Upcoming workout";
+  const labels = getWorkoutCardLabels(workout, session);
+  const status = loading ? "Checking workout..." : labels.status;
+  const action = loading ? "Loading..." : labels.action;
   const summary = [
     workout.scheduleLabel?.trim(),
     `${workout.exercises.length} ${workout.exercises.length === 1 ? "exercise" : "exercises"}`,
@@ -30,8 +35,10 @@ export function AssignedWorkoutCard({ workout, onOpen }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${status}: ${workout.title}. ${summary}`}
-      accessibilityHint="Opens the assigned workout details"
+      accessibilityLabel={`${action}: ${workout.title}. ${status}. ${summary}`}
+      accessibilityHint={labels.continuing ? "Continues your saved workout progress" : "Opens the assigned workout details"}
+      accessibilityState={{ disabled: loading, busy: loading }}
+      disabled={loading}
       onPress={() => onOpen(workout.id)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -39,7 +46,7 @@ export function AssignedWorkoutCard({ workout, onOpen }: Props) {
       <Text style={styles.title}>{workout.title}</Text>
       <Text style={styles.summary}>{summary}</Text>
       <View style={styles.action}>
-        <Text style={styles.actionText}>View workout →</Text>
+        <Text style={styles.actionText}>{action} →</Text>
       </View>
     </Pressable>
   );

@@ -11,13 +11,14 @@ import {
 } from "react-native";
 
 // K2F-236: Client data shared with the client list
-import { demoClients, getClientById } from "@/clients/mockClients";
+import { reloadCoachClients, useCoachClientsState } from "@/clients/clientStore";
+import { getActiveClients, getClientById } from "@/clients/mockClients";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 // Coach messages widget
 import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { coachMessages } from "@/messages/mockMessagesCoach";
+import { mockMessages } from "@/messages/mockMessageCoachClient";
 
 // Shared Keys2Fitness theme
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -27,20 +28,32 @@ const MAX_SUMMARY_CLIENTS = 3;
 const MAX_RECENT_ACTIVITY = 3;
 
 // K2F-235: Recent activity (client messages for now, newest first)
-const recentActivity = coachMessages
-  .filter((message) => !message.fromCoach)
+const recentActivity = mockMessages
+  .filter((message) => 
+      message.clientId === "1" &&
+      message.senderType === "coach",
+  )
   .sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+   (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
   )
   .slice(0, MAX_RECENT_ACTIVITY);
 
 // Formats the date and time for each activity item
-function formatActivityTime(createdAt: string, time: string): string {
-  const day = new Date(createdAt).toLocaleDateString("en-US", {
+function formatActivityTime(createdAt: string): string {
+  const date = new Date(createdAt);
+
+  const day = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
+
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
   return `${day} · ${time}`;
 }
 
@@ -48,7 +61,10 @@ function formatActivityTime(createdAt: string, time: string): string {
 export default function CoachHome() {
   const router = useRouter();
 
-  const summaryClients = demoClients.slice(0, MAX_SUMMARY_CLIENTS);
+  // K2F-53: One source for every "active" number and list on the dashboard; re-renders when a client's status changes.
+  const { loadStatus, clients } = useCoachClientsState();
+  const activeClients = getActiveClients(clients);
+  const summaryClients = activeClients.slice(0, MAX_SUMMARY_CLIENTS);
 
   // K2F-237: Open client details from the dashboard
   const openClientProfile = (clientId: string) =>
@@ -77,16 +93,30 @@ export default function CoachHome() {
             <Text style={styles.demoLabel}>Demo data</Text>
           </View>
 
-          {demoClients.length === 0 ? (
-            // Shown when there are no clients
+          {loadStatus === "loading" ? (
+            <Text style={styles.emptyText}>Loading clients…</Text>
+          ) : loadStatus === "error" ? (
+            // No count or "no clients" message while the data is unavailable
+            <>
+              <Text style={styles.emptyText}>
+                Clients couldn&apos;t be loaded right now.
+              </Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Retry loading clients"
+                onPress={reloadCoachClients}
+                style={({ pressed }) => [styles.linkButton, pressed && styles.rowPressed]}>
+                <Text style={styles.linkText}>Try again</Text>
+              </Pressable>
+            </>
+          ) : activeClients.length === 0 ? (
+            // Shown when there are no active clients
             <Text style={styles.emptyText}>
-              No clients yet. Clients assigned to you will appear here.
+              No active clients yet. Clients assigned to you will appear here.
             </Text>
           ) : (
             <>
               <Text style={styles.sectionMeta}>
-                {demoClients.length} active{" "}
-                {demoClients.length === 1 ? "client" : "clients"}
+                {activeClients.length} active{" "}
+                {activeClients.length === 1 ? "client" : "clients"}
               </Text>
 
               {summaryClients.map((client) => (
@@ -161,10 +191,10 @@ export default function CoachHome() {
                       {clientName} sent a message
                     </Text>
                     <Text style={styles.rowSubtitle} numberOfLines={2}>
-                      "{item.message}"
+                       {`"${item.message}"`}
                     </Text>
                     <Text style={styles.rowMeta}>
-                      {formatActivityTime(item.createdAt, item.time)}
+                      {formatActivityTime(item.createdAt)}
                     </Text>
                   </View>
                   <Text style={styles.chevron}>›</Text>
@@ -176,7 +206,7 @@ export default function CoachHome() {
 
         {/* Display recent coach messages */}
         <NewCoachMessagesWidget
-          messages={coachMessages}
+          messages={mockMessages}
           onPress={() => router.push("/coach/messages")}
         />
 

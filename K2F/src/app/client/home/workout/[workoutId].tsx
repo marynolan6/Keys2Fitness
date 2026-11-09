@@ -1,23 +1,34 @@
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
+import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
+import { CoachNoteButton, CoachNoteSheet } from "@/components/CoachNoteSheet";
+import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-// K2F-43: useEffect loads a previously paused workout when the client opens the workout screen.
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-// K2F-43: Functions used to save, restore, and clear a paused workout from local storage.
-import {
-  saveWorkoutSession,
-  loadWorkoutSession,
-  clearWorkoutSession,
-} from "@/workouts/workoutSession";
-import { getWorkoutById } from "@/workouts/mockWorkout";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { getWorkoutCardLabels, saveWorkoutSession, loadWorkoutSession } from "@/workouts/workoutSession";
+import { elapsedWorkoutTime, formatWorkoutTime, initialWorkoutTimer, transitionWorkoutTimer } from "@/workouts/workoutTimer";
+
+import { getWorkoutCoachNote } from "@/workouts/coachNote";
+import { getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
+import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
+import { getWorkoutProgress } from "@/workouts/workoutProgress";
+import { addPerformedSet, initializeSetPerformance, removeLastPerformedSet, resetSetPerformance, toggleExercisePerformance, togglePerformedSet, updateSetPerformance } from "@/workouts/setPerformance";
 import type { AssignedWorkout } from "@/workouts/workout";
 
 export default function WorkoutDetails() {
-    const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
+    const { workoutId, resume } = useLocalSearchParams<{ workoutId: string; resume?: string }>();
     const router = useRouter();
-    const workout = getWorkoutById(workoutId);
+    const library = useWorkoutLibraryState();
+    const workout = workoutBelongsToClient(workoutId, library.data.previewClientId) ? getWorkoutById(workoutId) : undefined;
+
+    if (library.status !== "ready") return <ThemedBackground><View style={styles.content}>
+      <Text style={styles.subtitle}>{library.status === "loading" ? "Loading workout…" : library.error}</Text>
+      {library.status === "error" && <Pressable accessibilityRole="button" onPress={() => { void workoutLibrary.load(); }} style={styles.sessionButton}>
+        <Text style={styles.sessionButtonText}>Retry workout library</Text>
+      </Pressable>}
+    </View></ThemedBackground>;
 
     if (!workout) {
       return (
@@ -37,309 +48,313 @@ export default function WorkoutDetails() {
       );
     }
 
-    return <WorkoutContent key={workout.id} workout={workout} />;
+    return <WorkoutContent key={workout.id} workout={workout} resumeRequest={resume} />;
 }
 
-function WorkoutContent({ workout }: { workout: AssignedWorkout }) {
-    // Used to navigate back to the client dashboard.
-    const router = useRouter();
+function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; resumeRequest?: string }) {
     const { width, fontScale } = useWindowDimensions();
-    const compact = isCompactLayout(width, fontScale);    
-    const [showNotes, setShowNotes] = useState(false);
-    const [exercises, setExercises] = useState(workout.exercises);
-    
-    // K2F-43: Tracks whether the current workout is paused.
-    const [isPaused, setIsPaused] = useState(false);
-
-    // Prevents workout interactions until saved data is loaded.
+    const compact = isCompactLayout(width, fontScale);
+    const [exercises, setExercises] = useState(() => workout.exercises.map(initializeSetPerformance));
+    const nextSetId = useRef(0);
+    const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+    // The note opens as an overlay on this screen, so viewing it never touches workout state.
+    const [showCoachNote, setShowCoachNote] = useState(false);
+    const [noteScrolledAway, setNoteScrolledAway] = useState(false);
+    const noteCardBottom = useRef<number | null>(null);
+    const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
+    const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
+    const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
+    const [timer, setTimer] = useState(initialWorkoutTimer);
+    const [now, setNow] = useState(Date.now);
+    const [showEndConfirmation, setShowEndConfirmation] = useState(false);
+    const [sessionError, setSessionError] = useState("");
+    const isPaused = timer.status === "paused";
     const [isLoadingSession, setIsLoadingSession] = useState(true);
-
-    // Prevents duplicate pause/resume actions while saving.
     const [isSavingSession, setIsSavingSession] = useState(false);
+    const [sessionLoadFailed, setSessionLoadFailed] = useState(false);
+    const [loadRetry, setLoadRetry] = useState(0);
+    const [progressSaveError, setProgressSaveError] = useState("");
+    const sessionDisabled = timer.status !== "running" || isLoadingSession || isSavingSession;
 
-    // K2F-186: Restore the paused session when the screen opens.
+    useEffect(() => {
+      if (timer.status !== "running") return;
+      const interval = setInterval(() => setNow(Date.now()), 1000);
+      return () => clearInterval(interval);
+    }, [timer.status]);
+
     useEffect(() => {
       let active = true;
-
       async function restoreWorkout() {
+        setIsLoadingSession(true);
+        setSessionLoadFailed(false);
         try {
           const saved = await loadWorkoutSession(workout.id);
-
-          if (!active) return;
-
-          if (saved) {
-            // Restore the exercise list and completion state.
-            setExercises(saved.exercises);
-            setIsPaused(saved.paused);
+          if (active && saved) {
+            setExercises(saved.exercises.map(initializeSetPerformance));
+            const savedTimer = saved.timer ?? { status: "paused" as const, elapsedMs: 0, runningSince: null };
+            const resumedAt = Date.now();
+            // Continue resumes a paused timer, but never restarts an ended session
+            // or moves the starting point of an already-running clock.
+            const nextTimer = resumeRequest
+              ? transitionWorkoutTimer(savedTimer, "resume", resumedAt) : savedTimer;
+            setTimer(savedTimer);
+            if (nextTimer !== savedTimer) {
+              await saveWorkoutSession({ ...saved, timer: nextTimer, paused: false });
+            }
+            if (active) {
+              setTimer(nextTimer);
+              setNow(resumedAt);
+              setSessionError("");
+            }
           }
         } catch (error) {
-          // Keep the original workout available if loading fails.
           console.error("Unable to restore workout:", error);
+          if (active) setSessionLoadFailed(true);
         } finally {
-          if (active) {
-            setIsLoadingSession(false);
-          }
+          if (active) setIsLoadingSession(false);
         }
       }
       restoreWorkout();
+      return () => { active = false; };
+    }, [workout.id, resumeRequest, loadRetry]);
 
-      // Avoid updating state after this screen unmounts.
-      return () => {
-        active = false;
-      };
-    }, [workout.id]);
-
-    // K2F-32: Store the ID of the exercise currently being viewed.
-    // Using the ID lets us retrieve the latest exercise information
-    // from state whenever that exercise is updated.
-    const [selectedExerciseId, setSelectedExerciseId] =
-      useState<string | null>(null);
-
-    // Find the latest data for the selected exercise.
-    // If no exercise is selected, the modal receives null.
-    const selectedExercise =
-      exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
-
-    const completedCount = exercises.filter((exercise) => exercise.completed).length;
-    const progress = exercises.length ? Math.round((completedCount / exercises.length) * 100) : 0;
-
-    // Clients can only change completion while the workout is active.
-    function toggleExercise(id: string) {
-      if (isPaused || isLoadingSession || isSavingSession) return;
-          setExercises((current) =>
-            current.map((exercise) =>
-                exercise.id === id ? { ...exercise, completed: !exercise.completed } : exercise,
-            ),
-        );
-    }
-    
-    // K2F-184 and K2F-185: Pause the workout and save its current progress.
-    async function pauseWorkout() {
-    // K2F-43: Prevent saving before workout data finishes loading.
-    if (isPaused || isLoadingSession || isSavingSession) return;
-      setIsSavingSession(true);
-
-      try {
-        // Save the entire current exercise list.
-        // This includes completed exercises and any edited values.
-        await saveWorkoutSession({
-          workoutId: workout.id,
-          exercises,
-          paused: true,
+    useEffect(() => {
+      if (isLoadingSession || sessionLoadFailed || timer.status === "ready") return;
+      let active = true;
+      saveWorkoutSession({ workoutId: workout.id, exercises, paused: timer.status === "paused", timer })
+        .then(() => { if (active) setProgressSaveError(""); })
+        .catch(() => {
+          if (active) setProgressSaveError("Your latest progress could not be saved. Try again before leaving.");
         });
+      return () => { active = false; };
+    }, [exercises, timer, workout.id, isLoadingSession, sessionLoadFailed]);
 
-        // Only mark the workout paused after saving succeeds.
-        setIsPaused(true);
+    async function changeSession(action: "start" | "pause" | "resume" | "end") {
+      if (isLoadingSession || isSavingSession) return;
+      const changedAt = Date.now();
+      const next = transitionWorkoutTimer(timer, action, changedAt);
+      if (next === timer) return;
+      const nextExercises = action === "start" && timer.status === "ended"
+        ? workout.exercises.map(resetSetPerformance) : exercises;
+      setIsSavingSession(true);
+      setSessionError("");
+      try {
+        await saveWorkoutSession({ workoutId: workout.id, exercises: nextExercises, paused: next.status === "paused", timer: next });
+        setExercises(nextExercises);
+        setTimer(next);
+        setNow(changedAt);
+        setShowEndConfirmation(false);
       } catch (error) {
-        console.error("Unable to pause workout:", error);
+        console.error("Unable to update workout:", error);
+        setSessionError("Your workout could not be saved. Please try again.");
       } finally {
         setIsSavingSession(false);
       }
     }
 
-// K2F-186: Resume the saved workout.
-// Existing exercise data stays in React state.
-async function resumeWorkout() {
-  // K2F-43: Prevent resuming while session data is loading.
-  if (!isPaused || isLoadingSession || isSavingSession) return;
-  setIsSavingSession(true);
+    const summary = getWorkoutProgress(exercises);
+    const coachNote = getWorkoutCoachNote(workout);
+    const sessionLabel = [workout.title, workout.scheduleLabel].filter(Boolean).join(" · ");
+    const noteStatusText = [
+      { ready: "Workout not started", running: "Workout running", paused: "Workout paused", ended: "Workout ended" }[timer.status],
+      timer.status === "ready" ? undefined : formatWorkoutTime(elapsedWorkoutTime(timer, now)),
+      `${summary.completed} of ${summary.total} exercises complete`,
+    ].filter(Boolean).join(" · ");
+    const progress = summary.percentage;
+    const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, paused: isPaused, timer }).status;
 
-  try {
-    // Clear the saved paused flag.
-    // The restored exercises remain in memory.
-    await clearWorkoutSession(workout.id);
+    function toggleExercise(id: string) {
+        if (sessionDisabled) return;
+        setExercises((current) =>
+            current.map((exercise) =>
+                exercise.id === id ? toggleExercisePerformance(exercise) : exercise,
+            ),
+        );
+    }
 
-    // Allow the client to continue the workout.
-    setIsPaused(false);
-  } catch (error) {
-    console.error("Unable to resume workout:", error);
-  } finally {
-    setIsSavingSession(false);
-  }
-}
+    function changeExercise(id: string, update: (exercise: AssignedWorkout["exercises"][number]) => AssignedWorkout["exercises"][number]) {
+      if (sessionDisabled) return;
+      setExercises((current) => current.map((exercise) => exercise.id === id ? update(exercise) : exercise));
+    }
 
-
-// Show a loading indicator until we know whether this workout
-// has saved progress that needs to be restored.
 if (isLoadingSession) {
   return (
     <ThemedBackground>
       <View style={styles.sessionLoading}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.subtitle}>
-          Loading workout...
-        </Text>
+        <Text style={styles.subtitle}>Loading workout...</Text>
       </View>
     </ThemedBackground>
   );
 }
 
+if (sessionLoadFailed) {
+  return (
+    <ThemedBackground>
+      <View style={styles.content}>
+        <Text accessibilityRole="alert" style={styles.subtitle}>Your saved workout could not be opened. Try again to continue without resetting progress.</Text>
+        <Pressable accessibilityRole="button" onPress={() => setLoadRetry((current) => current + 1)}
+          style={({ pressed }) => [styles.sessionButton, pressed && styles.buttonPressed]}>
+          <Text style={styles.sessionButtonText}>Try again</Text>
+        </Pressable>
+      </View>
+    </ThemedBackground>
+  );
+}
 
 return (
     <ThemedBackground>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView
+        contentContainerStyle={[styles.content, coachNote && styles.contentWithNoteButton]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        scrollEventThrottle={32}
+        onScroll={(event) => {
+          const bottom = noteCardBottom.current;
+          if (bottom === null) return;
+          const scrolledAway = event.nativeEvent.contentOffset.y > bottom;
+          if (scrolledAway !== noteScrolledAway) setNoteScrolledAway(scrolledAway);
+        }}
+      >
         <Text style={styles.brand}>KEYS2FITNESS</Text>
         <Text style={styles.screenNumber}>03</Text>
         <Text style={styles.title}>{workout.title}</Text>
         <View style={[styles.subtitleRow, compact && styles.subtitleRowCompact]}>
           <Text style={[styles.subtitle, styles.subtitleText]}>
-            {[workout.status === "current" ? "Current workout" : "Upcoming workout", workout.scheduleLabel].filter(Boolean).join(" · ")}
+            {[workoutStatus, workout.scheduleLabel].filter(Boolean).join(" · ")}
           </Text>
-          {workout.notes?.trim() && <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showNotes }}
-            onPress={() => setShowNotes((visible) => !visible)}
-            style={[styles.notesToggle, compact && styles.notesToggleCompact]}
-          >
-            <Text style={styles.notesToggleText}>
-              {showNotes ? "Hide notes" : "Notes"}
-            </Text>
-          </Pressable>}
         </View>
 
-        {showNotes && workout.notes?.trim() && (
-          <View style={styles.notesCard}>
-            <Text style={styles.notesTitle}>Workout notes</Text>
-            <Text style={styles.notesText}>{workout.notes}</Text>
-          </View>
-        )}
-
-        <View style={styles.progressCard}>
+        <View style={styles.headerProgress}>
           <View style={styles.rowBetween}>
-            <Text style={styles.cardTitle}>Workout progress</Text>
+            <Text accessibilityLiveRegion="polite" style={styles.headerProgressSummary}>
+              {summary.total === 0
+                ? "No exercises assigned"
+                : `${summary.completed} of ${summary.total} exercises complete · ${summary.remaining} remaining`}
+            </Text>
             <Text style={styles.progressText}>{progress}%</Text>
           </View>
-          <View style={styles.progressTrack}>
+          {summary.isComplete && (
+            <Text style={styles.headerProgressSummary}>All exercises complete</Text>
+          )}
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel="Workout progress"
+            accessibilityValue={{ min: 0, max: 100, now: progress }}
+            style={styles.progressTrack}
+          >
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
         </View>
-        
 
-      {/* K2F-43: Displays Pause or Resume controls. */}
-      <View style={styles.sessionCard}>
-        {isPaused ? (
-          <>
-            {/* K2F-186: Show confirmation when the workout is paused. */}
-            <Text style={styles.sessionMessage}>
-              Workout paused. Your progress is saved.
-            </Text>
-
-            {/* K2F-186: Resume the paused workout. */}
-            <Pressable
-              accessibilityRole="button"
-              // Prevent interactions while loading or saving workout data.
-              disabled={isLoadingSession || isSavingSession}
-              onPress={resumeWorkout}
-              style={({ pressed }) => [
-                styles.sessionButton,
-                pressed && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.sessionButtonText}>
-                {isSavingSession ? "Resuming..." : "▶ Resume Workout"}
-              </Text>
-            </Pressable>
-
-            {/* K2F-185: Return to the dashboard while keeping
-                the saved workout progress in local storage.
-                This button is SEPARATE from Resume Workout.
-            */}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push("/client/home")}
-              style={styles.leaveButton}
-            >
-              <Text style={styles.leaveButtonText}>
-                Back to Dashboard
-              </Text>
-            </Pressable>
-          </>
-        ) : (
-          // K2F-184: Pause the active workout.
-          <Pressable
-            accessibilityRole="button"
-            disabled={isSavingSession}
-            onPress={pauseWorkout}
-            style={({ pressed }) => [
-              styles.sessionButton,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <Text style={styles.sessionButtonText}>
-              {isSavingSession ? "Saving..." : "Ⅱ Pause Workout"}
-            </Text>
-          </Pressable>
+        {coachNote && (
+          <View onLayout={(event) => {
+            const { y, height } = event.nativeEvent.layout;
+            noteCardBottom.current = y + height;
+          }}>
+            <WorkoutCoachNoteCard note={coachNote} sessionLabel={sessionLabel} collapsible />
+          </View>
         )}
-      </View>
+
+        <View style={styles.sessionCard}>
+          <View style={[styles.timerRow, compact && styles.timerRowCompact]}>
+            <View style={[styles.timerSummary, compact && styles.timerSummaryCompact]}>
+              <Text style={styles.timerLabel}>{timer.status === "ended" ? "Workout duration" : "Active workout time"}</Text>
+              <Text accessibilityLabel={`Workout time ${formatWorkoutTime(elapsedWorkoutTime(timer, now))}`} style={styles.timerValue}>
+                {formatWorkoutTime(elapsedWorkoutTime(timer, now))}
+              </Text>
+            </View>
+            <View style={[styles.sessionActions, compact && styles.sessionActionsCompact,
+              fontScale >= layout.largeFontScale && styles.sessionActionsLargeText]}>
+              {timer.status === "ended" ? (
+                <Pressable accessibilityRole="button" disabled={isSavingSession} onPress={() => changeSession("start")}
+                  style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
+                  <Text style={styles.sessionButtonText}>Start New Workout</Text>
+                </Pressable>
+              ) : <>
+                <Pressable accessibilityRole="button" disabled={isSavingSession}
+                  accessibilityState={{ disabled: isSavingSession }}
+                  onPress={() => changeSession(timer.status === "ready" ? "start" : isPaused ? "resume" : "pause")}
+                  style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
+                  <Text style={styles.sessionButtonText}>
+                    {isSavingSession ? "Saving..." : timer.status === "ready" ? "Start Workout" : isPaused ? "Resume" : "Ⅱ Pause Workout"}
+                  </Text>
+                </Pressable>
+                {isPaused && <Pressable accessibilityRole="button" disabled={isSavingSession}
+                  onPress={() => summary.remaining > 0 ? setShowEndConfirmation(true) : changeSession("end")}
+                  style={({ pressed }) => [styles.sessionButton, styles.sessionAction, styles.endButton, pressed && styles.buttonPressed]}>
+                  <Text style={styles.sessionButtonText}>End Workout</Text>
+                </Pressable>}
+              </>}
+            </View>
+          </View>
+          {sessionError ? <Text accessibilityRole="alert" style={styles.sessionMessage}>{sessionError}</Text> : null}
+          {progressSaveError ? <View>
+            <Text accessibilityRole="alert" style={styles.sessionMessage}>{progressSaveError}</Text>
+            <Pressable accessibilityRole="button" onPress={() => {
+              saveWorkoutSession({ workoutId: workout.id, exercises, paused: isPaused, timer })
+                .then(() => setProgressSaveError(""))
+                .catch(() => setProgressSaveError("Your latest progress could not be saved. Try again before leaving."));
+            }} style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
+              <Text style={styles.leaveButtonText}>Retry saving progress</Text>
+            </Pressable>
+          </View> : null}
+          {isPaused && <Text style={styles.sessionMessage}>Workout paused. Your progress is saved.</Text>}
+          {timer.status === "ended" && (
+            <Text accessibilityLiveRegion="polite" style={styles.sessionMessage}>
+              Workout ended. {summary.completed} of {summary.total} exercises completed.
+            </Text>
+          )}
+        </View>
 
         {exercises.map((exercise) => (
-          <View key={exercise.id} style={styles.exerciseCard}>
+          <View key={exercise.id} style={[styles.exerciseCard, exercise.completed && styles.completedCard]}>
             <View style={styles.rowBetween}>
               <View style={styles.exerciseText}>
                 <Text style={styles.exerciseName}>{exercise.name}</Text>
-             
-              {/* K2F-166: Display the prescribed sets and repetitions.
-                  Only show the weight if one is assigned to the exercise.
-                  This prevents empty weights from appearing on the screen.
-              */}
-              <Text style={styles.prescription}>
-                {exercise.sets} sets × {exercise.reps} reps
-                {exercise.weight ? ` · ${exercise.weight}` : ""}
-              </Text>
-             
-
-            </View>
-
-            {/* K2F-43: Checkbox for marking an exercise completed.
-                Disable it while the workout is paused or saving.
-            */}
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityLabel={`${exercise.name} completed`}
-
-              // Prevents clicking the checkbox while paused or saving.
-              disabled={isPaused || isSavingSession || isLoadingSession}
-
-              // Tells accessibility tools whether the checkbox is
-              // checked or disabled.
-              accessibilityState={{
-                checked: exercise.completed,
-                disabled: isPaused || isSavingSession || isLoadingSession,
-              }}
-
-              // Updates exercise completion when the checkbox is clicked.
-              onPress={() => toggleExercise(exercise.id)}
-
-              style={[
-                styles.checkbox,
-                exercise.completed && styles.checkboxCompleted,
-              ]}
-            >
-              {/* Shows a checkmark when the exercise is completed. */}
-              {exercise.completed && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </Pressable>
+                <Text style={[styles.exerciseStatus, exercise.completed && styles.exerciseStatusComplete]}>
+                  {exercise.completed ? "Completed" : "Not complete"}
+                </Text>
+                <Text style={styles.prescription}>
+                  {exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight"}
+                </Text>
+                <Text style={styles.exerciseStatus}>
+                  {exercise.actualSets?.filter((set) => set.completed).length ?? 0}/{exercise.actualSets?.length ?? 0} sets complete
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${exercise.name} completed`}
+                disabled={sessionDisabled || exercise.actualSets?.length === 0}
+                accessibilityState={{ checked: exercise.completed, disabled: sessionDisabled || exercise.actualSets?.length === 0 }}
+                onPress={() => toggleExercise(exercise.id)}
+                accessibilityHint="Toggles all performed sets. Completing untouched fields records the prescribed targets."
+                style={({ pressed }) => [
+                  styles.checkbox,
+                  exercise.completed && styles.checkboxCompleted,
+                  pressed && styles.buttonPressed,
+                ]}
+              >
+                {exercise.completed && <Text style={styles.checkmark}>✓</Text>}
+              </Pressable>
             </View>
 
             <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
-              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-                <Text style={styles.secondaryButtonText}>+ Add Set</Text>
-              </Pressable>
-              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-                <Text style={styles.secondaryButtonText}>− Remove Set</Text>
-              </Pressable>
-            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`View ${exercise.name} details`}
-              style={({ pressed }) => [styles.secondaryButton, styles.detailsButton, pressed && styles.buttonPressed]}
-
-              // K2F-32: Open the details for the exercise the client selects.
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
               onPress={() => setSelectedExerciseId(exercise.id)}
             >
               <Text style={styles.secondaryButtonText}>View Details</Text>
             </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`View ${exercise.name} sets`}
+              onPress={() => setSelectedSetsId(exercise.id)}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
+              <Text style={styles.secondaryButtonText}>View Sets</Text>
+            </Pressable>
+            </View>
           </View>
         ))}
 
@@ -353,84 +368,117 @@ return (
           </Pressable>
         </View>
 
-        <Pressable style={({ pressed }) => [styles.finishButton, pressed && styles.buttonPressed]}>
-          <Text style={styles.finishButtonText}>Finish Workout</Text>
-        </Pressable>
-
       </ScrollView>
-
-      {/* K2F-32: Display the latest information for the selected exercise.
-          Closing the modal clears the selected exercise ID.
-      */}
+      </KeyboardAvoidingView>
+      {coachNote && noteScrolledAway && !showCoachNote && (
+        <CoachNoteButton onPress={() => setShowCoachNote(true)} />
+      )}
+      {coachNote && (
+        <CoachNoteSheet
+          note={coachNote}
+          sessionLabel={sessionLabel}
+          visible={showCoachNote}
+          statusText={noteStatusText}
+          onClose={() => setShowCoachNote(false)}
+        />
+      )}
       <ExerciseDetailsModal
         exercise={selectedExercise}
         onClose={() => setSelectedExerciseId(null)}
       />
-
+      <ExerciseSetsModal
+        exercise={selectedSetsExercise}
+        disabled={sessionDisabled}
+        onClose={() => setSelectedSetsId(null)}
+        onChange={(setId, field, value) => {
+          if (selectedSetsId) changeExercise(selectedSetsId, (current) => updateSetPerformance(current, setId, field, value));
+        }}
+        onToggle={(setId) => {
+          if (selectedSetsId) changeExercise(selectedSetsId, (current) => togglePerformedSet(current, setId));
+        }}
+        onAdd={() => {
+          if (!selectedSetsId) return;
+          const id = `${selectedSetsId}-actual-${Date.now()}-${++nextSetId.current}`;
+          changeExercise(selectedSetsId, (current) => addPerformedSet(current, id));
+        }}
+        onRemove={() => { if (selectedSetsId) changeExercise(selectedSetsId, removeLastPerformedSet); }}
+      />
+      <Modal transparent visible={showEndConfirmation} animationType="fade"
+        onRequestClose={() => { if (!isSavingSession) setShowEndConfirmation(false); }}>
+        <View style={styles.confirmOverlay}>
+          <View accessibilityViewIsModal style={styles.confirmCard}>
+            <ScrollView contentContainerStyle={styles.confirmContent}>
+              <Text accessibilityRole="header" style={styles.exerciseName}>End this workout?</Text>
+              <Text style={styles.progressSummary}>
+                You have {summary.remaining} incomplete {summary.remaining === 1 ? "exercise" : "exercises"}. Are you sure you want to finish the workout?
+              </Text>
+              <Pressable accessibilityRole="button" disabled={isSavingSession}
+                onPress={() => changeSession("end")}
+                style={({ pressed }) => [styles.sessionButton, styles.endButton, pressed && styles.buttonPressed]}>
+                <Text style={styles.sessionButtonText}>{isSavingSession ? "Saving..." : "End Anyway"}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" disabled={isSavingSession}
+                onPress={() => setShowEndConfirmation(false)}
+                style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
+                <Text style={styles.leaveButtonText}>Keep Workout</Text>
+              </Pressable>
+              {sessionError ? <Text accessibilityRole="alert" style={styles.progressSummary}>{sessionError}</Text> : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ThemedBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  
-  // K2F-43: Centers the loading indicator while restoring progress.
-  sessionLoading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-  },
-
-  // Container for the pause/resume controls.
+  screen: { flex: 1 },
+  timerRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  timerRowCompact: { flexDirection: "column", alignItems: "stretch", gap: spacing.sm },
+  timerSummary: { flex: 1, gap: spacing.xs },
+  timerSummaryCompact: { flex: 0, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  timerLabel: { color: colors.textMuted, fontSize: typography.caption, flexShrink: 1 },
+  timerValue: { color: colors.text, fontSize: typography.heading, fontVariant: ["tabular-nums"], flexShrink: 1 },
+  sessionActions: { flexDirection: "row", flex: 2, gap: spacing.sm },
+  sessionActionsCompact: { flex: 0 },
+  sessionActionsLargeText: { flexDirection: "column", flex: 0 },
+  sessionAction: { flex: 1, minWidth: layout.minTouchTarget },
+  endButton: { backgroundColor: colors.danger },
+  confirmOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "center", alignItems: "center", padding: spacing.lg },
+  confirmCard: { backgroundColor: colors.surface, borderRadius: radii.card, width: "100%", maxWidth: layout.maxContentWidth, maxHeight: "90%" },
+  confirmContent: { padding: spacing.lg, gap: spacing.md },
+  sessionLoading: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md },
   sessionCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.card,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+    backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
+    borderRadius: radii.card, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.md,
   },
-
-  // Message shown when the workout is paused.
-  sessionMessage: {
+  sessionMessage: { color: colors.textMuted, fontSize: typography.label },
+  sessionButton: {
+    backgroundColor: colors.primaryDark, borderRadius: radii.button,
+    alignItems: "center", justifyContent: "center", minHeight: layout.minTouchTarget,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+  },
+  sessionButtonText: { color: colors.surface, fontSize: typography.body, fontWeight: "700", textAlign: "center" },
+  leaveButton: { alignItems: "center", justifyContent: "center", minHeight: layout.minTouchTarget, marginTop: spacing.sm },
+  leaveButtonText: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700" },
+  completedCard: {
+    backgroundColor: colors.achievedMuted,
+    borderColor: colors.achieved,
+  },
+  progressSummary: {
     color: colors.text,
     fontSize: typography.body,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: spacing.md,
-  },
-
-  // Main pause/resume button, using existing app colors.
-  sessionButton: {
-    backgroundColor: colors.primaryDark,
-    borderRadius: radii.button,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget + spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-
-  sessionButtonText: {
-    color: colors.surface,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
-
-  // Secondary button that returns to the client dashboard.
-  leaveButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
     marginTop: spacing.sm,
   },
-
-  leaveButtonText: {
-    color: colors.primaryDark,
+  exerciseStatus: {
+    color: colors.textMuted,
     fontSize: typography.label,
+    marginTop: spacing.sm,
     fontWeight: "700",
   },
-
+  exerciseStatusComplete: {
+    color: colors.text,
+  },
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xl + spacing.md,
@@ -438,6 +486,8 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
     alignSelf: "center",
   },
+  // Room for the floating "Coach's note" button so it never covers the last actions.
+  contentWithNoteButton: { paddingBottom: spacing.xl + spacing.md + layout.minTouchTarget + spacing.lg },
   brand: {
     color: colors.primaryDark,
     fontSize: typography.label,
@@ -479,68 +529,22 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 0,
   },
-  notesToggle: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    marginLeft: spacing.sm,
-    minHeight: layout.minTouchTarget,
-    justifyContent: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  notesToggleCompact: { marginLeft: 0 },
-  notesToggleText: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-  },
-  notesCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.card,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-  },
-  notesTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
-  notesText: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-    marginTop: spacing.sm,
-  },
-  progressCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.card,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-  },
+  headerProgress: { gap: spacing.sm, marginBottom: spacing.md },
+  headerProgressSummary: { color: colors.textMuted, fontSize: typography.caption, flex: 1, marginRight: spacing.sm },
   rowBetween: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
   progressText: {
     color: colors.primaryDark,
-    fontSize: typography.body,
+    fontSize: typography.caption,
     fontWeight: "700",
   },
   progressTrack: {
     backgroundColor: colors.progressTrack,
     borderRadius: radii.control,
-    height: 14,
-    marginTop: spacing.sm,
+    height: spacing.sm,
     overflow: "hidden",
   },
   progressFill: {

@@ -1,45 +1,37 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { CurrentGoalCard } from "@/components/CurrentGoalCard";
 import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { mockAssignedWorkout } from "@/workouts/mockWorkout";
+import { getClientAssignedWorkout, getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
+import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
+import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
+import { useCoachClients } from "@/clients/clientStore";
+import { isWorkoutInProgress, loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
-
-type QuickAccessCardProps = {
-  label: string;
-  description: string;
-  onPress: () => void;
-  compact: boolean;
-};
-
-function QuickAccessCard({ label, description, onPress, compact }: QuickAccessCardProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      accessibilityLabel={`${label}: ${description}`}
-      style={({ pressed }) => [styles.quickAccessCard, compact && styles.quickAccessCardCompact, pressed && styles.quickAccessCardPressed]}
-    >
-      <Text style={styles.quickAccessLabel}>{label}</Text>
-      <Text style={styles.quickAccessDescription}>{description}</Text>
-    </Pressable>
-  );
-}
-
+import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export default function ClientHome() {
   const router = useRouter();
-  const { width, fontScale } = useWindowDimensions();
-  const compact = isCompactLayout(width, fontScale);
-  const assignedWorkout = mockAssignedWorkout;
+  const focused = useIsFocused();
+  const library = useWorkoutLibraryState();
+  const previewClientId = library.data.previewClientId;
+  const clients = useCoachClients();
+  const assignedWorkout = getClientAssignedWorkout(previewClientId);
   const [firstName, setFirstName] = useState(defaultProfile.fullName.split(" ")[0]);
+  const demoFirstName = library.data.assignments.length
+    ? clients.find((client) => client.id === previewClientId)?.name.trim().split(/\s+/)[0]
+    : undefined;
+  const greetingName = demoFirstName || firstName;
+  const [sessionState, setSessionState] = useState<{
+    active: WorkoutSession | null; assigned: WorkoutSession | null; loading: boolean; error: boolean; clientId: string;
+  }>({ active: null, assigned: null, loading: true, error: false, clientId: previewClientId });
+  const [sessionRetry, setSessionRetry] = useState(0);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -52,9 +44,32 @@ export default function ClientHome() {
       });
     return () => { active = false; };
   }, []));
+
+  useEffect(() => {
+    if (!focused || library.status !== "ready") return;
+    let active = true;
+    async function refreshSession() {
+      setSessionState({ active: null, assigned: null, loading: true, error: false, clientId: previewClientId });
+      try {
+        const [session, assigned] = await Promise.all([
+          loadActiveWorkoutSession((id) => workoutBelongsToClient(id, previewClientId)),
+          assignedWorkout ? loadWorkoutSession(assignedWorkout.id) : Promise.resolve(null),
+        ]);
+        if (active) setSessionState({ active: session, assigned, loading: false, error: false, clientId: previewClientId });
+      } catch {
+        if (active) setSessionState({ active: null, assigned: null, loading: false, error: true, clientId: previewClientId });
+      }
+    }
+    void refreshSession();
+    return () => { active = false; };
+  }, [assignedWorkout, focused, sessionRetry, library.status, library.data, previewClientId]);
+
+  const matchingClient = sessionState.clientId === previewClientId;
+  const displayedSession = matchingClient ? sessionState.active ?? sessionState.assigned : null;
+  const displayedWorkout = matchingClient && sessionState.active ? getWorkoutById(sessionState.active.workoutId) ?? assignedWorkout : assignedWorkout;
   const openWorkout = (workoutId: string) => router.push({
     pathname: "/client/home/workout/[workoutId]",
-    params: { workoutId },
+    params: { workoutId, ...(isWorkoutInProgress(displayedSession) ? { resume: String(Date.now()) } : {}) },
   });
 
 
@@ -64,12 +79,25 @@ export default function ClientHome() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
         <View style={styles.content}>
           <Text style={styles.brand}>KEYS2FITNESS</Text>
-          <Text style={styles.title}>Good morning, {firstName}</Text>
+          <Text style={styles.title}>Good morning, {greetingName}</Text>
           <Text style={styles.subtitle}>Let&apos;s build strength!</Text>
 
           <View style={styles.goalSection}>
+            <DemoWorkoutClientPicker />
             <Text style={styles.sectionTitle}>Assigned workout</Text>
-            <AssignedWorkoutCard workout={assignedWorkout} onOpen={openWorkout} />
+            {(matchingClient && sessionState.error) || library.status === "error" ? (
+              <View style={styles.sessionFeedback}>
+                <Text accessibilityRole="alert" style={styles.sessionError}>
+                  {library.status === "error" ? library.error : "We couldn't check your saved workout. Please try again."}
+                </Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Retry loading workout"
+                  onPress={() => library.status === "error" ? void workoutLibrary.load() : setSessionRetry((current) => current + 1)}
+                  style={({ pressed }) => [styles.retryButton, pressed && styles.retryPressed]}>
+                  <Text style={styles.retryLabel}>Try again</Text>
+                </Pressable>
+              </View>
+            ) : <AssignedWorkoutCard workout={displayedWorkout} session={displayedSession}
+              loading={library.status !== "ready" || !matchingClient || sessionState.loading} onOpen={openWorkout} />}
           </View>
 
           <View style={styles.goalSection}>
@@ -82,25 +110,6 @@ export default function ClientHome() {
 
           <RecentMessagesWidget />
 
-          <View style={styles.quickAccessSection}>
-            <Text style={styles.sectionTitle}>Quick access</Text>
-            <View style={styles.quickAccessGrid}>
-              {assignedWorkout && (
-                <QuickAccessCard
-                  label="Workout"
-                  description="Continue training"
-                  compact={compact}
-                  onPress={() => openWorkout(assignedWorkout.id)}
-                />
-              )}
-              <QuickAccessCard
-                label="Progress"
-                description="Review your progress"
-                compact={compact}
-                onPress={() => router.push("/client/progress")}
-              />
-            </View>
-          </View>
         </View>
       </ScrollView>
     </ThemedBackground>
@@ -108,6 +117,11 @@ export default function ClientHome() {
 }
 
 const styles = StyleSheet.create({
+  sessionFeedback: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.lg, gap: spacing.md },
+  sessionError: { color: colors.text, fontSize: typography.body },
+  retryButton: { minHeight: layout.minTouchTarget, borderRadius: radii.button, justifyContent: "center", padding: spacing.md, backgroundColor: colors.primaryDark },
+  retryPressed: { backgroundColor: colors.primaryDeep },
+  retryLabel: { color: colors.surface, fontSize: typography.body, textAlign: "center", fontWeight: "700" },
   screen: {
     flex: 1,
   },
@@ -141,50 +155,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: spacing.xs,
   },
-  quickAccessSection: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.md,
-  },
   sectionTitle: {
     color: colors.text,
     fontSize: typography.heading,
     fontWeight: "700",
     marginBottom: spacing.md,
   },
-  quickAccessGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  quickAccessCard: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    width: "48%",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget * 2,
-    padding: spacing.md,
-  },
-  quickAccessCardCompact: {
-    width: "100%",
-    minHeight: layout.minTouchTarget,
-  },
-  quickAccessCardPressed: {
-    backgroundColor: colors.border,
-  },
-  quickAccessLabel: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  quickAccessDescription: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.sm,
-    textAlign: "center",
-  },
-
 });

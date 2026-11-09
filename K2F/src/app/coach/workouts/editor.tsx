@@ -1,0 +1,118 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+
+import { useCoachClientsState } from "@/clients/clientStore";
+import { ThemedBackground } from "@/components/ThemedBackground";
+import { BuilderButton, BuilderField, ClientAssignmentPicker, ExercisePicker, PrescriptionStepper, builderStyles as styles } from "@/components/WorkoutBuilderControls";
+import { auth } from "@/lib/firebase";
+import { isCompactLayout, layout } from "@/theme";
+import { newDraftExercise } from "@/workouts/exerciseCatalog";
+import { draftFromTemplate, emptyWorkoutDraft, validateWorkoutDraft, type DraftExercise, type WorkoutTemplate } from "@/workouts/workoutLibraryModel";
+import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
+
+export default function WorkoutEditorScreen() {
+  const { templateId, clientId } = useLocalSearchParams<{ templateId?: string; clientId?: string }>();
+  const state = useWorkoutLibraryState();
+  const template = state.data.templates.find((item) => item.id === templateId);
+  if (state.status !== "ready" || (templateId && !template)) return <ThemedBackground><View style={styles.content}>
+    <Text style={styles.heading}>{state.status === "loading" ? "Loading workout…" : templateId && !template && state.status === "ready" ? "Template unavailable" : "Library unavailable"}</Text>
+    {state.status === "error" && <><Text style={styles.error}>{state.error}</Text>
+      <BuilderButton label="Retry library" onPress={() => { void workoutLibrary.load(); }} /></>}
+  </View></ThemedBackground>;
+  return <WorkoutEditorForm key={templateId || "new"} template={template} initialClientId={clientId} />;
+}
+
+function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTemplate; initialClientId?: string }) {
+  const router = useRouter();
+  const { clients, loadStatus } = useCoachClientsState();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = isCompactLayout(width, fontScale);
+  const wideControls = !compact && width >= layout.maxContentWidth;
+  const [draft, setDraft] = useState(() => template ? draftFromTemplate(template) : emptyWorkoutDraft());
+  const [selectedClients, setSelectedClients] = useState<string[]>(initialClientId && clients.some((client) => client.id === initialClientId) ? [initialClientId] : []);
+  const [reusable, setReusable] = useState(true);
+  const [picker, setPicker] = useState<{ kind: "add" } | { kind: "alternative"; id: string } | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function editExercise(id: string, update: Partial<DraftExercise>) {
+    setDraft((current) => ({ ...current, exercises: current.exercises.map((exercise) => exercise.id === id ? { ...exercise, ...update } : exercise) }));
+  }
+
+  async function save() {
+    const validation = validateWorkoutDraft(draft);
+    setErrors(validation); setFeedback("");
+    if (Object.keys(validation).length) { setFeedback("Check the highlighted workout fields."); return; }
+    setSaving(true);
+    try {
+      const result = await workoutLibrary.saveWorkout(draft, selectedClients, clients.map((client) => client.id), auth.currentUser?.displayName ?? "Coach", reusable, template?.id);
+      router.replace({ pathname: "/coach/workouts", params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? "" } });
+    } catch (cause) { setFeedback(cause instanceof Error ? cause.message : "Your workout could not be saved. Try again."); }
+    finally { setSaving(false); }
+  }
+
+  return <ThemedBackground><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Text style={styles.brand}>KEYS2FITNESS / COACH</Text>
+      <Text style={styles.title}>{template ? "Edit Workout" : "Build Workout"}</Text>
+      <Text style={styles.muted}>Build a reusable plan or assign a fresh copy to selected demo clients. All weights are in pounds.</Text>
+      <BuilderField label="Workout name" value={draft.title} disabled={saving} error={errors.title}
+        onChange={(title) => setDraft((current) => ({ ...current, title }))} />
+      <BuilderField label="Estimated duration (minutes, optional)" value={draft.durationMinutes} disabled={saving}
+        error={errors.durationMinutes} keyboardType="number-pad" onChange={(durationMinutes) => setDraft((current) => ({ ...current, durationMinutes }))} />
+      <BuilderField label="Coach's workout note (shown to the client)" value={draft.notes} multiline disabled={saving}
+        onChange={(notes) => setDraft((current) => ({ ...current, notes }))} />
+      <Text style={styles.heading}>Exercises</Text>
+      {errors.exercises && <Text accessibilityRole="alert" style={styles.error}>{errors.exercises}</Text>}
+      {!draft.exercises.length && <Text style={styles.muted}>Add an exercise from the catalog or use a custom name.</Text>}
+      {draft.exercises.map((exercise) => <View key={exercise.id} style={styles.card}>
+        <Text style={styles.heading}>{exercise.name}</Text>
+        <BuilderField label="Exercise name" accessibilityLabel={`Exercise name for ${exercise.name}`} value={exercise.name} disabled={saving}
+          error={errors[exercise.id + ".name"]} onChange={(name) => editExercise(exercise.id, { name })} />
+        <View style={wideControls ? styles.actions : styles.field}>
+          <PrescriptionStepper label="Sets" exerciseName={exercise.name} value={exercise.sets} min={1} max={50} disabled={saving}
+            error={errors[exercise.id + ".sets"]} onChange={(sets) => editExercise(exercise.id, { sets })} />
+          <PrescriptionStepper label="Reps" exerciseName={exercise.name} value={exercise.reps} min={1} max={200} disabled={saving}
+            error={errors[exercise.id + ".reps"]} onChange={(reps) => editExercise(exercise.id, { reps })} />
+          <PrescriptionStepper label="Weight (lb)" exerciseName={exercise.name} value={exercise.weightLb} min={0} max={2000} step={5} disabled={saving}
+            error={errors[exercise.id + ".weightLb"]} onChange={(weightLb) => editExercise(exercise.id, { weightLb })} />
+        </View>
+        <BuilderField label="Instructions" accessibilityLabel={`Instructions for ${exercise.name}`} value={exercise.instructions} multiline disabled={saving}
+          onChange={(instructions) => editExercise(exercise.id, { instructions })} />
+        <BuilderField label="Coach's exercise note" accessibilityLabel={`Coach notes for ${exercise.name}`} value={exercise.coachNotes} multiline disabled={saving}
+          onChange={(coachNotes) => editExercise(exercise.id, { coachNotes })} />
+        {exercise.alternative && <Text style={styles.muted}>Alternative: {exercise.alternative}</Text>}
+        <View style={[styles.actions, compact && styles.stacked]}>
+          <BuilderButton label={exercise.alternative ? "Change alternative" : "Add alternative"} accessibilityLabel={`Choose alternative for ${exercise.name}`} secondary disabled={saving} onPress={() => setPicker({ kind: "alternative", id: exercise.id })} />
+          {exercise.alternative && <BuilderButton label="Remove alternative" accessibilityLabel={`Remove alternative for ${exercise.name}`} secondary disabled={saving}
+            onPress={() => editExercise(exercise.id, { alternative: undefined })} />}
+          <BuilderButton label="Remove exercise" accessibilityLabel={`Remove ${exercise.name}`} secondary disabled={saving}
+            onPress={() => setDraft((current) => ({ ...current, exercises: current.exercises.filter((item) => item.id !== exercise.id) }))} />
+        </View>
+      </View>)}
+      <BuilderButton label="Add exercise" secondary disabled={saving} onPress={() => setPicker({ kind: "add" })} />
+      <View style={styles.card}>
+        <Pressable accessibilityRole="checkbox" accessibilityLabel="Save as reusable template" accessibilityState={{ checked: reusable, disabled: saving }}
+          disabled={saving} onPress={() => setReusable((current) => !current)} style={({ pressed }) => [styles.clientRow, pressed && styles.pressed]}>
+          <View style={[styles.checkbox, reusable && styles.checkboxChecked]}>{reusable && <Text style={styles.check}>✓</Text>}</View>
+          <Text style={[styles.label, styles.flex]}>Save as reusable template</Text>
+        </Pressable>
+        <Text style={styles.heading}>Assign to clients</Text>
+        <ClientAssignmentPicker clients={clients} loadStatus={loadStatus} selected={selectedClients} onChange={setSelectedClients} disabled={saving} />
+      </View>
+      {feedback && <Text accessibilityRole="alert" style={styles.error}>{feedback}</Text>}
+      {!reusable && !selectedClients.length && <Text style={styles.muted}>Select clients to assign without saving a reusable template.</Text>}
+      <BuilderButton label={saving ? "Saving…" : selectedClients.length ? `Assign workout · ${selectedClients.length} selected` : "Save template"}
+        disabled={saving || (!reusable && !selectedClients.length) || (selectedClients.length > 0 && loadStatus !== "ready")}
+        onPress={() => { void save(); }} />
+    </ScrollView>
+    {picker && <ExercisePicker title={picker.kind === "add" ? "Add exercise" : "Choose alternative exercise"}
+      onClose={() => setPicker(null)} onSelect={(exercise) => {
+        if (picker.kind === "add") setDraft((current) => ({ ...current, exercises: [...current.exercises, newDraftExercise(exercise.name, exercise.instructions)] }));
+        else editExercise(picker.id, { alternative: exercise.name });
+        setPicker(null);
+      }} />}
+  </KeyboardAvoidingView></ThemedBackground>;
+}

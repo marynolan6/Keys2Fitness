@@ -1,16 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, radii, spacing, typography } from "@/theme";
-
-type CoachMessage = {
-  id: string;
-  clientName: string;
-  message: string;
-  unread: boolean;
-};
+import {
+  isUnreadFor,
+  type MockMessage,
+} from "@/messages/mockMessageCoachClient";
 
 type NewCoachMessagesWidgetProps = {
-  messages: CoachMessage[];
+  messages: MockMessage[];
   onPress: () => void;
 };
 
@@ -18,7 +15,11 @@ export function NewCoachMessagesWidget({
   messages,
   onPress,
 }: NewCoachMessagesWidgetProps) {
-  const unreadCount = messages.filter((message) => message.unread).length;
+  const unreadCount = messages.filter(
+    (message) =>
+      message.senderType === "client" &&
+      isUnreadFor(message, "coach"),
+  ).length;
 
   return (
     <Pressable
@@ -34,7 +35,9 @@ export function NewCoachMessagesWidget({
 
         {unreadCount > 0 && (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount}</Text>
+            <Text style={styles.badgeText}>
+              {unreadCount}
+            </Text>
           </View>
         )}
       </View>
@@ -42,8 +45,13 @@ export function NewCoachMessagesWidget({
       <View style={styles.content}>
         <Text style={styles.title}>New Messages</Text>
 
-
-        <Text style={styles.subtitle}>Tap to view conversations</Text>
+        <Text style={styles.subtitle}>
+          {unreadCount > 0
+            ? `${unreadCount} unread message${
+                unreadCount === 1 ? "" : "s"
+              }`
+            : "No new messages"}
+        </Text>
       </View>
 
       <Text style={styles.arrow}>›</Text>
@@ -101,7 +109,6 @@ const styles = StyleSheet.create({
     fontSize: typography.heading,
     fontWeight: "700",
   },
- 
   subtitle: {
     color: colors.textMuted,
     fontSize: typography.label,
