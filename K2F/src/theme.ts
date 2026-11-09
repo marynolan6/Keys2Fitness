@@ -7,6 +7,7 @@ export const colors = {
   surfaceMuted: "#E6EFF4",
   primary: "#599FDB",
   primaryDark: "#176E96",
+  primaryDeep: "#125574",
   text: "#17232D",
   textMuted: "#5B7180",
   border: "#D5E4EF",
@@ -44,6 +45,7 @@ export const radii = {
 } as const;
 
 export const typography = {
+  caption: 12,
   body: 16,
   label: 15,
   heading: 25,
@@ -63,6 +65,20 @@ export function isCompactLayout(width: number, fontScale: number): boolean {
   return width < layout.compactWidth || fontScale >= layout.largeFontScale;
 }
 
+// Shared bottom navigation standard for both client and coach layouts.
+// Render through AppTabBar so role-specific destinations never fork the design.
+export const navigation = {
+  cornerRadius: radii.card,
+  overlap: spacing.md,
+  centerSlotWidth: layout.minTouchTarget + spacing.md,
+  actionSize: layout.minTouchTarget + spacing.sm,
+  actionRadius: radii.card + spacing.xs,
+  actionColor: colors.primaryDeep,
+  actionPressedColor: colors.primaryDark,
+  actionElevation: 4,
+  actionShadowOpacity: 0.2,
+} as const;
+
 export const theme = {
   colors,
   gradients,
@@ -70,4 +86,5 @@ export const theme = {
   radii,
   typography,
   layout,
+  navigation,
 } as const;
