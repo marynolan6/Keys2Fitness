@@ -2,6 +2,8 @@
 
 The client-only components are now shared as `AppTabBar` and `AppQuickAccessMenu`. Both role layouts use the same styles and `navigation` tokens from `src/theme.ts`. See [theme standards](theme-standards.md) for the required appearance and behavior.
 
+The subsequent workout-builder update replaces Client List in the coach menu with Workout Library; Client List remains a main tab. See [workout-builder testing](workout-builder-testing.md) for that flow's verification.
+
 ## Verified on Android / Expo Go
 
 - Coach bar and menu render at ~390 dp, 320 dp, 320 dp with 1.5× font scale, and 800 dp tablet width.

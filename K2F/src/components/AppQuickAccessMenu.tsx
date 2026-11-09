@@ -9,7 +9,9 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
-import { mockAssignedWorkout } from "@/workouts/mockWorkout";
+import { getClientAssignedWorkout, workoutBelongsToClient } from "@/workouts/workoutSource";
+import { useWorkoutLibraryState } from "@/workouts/workoutLibraryStore";
+import { loadActiveWorkoutSession } from "@/workouts/workoutSession";
 import { auth } from "@/lib/firebase";
 
 export type NavigationRole = "client" | "coach";
@@ -25,7 +27,7 @@ const clientItems = [
 
 const coachItems = [
   { label: "Home", path: "/coach", icon: { ios: "house", android: "home", web: "home" } },
-  { label: "Client List", path: "/coach/client_list", icon: { ios: "person.2", android: "group", web: "group" } },
+  { label: "Workout Library", path: "/coach/workouts", icon: { ios: "dumbbell", android: "fitness_center", web: "fitness_center" } },
   { label: "Check-ins", path: "/coach-checkins", icon: { ios: "checkmark.circle", android: "task_alt", web: "task_alt" } },
   { label: "Messages", path: "/coach/messages", icon: { ios: "message", android: "chat", web: "chat" } },
   { label: "Profile", path: "/coach/profile", icon: { ios: "person", android: "person", web: "person" } },
@@ -45,6 +47,7 @@ export function AppQuickAccessMenu({ role, visible, onClose }: {
   const compact = isCompactLayout(width, fontScale);
   const [name, setName] = useState(role === "client" ? defaultProfile.fullName : "Coach");
   const items = role === "client" ? clientItems : coachItems;
+  const library = useWorkoutLibraryState();
 
   useEffect(() => {
     if (!visible) return;
@@ -90,17 +93,22 @@ export function AppQuickAccessMenu({ role, visible, onClose }: {
                 <Pressable key={item.label} accessibilityRole="button"
                   accessibilityLabel={item.path ? item.label : "Nutrition, coming soon"}
                   accessibilityState={{ selected }}
-                  onPress={() => {
+                  onPress={async () => {
                     if (!item.path) {
                       Alert.alert("Nutrition", "Nutrition tools are coming soon.");
                       return;
                     }
-                    onClose();
                     if (item.label === "Workout") {
-                      if (mockAssignedWorkout) router.navigate({ pathname: "/client/home/workout/[workoutId]",
-                        params: { workoutId: mockAssignedWorkout.id } });
-                      else router.navigate("/client/home");
-                    } else router.navigate(item.path);
+                      try {
+                        const clientId = library.data.previewClientId;
+                        const active = await loadActiveWorkoutSession((id) => workoutBelongsToClient(id, clientId));
+                        const workoutId = active?.workoutId ?? getClientAssignedWorkout(clientId)?.id;
+                        onClose();
+                        if (workoutId) router.navigate({ pathname: "/client/home/workout/[workoutId]",
+                          params: { workoutId, ...(active ? { resume: String(Date.now()) } : {}) } });
+                        else router.navigate("/client/home");
+                      } catch { Alert.alert("Workout unavailable", "Your saved workout could not be loaded. Please try again."); }
+                    } else { onClose(); router.navigate(item.path); }
                   }}
                   style={({ pressed }) => [styles.row, (selected || pressed) && styles.highlight]}>
                   <SymbolView name={item.icon} size={spacing.lg} tintColor={colors.primaryDark} />

@@ -15,6 +15,7 @@ export type WorkoutExercise = {
   instructions?: string;
   demonstrationAvailable?: boolean;
   coachNotes?: string;
+  alternative?: string;
   // Client entries are separate from the coach's read-only sets/reps/weight.
   actualSets?: PerformedSet[];
 };
