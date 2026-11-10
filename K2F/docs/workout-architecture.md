@@ -34,6 +34,29 @@ Screens / reusable UI
 
 The library screen can call the application facade directly for its simpler actions. The two more complex editor/session workflows have their own controllers. Modal visibility and scrolling remain presentation concerns.
 
+## Applying the standards
+
+The required agent instructions live in [`../AGENTS.md`](../AGENTS.md). Apply them to new or substantially modified workout features, improving existing modules incrementally as they are touched. Keep unrelated legacy refactors out of feature work.
+
+Use the smallest structure that clearly separates responsibilities:
+
+| Situation | Preferred approach |
+| --- | --- |
+| Menu visibility, selected modal or another simple local UI concern | Component state with `useState` |
+| Loading, restoring, validating, saving and retrying a coordinated screen workflow | Controller hook with explicit reducer states |
+| A calculation, validation rule or data transformation | Pure domain function |
+| Assigning a workout, continuing a session or another business operation | Application service/use case using repository ports |
+| Durable reads/writes and storage-format changes | Adapter with validation, ordered operations and explicit migrations |
+| Behavior crossing assignment, client display data and recorded progress | Application integration coverage, supplemented by native UI verification |
+
+Small components do not need a controller or a full set of layers. New abstractions should separate a concrete responsibility or enable meaningful reuse/testing. Existing simple actions can continue to call the application facade directly. Maintain the dependency direction: domain functions, reducers, services and ports stay independent of React, native UI, routing, Firebase and AsyncStorage; composition roots supply concrete implementations and business clocks, IDs and identity.
+
+### Guidance and executable enforcement
+
+`AGENTS.md` supplies required working instructions; this document provides rationale and examples. Agents should verify the changed dependency boundaries, appropriate async states, preservation of data on failure, persistence compatibility and relevant integration behavior before reporting completion.
+
+Current executable checks include TypeScript repository contracts, the workout test command, and the project's existing ESLint configuration. These checks support the standards, but do not by themselves enforce every architectural dependency rule. Dedicated import-boundary lint rules and CI wiring for lint/typecheck/workout tests remain follow-up work. Report actual command results and existing failures accurately; describe a check as CI-enforced only after its configuration and execution have been verified.
+
 ## Explicit workflow states
 
 The session reducer distinguishes **loading**, **load-error**, **ready**, and **transitioning**. Its checkpoint state separately distinguishes **saved**, **saving a particular revision**, and **error**. An acknowledgement for an older edit cannot mark newer edits saved. Pause/End failures retain the previous timer and recorded values.
