@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { registerHooks } from "node:module";
+import { registerWorkoutTypes } from "./helpers/workout-test-support.mjs";
 
-const hooks = registerHooks({ resolve(specifier, context, next) {
-  return next(context.parentURL?.includes("/src/workouts/") && specifier.startsWith(".") && !/\.[a-z]+$/.test(specifier)
-    ? specifier + ".ts" : specifier, context);
-} });
+const hooks = registerWorkoutTypes();
 const { createWorkoutLibraryRepository, workoutLibraryKey } = await import("../src/workouts/workoutLibraryRepository.ts");
-const { draftFromTemplate, parseWorkoutLibrary, validateWorkoutDraft } = await import("../src/workouts/workoutLibraryModel.ts");
+const { createWorkoutLibraryService } = await import("../src/workouts/workoutLibraryService.ts");
+const { draftFromTemplate, validateWorkoutDraft } = await import("../src/workouts/workoutLibraryModel.ts");
+const { parseWorkoutLibrary } = await import("../src/workouts/workoutMigrations.ts");
 const { resolveClientWorkout, resolveWorkoutById, canPreviewWorkout } = await import("../src/workouts/workoutAssignmentLookup.ts");
 hooks.deregister();
 
@@ -15,14 +14,22 @@ const draft = () => ({ title: "Upper Body Strength", durationMinutes: "45", note
   id: "bench", name: "Bench Press", sets: "3", reps: "8", weightLb: "132.5", instructions: "Keep feet planted.",
   coachNotes: "Pause briefly at the bottom.", alternative: "Push-up",
 }] });
-const initial = () => ({ version: 1, templates: [], assignments: [], previewClientId: "1" });
+const initial = () => ({ templates: [], assignments: [], previewClientId: "1" });
+const request = (value = draft(), clientIds = [], existingTemplateId) => ({ draft: value, clientIds, reusable: true, existingTemplateId });
 
 function fixture() {
   const entries = new Map();
   const storage = { async getItem(key) { return entries.get(key) ?? null; },
     async setItem(key, value) { entries.set(key, value); } };
   let sequence = 0;
-  const create = () => createWorkoutLibraryRepository(storage, initial(), (prefix) => `${prefix}-${++sequence}`, () => "2026-11-08T12:00:00.000Z");
+  const create = () => {
+    const repository = createWorkoutLibraryRepository(storage, initial());
+    const service = createWorkoutLibraryService(repository, {
+      makeId: (prefix) => `${prefix}-${++sequence}`, now: () => "2026-11-08T12:00:00.000Z", getAuthorName: () => "Coach Sam",
+      clients: { async listClientIds() { return ["1", "2"]; } },
+    });
+    return { ...repository, ...service };
+  };
   return { entries, storage, create, repo: create() };
 }
 
@@ -41,7 +48,7 @@ test("workout validation supports decimal pounds/bodyweight and rejects missing 
 
 test("saving and assigning to multiple clients persists independent workout snapshots with notes", async () => {
   const { repo, create } = fixture();
-  const result = await repo.saveWorkout(draft(), ["1", "2", "2"], ["1", "2"], "Coach Sam");
+  const result = await repo.saveWorkout(request(draft(), ["1", "2", "2"]));
   assert.equal(result.assignments.length, 2);
   const [first, second] = result.assignments;
   assert.notEqual(first.id, second.id);
@@ -63,7 +70,7 @@ test("optional duration and notes stay absent in a bodyweight assignment", async
   const optional = draft(); optional.notes = " "; optional.durationMinutes = "";
   optional.exercises[0].weightLb = "0"; optional.exercises[0].coachNotes = "";
   delete optional.exercises[0].alternative;
-  const result = await repo.saveWorkout(optional, ["1"], ["1"], "Coach");
+  const result = await repo.saveWorkout(request(optional, ["1"]));
   const workout = result.assignments[0].workout;
   assert.equal(workout.notes, undefined);
   assert.equal(workout.notesAuthor, undefined);
@@ -74,37 +81,37 @@ test("optional duration and notes stay absent in a bodyweight assignment", async
 });
 
 test("editing and deleting templates preserve already assigned notes, prescriptions and lookup IDs", async () => {
-  const { repo } = fixture();
-  const result = await repo.saveWorkout(draft(), ["2"], ["1", "2"], "Coach Sam");
+  const { repo, entries } = fixture();
+  const result = await repo.saveWorkout(request(draft(), ["2"]));
   const assigned = JSON.parse(JSON.stringify(result.assignments[0]));
   const edited = draft(); edited.title = "Updated plan"; edited.notes = "Different note"; edited.exercises[0].weightLb = "150";
-  await repo.saveWorkout(edited, [], [], "Coach Sam", true, result.templateId);
+  await repo.saveWorkout(request(edited, [], result.templateId));
   assert.deepEqual(repo.getState().data.assignments[0], assigned);
   await repo.deleteTemplate(result.templateId);
   assert.equal(repo.getState().data.templates.length, 0);
   assert.deepEqual(resolveWorkoutById(repo.getState().data, assigned.id, () => undefined), assigned.workout);
-  assert.equal(parseWorkoutLibrary(JSON.stringify(repo.getState().data)).assignments.length, 1);
+  assert.equal(parseWorkoutLibrary(entries.get(workoutLibraryKey)).assignments.length, 1);
 });
 
 test("duplicate is independently editable; assignment-only drafts do not create reusable templates", async () => {
   const { repo } = fixture();
-  const saved = await repo.saveWorkout(draft(), [], [], "Coach");
+  const saved = await repo.saveWorkout(request());
   const copiedId = await repo.duplicateTemplate(saved.templateId);
   const copy = repo.getState().data.templates.find((template) => template.id === copiedId);
   const edited = draftFromTemplate(copy); edited.exercises[0].reps = "12";
-  await repo.saveWorkout(edited, [], [], "Coach", true, copiedId);
+  await repo.saveWorkout(request(edited, [], copiedId));
   assert.equal(repo.getState().data.templates.find((template) => template.id === saved.templateId).exercises[0].reps, 8);
   assert.equal(repo.getState().data.templates.length, 2);
-  await repo.saveWorkout(draft(), ["2"], ["2"], "Coach", false);
+  await repo.saveWorkout({ ...request(draft(), ["2"]), reusable: false });
   assert.equal(repo.getState().data.templates.length, 2);
   assert.equal(repo.getState().data.assignments.length, 1);
 });
 
 test("client preview isolation and latest assignment work while preserving earlier session lookups", async () => {
   const { repo, create } = fixture();
-  const first = await repo.saveWorkout(draft(), ["1"], ["1", "2"], "Coach");
-  const second = await repo.assignTemplate(first.templateId, ["2"], ["1", "2"], "Coach");
-  const replacement = await repo.assignTemplate(first.templateId, ["1"], ["1", "2"], "Coach");
+  const first = await repo.saveWorkout(request(draft(), ["1"]));
+  const second = await repo.assignTemplate({ templateId: first.templateId, clientIds: ["2"] });
+  const replacement = await repo.assignTemplate({ templateId: first.templateId, clientIds: ["1"] });
   await repo.setPreviewClient("2");
   const data = repo.getState().data;
   assert.equal(resolveClientWorkout(data, "1", null).id, replacement[0].id);
@@ -119,13 +126,13 @@ test("client preview isolation and latest assignment work while preserving earli
 
 test("invalid assignment selections, missing templates and malformed stored data do not overwrite saved work", async () => {
   const { repo, entries, create } = fixture();
-  await assert.rejects(repo.saveWorkout(draft(), ["unknown"], ["1"], "Coach"), /no longer available/);
-  await assert.rejects(repo.saveWorkout(draft(), [], [], "Coach", false), /Select clients/);
-  await assert.rejects(repo.assignTemplate("missing", ["1"], ["1"], "Coach"), /available workout template/);
+  await assert.rejects(repo.saveWorkout(request(draft(), ["unknown"])), /no longer available/);
+  await assert.rejects(repo.saveWorkout({ ...request(), reusable: false }), /Select clients/);
+  await assert.rejects(repo.assignTemplate({ templateId: "missing", clientIds: ["1"] }), /available workout template/);
   entries.set(workoutLibraryKey, "broken JSON");
   const broken = create(); await broken.load();
   assert.equal(broken.getState().status, "error");
-  await assert.rejects(broken.saveWorkout(draft(), [], [], "Coach"));
+  await assert.rejects(broken.saveWorkout(request()));
   assert.equal(entries.get(workoutLibraryKey), "broken JSON");
 });
 
@@ -135,11 +142,11 @@ test("failed writes publish no false success and later saves recover without los
   const before = repo.getState();
   const write = storage.setItem;
   storage.setItem = async () => { throw new Error("Disk full"); };
-  await assert.rejects(repo.saveWorkout(draft(), ["1"], ["1"], "Coach"), /Disk full/);
+  await assert.rejects(repo.saveWorkout(request(draft(), ["1"])), /Disk full/);
   assert.equal(repo.getState(), before);
   storage.setItem = write;
-  await Promise.all([repo.saveWorkout(draft(), ["1"], ["1", "2"], "Coach"),
-    repo.saveWorkout({ ...draft(), title: "Second" }, ["2"], ["1", "2"], "Coach")]);
+  await Promise.all([repo.saveWorkout(request(draft(), ["1"])),
+    repo.saveWorkout(request({ ...draft(), title: "Second" }, ["2"]))]);
   assert.equal(repo.getState().data.templates.length, 2);
   assert.equal(repo.getState().data.assignments.length, 2);
 });

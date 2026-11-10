@@ -33,6 +33,13 @@ Run lint and typecheck before declaring any task done.
 - Interactive elements must have accessible roles/labels, visible pressed states, and touch areas at least `layout.minTouchTarget` (48 dp) in both dimensions. Ensure text has readable contrast on the actual background at every gradient stop.
 - Before calling a UI story Done: run lint and typecheck; verify the screen on an Android emulator at 320 dp, ~390 dp, and tablet width plus 1.5× font scale; test empty/optional data and navigation/back; document what was actually tested. Mock data does not prove a client-specific assignment: a story requiring the *client's assigned workout* needs an authenticated assignment source or an explicitly agreed prototype-only scope.
 
+## Workout Architecture
+
+- Keep workout business rules in pure domain functions and application services. Use `useWorkoutSession` / `useWorkoutEditor` and their reducers for async screen workflows; keep route files focused on presentation and navigation.
+- Services depend on the domain ports in `src/workouts/workoutRepositories.ts`. Wire AsyncStorage, author identity, time, IDs and client-directory implementations in the composition roots rather than importing them into screens or domain services.
+- Handle persisted format changes through explicit validation/migrations in `workoutMigrations.ts`. Preserve existing keys, assignment snapshots and recorded performance; unsupported/corrupt data must not be silently replaced. Keep read-time migrations and writes ordered.
+- For workflow changes, run `npm run test:workouts` and add meaningful reducer/application integration coverage. See `docs/workout-architecture.md` for layer responsibilities and the Android smoke driver.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.

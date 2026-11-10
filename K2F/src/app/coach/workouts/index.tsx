@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, builderStyles as styles } from "@/components/WorkoutBuilderControls";
-import { auth } from "@/lib/firebase";
 import { isCompactLayout, spacing } from "@/theme";
 import { workoutTemplateSummary, type WorkoutTemplate } from "@/workouts/workoutLibraryModel";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
@@ -84,7 +83,7 @@ export default function WorkoutLibraryScreen() {
         <ClientAssignmentPicker clients={clients} loadStatus={loadStatus} selected={selectedClients} onChange={setSelectedClients} disabled={busy} />
         <BuilderButton label={`Assign workout · ${selectedClients.length} selected`} disabled={busy || !selected || !selectedClients.length || loadStatus !== "ready"}
           onPress={() => { if (selected) void act(async () => {
-            const assigned = await workoutLibrary.assignTemplate(selected.id, selectedClients, clients.map((client) => client.id), auth.currentUser?.displayName ?? "Coach");
+            const assigned = await workoutLibrary.assignTemplate({ templateId: selected.id, clientIds: selectedClients });
             setFeedback(`Assigned ${selected.title} to ${assigned.length} ${assigned.length === 1 ? "client" : "clients"}.`);
             setPreviewClientId(assigned[0].clientId);
           }); }} />
