@@ -1,6 +1,8 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { getCoachTip } from "@/workouts/coachTips";
 import type { WorkoutExercise } from "@/workouts/workout";
+import { useWorkoutLibraryState } from "@/workouts/workoutLibraryStore";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 type ExerciseDetailsModalProps = {
@@ -9,6 +11,10 @@ type ExerciseDetailsModalProps = {
 };
 
 export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModalProps) {
+  // K2F-108: the tip is for the client whose workout is open (demo client for now)
+  const library = useWorkoutLibraryState();
+  const coachTip = exercise ? getCoachTip(library.data, library.data.previewClientId, exercise) : null;
+
   return (
     <Modal
       animationType="slide"
@@ -64,16 +70,18 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
             </View>
 
             {/* K2F-167: Display instructions for the selected exercise.
-                Hide the section when instructions are missing or empty.
+                K2F-107: Keep the section when instructions are missing and say so.
             */}
-            {exercise.instructions?.trim() ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Instructions</Text>
-                <Text style={styles.body}>
-                  {exercise.instructions}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Instructions</Text>
+              {exercise.instructions?.trim() ? (
+                <Text style={styles.body}>{exercise.instructions}</Text>
+              ) : (
+                <Text style={[styles.body, styles.emptyText]}>
+                  No instructions for this exercise yet.
                 </Text>
-              </View>
-            ) : null}
+              )}
+            </View>
 
               {exercise.demonstrationAvailable && <VideoPlaceholder />}
               {exercise.alternative?.trim() && <View style={styles.notesCard}>
@@ -82,17 +90,14 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
               </View>}
 
 
-            {/* K2F-167: Display additional recommendations from the coach.
-                Exercises without coach notes do not show an empty card.
+            {/* K2F-108: Coach tip for this client and this exercise only.
+                No tip means no card, never another client's tip.
             */}
-            {exercise.coachNotes?.trim() ? (
-              <View style={styles.notesCard}>
-                <Text style={styles.sectionTitle}>
-                  Coach recommendation
-                </Text>
-                <Text style={styles.body}>
-                  {exercise.coachNotes}
-                </Text>
+            {coachTip ? (
+              <View style={styles.tipCard}>
+                <Text style={styles.tipEyebrow}>JUST FOR YOU · {exercise.name.toUpperCase()}</Text>
+                <Text style={styles.sectionTitle}>Coach recommendation</Text>
+                <Text style={styles.tipText}>{coachTip}</Text>
               </View>
             ) : null}
 
@@ -208,6 +213,29 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.body,
     lineHeight: 24,
+  },
+  emptyText: {
+    fontStyle: "italic",
+  },
+  // Coach tip stands out from the general instructions and the alternative card
+  tipCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.primary,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  tipEyebrow: {
+    color: colors.primaryDark,
+    fontSize: typography.caption,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  tipText: {
+    color: colors.text,
+    fontSize: typography.body,
+    lineHeight: typography.bodyLineHeight,
   },
   videoPlaceholder: {
     alignItems: "center",
