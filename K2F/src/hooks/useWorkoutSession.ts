@@ -93,7 +93,7 @@ export function useWorkoutSession(workout: AssignedWorkout, resumeRequest?: stri
   }
 
   return {
-    state, exercises: session.exercises, timer: session.timer, now,
+    state, exercises: session.exercises, timer: session.timer, outcome: session.outcome, now,
     isLoadingSession: state.status === "loading", sessionLoadFailed: state.status === "load-error",
     loadError: state.status === "load-error" ? state.error : "",
     isSavingSession: state.status === "transitioning",

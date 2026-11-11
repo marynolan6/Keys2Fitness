@@ -1,5 +1,5 @@
 import type { ClientWorkoutAssignment, WorkoutLibraryData, WorkoutTemplate } from "./workoutLibraryModel";
-import type { WorkoutSession } from "./workoutSessionModel";
+import type { WorkoutHistoryEntry, WorkoutSession } from "./workoutSessionModel";
 
 export type SaveWorkoutPlan = {
   template?: WorkoutTemplate;
@@ -38,6 +38,9 @@ export interface WorkoutSessionRepository {
   loadWorkoutSession(workoutId: string): Promise<WorkoutSession | null>;
   loadActiveWorkoutSession(isAvailable?: (id: string) => boolean): Promise<WorkoutSession | null>;
   clearWorkoutSession(workoutId: string): Promise<void>;
+  // Checkpoint and immutable history entry are committed together, once per attempt.
+  finalizeWorkoutSession(entry: WorkoutHistoryEntry): Promise<WorkoutSession>;
+  listWorkoutHistory(clientId: string): Promise<WorkoutHistoryEntry[]>;
 }
 
 export interface WorkoutClientDirectory {

@@ -6,7 +6,7 @@ const hooks = registerWorkoutTypes();
 const { createWorkoutLibraryRepository, workoutLibraryKey } = await import("../src/workouts/workoutLibraryRepository.ts");
 const { createWorkoutSessionStore, workoutSessionPrefix } = await import("../src/workouts/workoutSessionStore.ts");
 const { templateFromDraft, assignmentFromTemplate } = await import("../src/workouts/workoutLibraryModel.ts");
-const { decodeWorkoutLibrary, decodeWorkoutSession, encodeWorkoutLibrary, workoutSchemaVersion } = await import("../src/workouts/workoutMigrations.ts");
+const { decodeWorkoutLibrary, decodeWorkoutSession, encodeWorkoutLibrary, workoutSchemaVersion, workoutSessionSchemaVersion } = await import("../src/workouts/workoutMigrations.ts");
 hooks.deregister();
 
 test("v1 library migration preserves template, assignment, notes and preview IDs and runs only once", async () => {
@@ -108,7 +108,7 @@ test("a migration racing with a new checkpoint cannot overwrite the newer progre
   await read; await save;
   const restored = await repository.loadWorkoutSession("today");
   assert.equal(restored.exercises[0].actualSets[0].actualWeightLb, "145");
-  assert.equal(JSON.parse(entries.get(workoutSessionPrefix + "today")).schemaVersion, workoutSchemaVersion);
+  assert.equal(JSON.parse(entries.get(workoutSessionPrefix + "today")).schemaVersion, workoutSessionSchemaVersion);
 });
 
 test("new library envelopes validate optional data and preserve an intentionally empty library", () => {
