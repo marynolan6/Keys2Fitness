@@ -41,11 +41,16 @@ export function createWorkoutLibraryService(repository: WorkoutLibraryRepository
     return { templateId: reusable ? template.id : null, assignments };
   }
 
-  async function assignTemplate(request: { templateId: string; clientIds: readonly string[] }): Promise<ClientWorkoutAssignment[]> {
+  async function assignTemplate(request: { templateId: string; clientIds: readonly string[]; expectedTemplateUpdatedAt?: string }): Promise<ClientWorkoutAssignment[]> {
     const author = getAuthorName();
     const selected = await validateClients(request.clientIds);
     const template = await repository.findTemplate(request.templateId);
     if (!template) throw new Error("Select an available workout template.");
+    if (request.expectedTemplateUpdatedAt && request.expectedTemplateUpdatedAt !== template.updatedAt) {
+      throw new Error("This workout changed during review. Cancel and select it again before assigning.");
+    }
+    // Assignment accepts finished, valid plans, never incomplete drafts.
+    templateFromDraft(draftFromTemplate(template), template.id, template.updatedAt);
     const assignments = selected.map((id) => assignmentFromTemplate(template, id, makeId("assigned"), now(), author));
     await repository.saveWorkoutPlan({ assignments, existingTemplateId: template.id });
     return assignments;

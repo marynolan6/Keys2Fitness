@@ -71,6 +71,8 @@ def fill(label, text):
     adb("shell", "input", "keyevent", "123")
     if previous:
         adb("shell", "input", "keyevent", *(["67"] * (len(previous) + 2)))
+        # Let controlled React inputs process deletion before the next input batch.
+        time.sleep(1)
     if text:
         adb("shell", "input", "text", text.replace(" ", "%s"))
     adb("shell", "input", "keyevent", "111")
@@ -83,3 +85,13 @@ def fill(label, text):
 def open_route(path, base_url):
     adb("shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", base_url.rstrip("/") + "/--/" + path)
     time.sleep(4)
+
+
+def delete_test_template(title, base_url):
+    """Remove only the exact test template; assignment/history snapshots remain available."""
+    open_route("coach/workouts", base_url)
+    fill("Search workout templates", title)
+    tap("Delete " + title)
+    wait_for("Delete Workout Template?")
+    tap("Delete template")
+    wait_for("Template deleted.")

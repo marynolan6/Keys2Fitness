@@ -26,6 +26,7 @@ def main():
     if client.get("checked") != "true":
         tap_node(client)
     tap("Assign workout · 1 selected")
+    tap("Confirm assignment")
     wait_for("Workout Template Library")
     fill("Search workout templates", title)
     tap("Preview assigned client workout")

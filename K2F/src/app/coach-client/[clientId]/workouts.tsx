@@ -43,6 +43,7 @@ export default function ClientWorkouts() {
         const note = getWorkoutCoachNote(assignment.workout);
         return <View key={assignment.id} style={styles.card}>
           <Text style={styles.muted}>{index === 0 ? "Latest assignment" : "Earlier assignment"}</Text>
+          <Text style={styles.feedback}>Assigned to {client.name} · {new Date(assignment.assignedAt).toLocaleString()}</Text>
           <Text style={styles.heading}>{assignment.workout.title}</Text>
           <Text style={styles.muted}>{assignment.workout.exercises.length} exercises{assignment.workout.durationMinutes ? ` · ${assignment.workout.durationMinutes} min` : ""}</Text>
           {assignment.workout.exercises.map((exercise) => <Text key={exercise.id} style={styles.label}>

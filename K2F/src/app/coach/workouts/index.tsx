@@ -5,14 +5,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
+import { useWorkoutAssignment } from "@/hooks/useWorkoutAssignment";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { isCompactLayout, spacing } from "@/theme";
 import { workoutTemplateSummary, type WorkoutTemplate } from "@/workouts/workoutLibraryModel";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 
 export default function WorkoutLibraryScreen() {
-  const router = useRouter();
   const { clientId, saved } = useLocalSearchParams<{ clientId?: string; saved?: string }>();
+  // Tabs retain their screens. A different client entry starts a fresh selection/review.
+  return <WorkoutLibraryContent key={clientId ?? "library"} clientId={clientId} saved={saved} />;
+}
+
+function WorkoutLibraryContent({ clientId, saved }: { clientId?: string; saved?: string }) {
+  const router = useRouter();
   const state = useWorkoutLibraryState();
   const { clients, loadStatus } = useCoachClientsState();
   const { width, fontScale } = useWindowDimensions();
@@ -22,15 +29,19 @@ export default function WorkoutLibraryScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedClients, setSelectedClients] = useState<string[]>(clientId ? [clientId] : []);
   const [deleteTarget, setDeleteTarget] = useState<WorkoutTemplate | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [working, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
-  const [previewClientId, setPreviewClientId] = useState<string | null>(null);
+  const assignment = useWorkoutAssignment();
+  const review = assignment.state.status === "review" || assignment.state.status === "saving" ? assignment.state : null;
+  const busy = working || review !== null;
+  const assigned = assignment.state.status === "saved" ? assignment.state : null;
   const templates = state.data.templates;
   const filtered = templates.filter((template) => `${template.title} ${template.exercises.map((exercise) => exercise.name).join(" ")}`
     .toLowerCase().includes(search.trim().toLowerCase()));
-  const selected = filtered.find((template) => template.id === selectedId) ?? filtered[0];
-  const previewTarget = previewClientId ?? (state.data.assignments.some((assignment) => assignment.clientId === clientId) ? clientId : null);
+  const selected = templates.find((template) => template.id === selectedId) ?? templates[0];
+  const previewTarget = assigned?.assignments[0]?.clientId ?? (state.data.assignments.some((assignment) => assignment.clientId === clientId) ? clientId : null);
+  const assignmentFeedback = assigned ? `Assigned ${assigned.review.template.title} to ${assigned.review.clients.map((client) => client.name).join(", ")}.` : "";
 
   async function act(operation: () => Promise<void>) {
     setBusy(true); setError(""); setFeedback("");
@@ -51,7 +62,7 @@ export default function WorkoutLibraryScreen() {
         <BuilderButton label="Create workout" onPress={() => router.push({ pathname: "/coach/workouts/editor", params: { clientId: clientId ?? "" } })} disabled={busy} />
       </View>
       <BuilderField label="Search workout templates" value={search} onChange={setSearch} />
-      {(feedback || saved) && <Text accessibilityLiveRegion="polite" style={styles.feedback}>{feedback || "Workout saved on this device."}</Text>}
+      {(feedback || assignmentFeedback || saved) && <Text accessibilityLiveRegion="polite" style={styles.feedback}>{feedback || assignmentFeedback || "Workout saved on this device."}</Text>}
       {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {previewTarget && <BuilderButton label="Preview assigned client workout" secondary disabled={busy}
         onPress={() => { void act(async () => { await workoutLibrary.setPreviewClient(previewTarget); router.push("/client/home"); }); }} />}
@@ -68,6 +79,12 @@ export default function WorkoutLibraryScreen() {
           <Text style={styles.muted}>{workoutTemplateSummary(template)}</Text>
           <Text style={styles.muted}>{template.exercises.map((exercise) => `${exercise.name} ${exercise.sets} × ${exercise.reps}`).join(" · ")}</Text>
         </Pressable>
+        {[...new Set(state.data.assignments.filter((item) => item.templateId === template.id).map((item) => item.clientId))].map((id) =>
+          <View key={id} style={styles.field}>
+            <Text style={styles.feedback}>Assigned to {clients.find((client) => client.id === id)?.name ?? "Unavailable client"}</Text>
+            <BuilderButton label={`View assignments for ${clients.find((client) => client.id === id)?.name ?? id}`} secondary disabled={busy}
+              onPress={() => router.push({ pathname: "/coach-client/[clientId]/workouts", params: { clientId: id } })} />
+          </View>)}
         <View style={[styles.actions, compact && styles.stacked]}>
           <BuilderButton label="Duplicate" accessibilityLabel={`Duplicate ${template.title}`} secondary disabled={busy} onPress={() => {
             void act(async () => { setSelectedId(await workoutLibrary.duplicateTemplate(template.id)); setFeedback("Template duplicated."); });
@@ -80,19 +97,20 @@ export default function WorkoutLibraryScreen() {
       <View style={styles.card}>
         <Text style={styles.heading}>Assign to clients</Text>
         <Text style={styles.muted}>{selected ? `Selected: ${selected.title}` : "Create a template before assigning."}</Text>
+        <Text style={styles.muted}>{selectedClients.length ? `Selected clients: ${selectedClients.map((id) => clients.find((client) => client.id === id)?.name ?? "Unavailable client").join(", ")}` : "Choose the clients who should receive this workout."}</Text>
         <ClientAssignmentPicker clients={clients} loadStatus={loadStatus} selected={selectedClients} onChange={setSelectedClients} disabled={busy} />
         <BuilderButton label={`Assign workout · ${selectedClients.length} selected`} disabled={busy || !selected || !selectedClients.length || loadStatus !== "ready"}
-          onPress={() => { if (selected) void act(async () => {
-            const assigned = await workoutLibrary.assignTemplate({ templateId: selected.id, clientIds: selectedClients });
-            setFeedback(`Assigned ${selected.title} to ${assigned.length} ${assigned.length === 1 ? "client" : "clients"}.`);
-            setPreviewClientId(assigned[0].clientId);
-          }); }} />
-        {feedback && <Text accessibilityLiveRegion="polite" style={styles.feedback}>{feedback}</Text>}
+          onPress={() => { if (selected) { setFeedback(""); setError(""); assignment.review({ template: selected,
+            clients: selectedClients.map((id) => ({ id, name: clients.find((client) => client.id === id)?.name ?? "Unavailable client" })) }); } }} />
+        {(feedback || assignmentFeedback) && <Text accessibilityLiveRegion="polite" style={styles.feedback}>{feedback || assignmentFeedback}</Text>}
         {previewTarget && <BuilderButton label="Open assigned workout in demo client view" secondary disabled={busy}
           onPress={() => { void act(async () => { await workoutLibrary.setPreviewClient(previewTarget); router.push("/client/home"); }); }} />}
       </View>
     </>}
   </ScrollView>
+  {review && <WorkoutAssignmentConfirmation title={review.review.template.title} summary={workoutTemplateSummary(review.review.template)}
+    clients={review.review.clients} saving={review.status === "saving"} error={review.error}
+    onConfirm={() => { void assignment.confirm(); }} onCancel={assignment.cancel} />}
   <Modal transparent visible={deleteTarget !== null} animationType="fade" onRequestClose={() => { if (!busy) setDeleteTarget(null); }}>
     <View style={[styles.overlay, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
       <View accessibilityViewIsModal style={styles.modal}>
