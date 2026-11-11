@@ -65,10 +65,14 @@ def main():
     tap_node(resume)  # Running Pause occupies the former Resume control's area.
     wait_for("Workout paused. Your progress is saved.")
     assert scroll_to("Bench Press completed").get("checked") == "true"
-    tap("End Workout")
+    ready_to_finish = any(matches(node, "Finish Workout") for node in snapshot())
+    tap("Finish Workout" if ready_to_finish else "End Workout")
     for _ in range(12):
         current = snapshot()
-        if any(matches(node, "End this workout?") for node in current):
+        if any(matches(node, "Confirm workout completion?") for node in current):
+            tap("Confirm completion")
+            break
+        if any(matches(node, "End this workout early?") for node in current):
             tap("End Anyway")
             break
         if any(matches(node, "Start New Workout") for node in current):

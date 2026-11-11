@@ -92,6 +92,8 @@ The library domain model no longer carries a storage version. Canonical session 
 - Failed migration writes retain the original record and can be retried.
 - Reads/migrations and writes share a queue, preventing an old read-time migration from overwriting a newer checkpoint.
 
+K2F-33 subsequently advances session envelopes to schema 3 with a `history` array alongside the latest checkpoint. The library remains schema 2. A domain repository finalization operation commits the checkpoint and one immutable history entry in a single local write, keyed by attempt ID for idempotency. Clearing/restarting a checkpoint preserves earlier attempts. See [completion verification](workout-completion-testing.md) for outcome rules and compatibility.
+
 ## Verification
 
 ```bash

@@ -8,6 +8,7 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 import { getClientAssignedWorkout, getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
+import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { useCoachClients } from "@/clients/clientStore";
 import { isWorkoutInProgress, loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
@@ -109,6 +110,7 @@ export default function ClientHome() {
           </View>
 
           <RecentMessagesWidget />
+          <View style={styles.goalSection}><WorkoutHistorySection /></View>
 
         </View>
       </ScrollView>

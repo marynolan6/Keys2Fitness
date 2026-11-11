@@ -56,7 +56,7 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
     const { width, fontScale } = useWindowDimensions();
     const compact = isCompactLayout(width, fontScale);
     const session = useWorkoutSession(workout, resumeRequest);
-    const { exercises, timer, now, isLoadingSession, isSavingSession, sessionLoadFailed,
+    const { exercises, timer, outcome, now, isLoadingSession, isSavingSession, sessionLoadFailed,
       sessionError, progressSaveError, sessionDisabled, toggleExercise } = session;
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     // The note opens as an overlay on this screen, so viewing it never touches workout state.
@@ -66,10 +66,10 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
     const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
     const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
     const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
-    const [showEndConfirmation, setShowEndConfirmation] = useState(false);
+    const [confirmation, setConfirmation] = useState<"finish" | "end" | null>(null);
     const isPaused = timer.status === "paused";
     async function changeSession(action: WorkoutTimerAction) {
-      if (await session.changeSession(action)) setShowEndConfirmation(false);
+      if (await session.changeSession(action)) setConfirmation(null);
     }
 
     const summary = getWorkoutProgress(exercises);
@@ -81,7 +81,7 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
       `${summary.completed} of ${summary.total} exercises complete`,
     ].filter(Boolean).join(" · ");
     const progress = summary.percentage;
-    const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, timer }).status;
+    const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, timer, outcome }).status;
 
 if (isLoadingSession) {
   return (
@@ -187,8 +187,12 @@ return (
                     {isSavingSession ? "Saving..." : timer.status === "ready" ? "Start Workout" : isPaused ? "Resume" : "Ⅱ Pause Workout"}
                   </Text>
                 </Pressable>
-                {isPaused && <Pressable accessibilityRole="button" disabled={isSavingSession}
-                  onPress={() => summary.remaining > 0 ? setShowEndConfirmation(true) : changeSession("end")}
+                {summary.isComplete && timer.status !== "ready" ? <Pressable accessibilityRole="button" disabled={isSavingSession}
+                  onPress={() => setConfirmation("finish")}
+                  style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
+                  <Text style={styles.sessionButtonText}>Finish Workout</Text>
+                </Pressable> : isPaused && <Pressable accessibilityRole="button" disabled={isSavingSession}
+                  onPress={() => setConfirmation("end")}
                   style={({ pressed }) => [styles.sessionButton, styles.sessionAction, styles.endButton, pressed && styles.buttonPressed]}>
                   <Text style={styles.sessionButtonText}>End Workout</Text>
                 </Pressable>}
@@ -206,7 +210,9 @@ return (
           {isPaused && <Text style={styles.sessionMessage}>Workout paused. Your progress is saved.</Text>}
           {timer.status === "ended" && (
             <Text accessibilityLiveRegion="polite" style={styles.sessionMessage}>
-              Workout ended. {summary.completed} of {summary.total} exercises completed.
+              {outcome === "completed" ? "Workout completed successfully! Saved to your workout history."
+                : outcome === "ended-early" ? `Workout ended early. ${summary.completed} of ${summary.total} exercises completed. Saved to history; not counted as a completed workout.`
+                : `Workout ended. ${summary.completed} of ${summary.total} exercises completed.`}
             </Text>
           )}
         </View>
@@ -305,22 +311,24 @@ return (
         }}
         onRemove={() => { if (selectedSetsId) session.removeSet(selectedSetsId); }}
       />
-      <Modal transparent visible={showEndConfirmation} animationType="fade"
-        onRequestClose={() => { if (!isSavingSession) setShowEndConfirmation(false); }}>
+      <Modal transparent visible={confirmation !== null} animationType="fade"
+        onRequestClose={() => { if (!isSavingSession) setConfirmation(null); }}>
         <View style={styles.confirmOverlay}>
           <View accessibilityViewIsModal style={styles.confirmCard}>
             <ScrollView contentContainerStyle={styles.confirmContent}>
-              <Text accessibilityRole="header" style={styles.exerciseName}>End this workout?</Text>
+              <Text accessibilityRole="header" style={styles.exerciseName}>{confirmation === "finish" ? "Confirm workout completion?" : "End this workout early?"}</Text>
               <Text style={styles.progressSummary}>
-                You have {summary.remaining} incomplete {summary.remaining === 1 ? "exercise" : "exercises"}. Are you sure you want to finish the workout?
+                {confirmation === "finish"
+                  ? `${summary.total === 1 ? "Your exercise is complete" : `All ${summary.total} exercises are complete`}. Confirm to save your performed sets and active time to workout history.`
+                  : `You have ${summary.remaining} incomplete ${summary.remaining === 1 ? "exercise" : "exercises"}. Your progress will be recorded as ended early, not completed.`}
               </Text>
               <Pressable accessibilityRole="button" disabled={isSavingSession}
-                onPress={() => changeSession("end")}
-                style={({ pressed }) => [styles.sessionButton, styles.endButton, pressed && styles.buttonPressed]}>
-                <Text style={styles.sessionButtonText}>{isSavingSession ? "Saving..." : "End Anyway"}</Text>
+                onPress={() => { if (confirmation) void changeSession(confirmation); }}
+                style={({ pressed }) => [styles.sessionButton, confirmation === "end" && styles.endButton, pressed && styles.buttonPressed]}>
+                <Text style={styles.sessionButtonText}>{isSavingSession ? "Saving..." : confirmation === "finish" ? "Confirm completion" : "End Anyway"}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" disabled={isSavingSession}
-                onPress={() => setShowEndConfirmation(false)}
+                onPress={() => setConfirmation(null)}
                 style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
                 <Text style={styles.leaveButtonText}>Keep Workout</Text>
               </Pressable>
