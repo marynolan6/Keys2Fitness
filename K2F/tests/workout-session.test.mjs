@@ -1,15 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { registerHooks } from "node:module";
+import { registerWorkoutTypes } from "./helpers/workout-test-support.mjs";
 import { initializeSetPerformance, togglePerformedSet, updateSetPerformance } from "../src/workouts/setPerformance.ts";
 import { elapsedWorkoutTime, transitionWorkoutTimer } from "../src/workouts/workoutTimer.ts";
 
 // Metro/TypeScript resolve extensionless TS imports; Node's strip-types runner
 // needs the extension for this dependency, without changing application imports.
-const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
-  return nextResolve(context.parentURL?.endsWith("/workoutSessionStore.ts") && specifier === "./setPerformance"
-    ? "./setPerformance.ts" : specifier, context);
-} });
+const hooks = registerWorkoutTypes();
 const { createWorkoutSessionStore, getWorkoutCardLabels, isWorkoutInProgress, parseWorkoutSession } =
   await import("../src/workouts/workoutSessionStore.ts");
 hooks.deregister();

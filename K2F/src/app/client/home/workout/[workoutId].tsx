@@ -5,16 +5,17 @@ import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
 import { CoachNoteButton, CoachNoteSheet } from "@/components/CoachNoteSheet";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { getWorkoutCardLabels, saveWorkoutSession, loadWorkoutSession } from "@/workouts/workoutSession";
-import { elapsedWorkoutTime, formatWorkoutTime, initialWorkoutTimer, transitionWorkoutTimer } from "@/workouts/workoutTimer";
+import { getWorkoutCardLabels } from "@/workouts/workoutSessionModel";
+import { elapsedWorkoutTime, formatWorkoutTime } from "@/workouts/workoutTimer";
+import { useWorkoutSession } from "@/hooks/useWorkoutSession";
+import type { WorkoutTimerAction } from "@/workouts/workoutSessionService";
 
 import { getWorkoutCoachNote } from "@/workouts/coachNote";
 import { getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { getWorkoutProgress } from "@/workouts/workoutProgress";
-import { addPerformedSet, initializeSetPerformance, removeLastPerformedSet, resetSetPerformance, toggleExercisePerformance, togglePerformedSet, updateSetPerformance } from "@/workouts/setPerformance";
 import type { AssignedWorkout } from "@/workouts/workout";
 
 export default function WorkoutDetails() {
@@ -54,8 +55,9 @@ export default function WorkoutDetails() {
 function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; resumeRequest?: string }) {
     const { width, fontScale } = useWindowDimensions();
     const compact = isCompactLayout(width, fontScale);
-    const [exercises, setExercises] = useState(() => workout.exercises.map(initializeSetPerformance));
-    const nextSetId = useRef(0);
+    const session = useWorkoutSession(workout, resumeRequest);
+    const { exercises, timer, now, isLoadingSession, isSavingSession, sessionLoadFailed,
+      sessionError, progressSaveError, sessionDisabled, toggleExercise } = session;
     const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
     // The note opens as an overlay on this screen, so viewing it never touches workout state.
     const [showCoachNote, setShowCoachNote] = useState(false);
@@ -64,92 +66,10 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
     const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
     const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
     const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
-    const [timer, setTimer] = useState(initialWorkoutTimer);
-    const [now, setNow] = useState(Date.now);
     const [showEndConfirmation, setShowEndConfirmation] = useState(false);
-    const [sessionError, setSessionError] = useState("");
     const isPaused = timer.status === "paused";
-    const [isLoadingSession, setIsLoadingSession] = useState(true);
-    const [isSavingSession, setIsSavingSession] = useState(false);
-    const [sessionLoadFailed, setSessionLoadFailed] = useState(false);
-    const [loadRetry, setLoadRetry] = useState(0);
-    const [progressSaveError, setProgressSaveError] = useState("");
-    const sessionDisabled = timer.status !== "running" || isLoadingSession || isSavingSession;
-
-    useEffect(() => {
-      if (timer.status !== "running") return;
-      const interval = setInterval(() => setNow(Date.now()), 1000);
-      return () => clearInterval(interval);
-    }, [timer.status]);
-
-    useEffect(() => {
-      let active = true;
-      async function restoreWorkout() {
-        setIsLoadingSession(true);
-        setSessionLoadFailed(false);
-        try {
-          const saved = await loadWorkoutSession(workout.id);
-          if (active && saved) {
-            setExercises(saved.exercises.map(initializeSetPerformance));
-            const savedTimer = saved.timer ?? { status: "paused" as const, elapsedMs: 0, runningSince: null };
-            const resumedAt = Date.now();
-            // Continue resumes a paused timer, but never restarts an ended session
-            // or moves the starting point of an already-running clock.
-            const nextTimer = resumeRequest
-              ? transitionWorkoutTimer(savedTimer, "resume", resumedAt) : savedTimer;
-            setTimer(savedTimer);
-            if (nextTimer !== savedTimer) {
-              await saveWorkoutSession({ ...saved, timer: nextTimer, paused: false });
-            }
-            if (active) {
-              setTimer(nextTimer);
-              setNow(resumedAt);
-              setSessionError("");
-            }
-          }
-        } catch (error) {
-          console.error("Unable to restore workout:", error);
-          if (active) setSessionLoadFailed(true);
-        } finally {
-          if (active) setIsLoadingSession(false);
-        }
-      }
-      restoreWorkout();
-      return () => { active = false; };
-    }, [workout.id, resumeRequest, loadRetry]);
-
-    useEffect(() => {
-      if (isLoadingSession || sessionLoadFailed || timer.status === "ready") return;
-      let active = true;
-      saveWorkoutSession({ workoutId: workout.id, exercises, paused: timer.status === "paused", timer })
-        .then(() => { if (active) setProgressSaveError(""); })
-        .catch(() => {
-          if (active) setProgressSaveError("Your latest progress could not be saved. Try again before leaving.");
-        });
-      return () => { active = false; };
-    }, [exercises, timer, workout.id, isLoadingSession, sessionLoadFailed]);
-
-    async function changeSession(action: "start" | "pause" | "resume" | "end") {
-      if (isLoadingSession || isSavingSession) return;
-      const changedAt = Date.now();
-      const next = transitionWorkoutTimer(timer, action, changedAt);
-      if (next === timer) return;
-      const nextExercises = action === "start" && timer.status === "ended"
-        ? workout.exercises.map(resetSetPerformance) : exercises;
-      setIsSavingSession(true);
-      setSessionError("");
-      try {
-        await saveWorkoutSession({ workoutId: workout.id, exercises: nextExercises, paused: next.status === "paused", timer: next });
-        setExercises(nextExercises);
-        setTimer(next);
-        setNow(changedAt);
-        setShowEndConfirmation(false);
-      } catch (error) {
-        console.error("Unable to update workout:", error);
-        setSessionError("Your workout could not be saved. Please try again.");
-      } finally {
-        setIsSavingSession(false);
-      }
+    async function changeSession(action: WorkoutTimerAction) {
+      if (await session.changeSession(action)) setShowEndConfirmation(false);
     }
 
     const summary = getWorkoutProgress(exercises);
@@ -161,21 +81,7 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
       `${summary.completed} of ${summary.total} exercises complete`,
     ].filter(Boolean).join(" · ");
     const progress = summary.percentage;
-    const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, paused: isPaused, timer }).status;
-
-    function toggleExercise(id: string) {
-        if (sessionDisabled) return;
-        setExercises((current) =>
-            current.map((exercise) =>
-                exercise.id === id ? toggleExercisePerformance(exercise) : exercise,
-            ),
-        );
-    }
-
-    function changeExercise(id: string, update: (exercise: AssignedWorkout["exercises"][number]) => AssignedWorkout["exercises"][number]) {
-      if (sessionDisabled) return;
-      setExercises((current) => current.map((exercise) => exercise.id === id ? update(exercise) : exercise));
-    }
+    const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, timer }).status;
 
 if (isLoadingSession) {
   return (
@@ -192,8 +98,8 @@ if (sessionLoadFailed) {
   return (
     <ThemedBackground>
       <View style={styles.content}>
-        <Text accessibilityRole="alert" style={styles.subtitle}>Your saved workout could not be opened. Try again to continue without resetting progress.</Text>
-        <Pressable accessibilityRole="button" onPress={() => setLoadRetry((current) => current + 1)}
+        <Text accessibilityRole="alert" style={styles.subtitle}>{session.loadError}</Text>
+        <Pressable accessibilityRole="button" onPress={session.retryLoad}
           style={({ pressed }) => [styles.sessionButton, pressed && styles.buttonPressed]}>
           <Text style={styles.sessionButtonText}>Try again</Text>
         </Pressable>
@@ -292,11 +198,8 @@ return (
           {sessionError ? <Text accessibilityRole="alert" style={styles.sessionMessage}>{sessionError}</Text> : null}
           {progressSaveError ? <View>
             <Text accessibilityRole="alert" style={styles.sessionMessage}>{progressSaveError}</Text>
-            <Pressable accessibilityRole="button" onPress={() => {
-              saveWorkoutSession({ workoutId: workout.id, exercises, paused: isPaused, timer })
-                .then(() => setProgressSaveError(""))
-                .catch(() => setProgressSaveError("Your latest progress could not be saved. Try again before leaving."));
-            }} style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
+            <Pressable accessibilityRole="button" onPress={session.retrySave}
+              style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
               <Text style={styles.leaveButtonText}>Retry saving progress</Text>
             </Pressable>
           </View> : null}
@@ -391,17 +294,16 @@ return (
         disabled={sessionDisabled}
         onClose={() => setSelectedSetsId(null)}
         onChange={(setId, field, value) => {
-          if (selectedSetsId) changeExercise(selectedSetsId, (current) => updateSetPerformance(current, setId, field, value));
+          if (selectedSetsId) session.updateSet(selectedSetsId, setId, field, value);
         }}
         onToggle={(setId) => {
-          if (selectedSetsId) changeExercise(selectedSetsId, (current) => togglePerformedSet(current, setId));
+          if (selectedSetsId) session.toggleSet(selectedSetsId, setId);
         }}
         onAdd={() => {
           if (!selectedSetsId) return;
-          const id = `${selectedSetsId}-actual-${Date.now()}-${++nextSetId.current}`;
-          changeExercise(selectedSetsId, (current) => addPerformedSet(current, id));
+          session.addSet(selectedSetsId);
         }}
-        onRemove={() => { if (selectedSetsId) changeExercise(selectedSetsId, removeLastPerformedSet); }}
+        onRemove={() => { if (selectedSetsId) session.removeSet(selectedSetsId); }}
       />
       <Modal transparent visible={showEndConfirmation} animationType="fade"
         onRequestClose={() => { if (!isSavingSession) setShowEndConfirmation(false); }}>

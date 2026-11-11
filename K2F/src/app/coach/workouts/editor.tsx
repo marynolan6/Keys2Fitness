@@ -1,14 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, ExercisePicker, PrescriptionStepper, builderStyles as styles } from "@/components/WorkoutBuilderControls";
-import { auth } from "@/lib/firebase";
+import { useWorkoutEditor } from "@/hooks/useWorkoutEditor";
 import { isCompactLayout, layout } from "@/theme";
-import { newDraftExercise } from "@/workouts/exerciseCatalog";
-import { draftFromTemplate, emptyWorkoutDraft, validateWorkoutDraft, type DraftExercise, type WorkoutTemplate } from "@/workouts/workoutLibraryModel";
+import type { WorkoutTemplate } from "@/workouts/workoutLibraryModel";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 
 export default function WorkoutEditorScreen() {
@@ -29,29 +27,9 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
   const wideControls = !compact && width >= layout.maxContentWidth;
-  const [draft, setDraft] = useState(() => template ? draftFromTemplate(template) : emptyWorkoutDraft());
-  const [selectedClients, setSelectedClients] = useState<string[]>(initialClientId && clients.some((client) => client.id === initialClientId) ? [initialClientId] : []);
-  const [reusable, setReusable] = useState(true);
-  const [picker, setPicker] = useState<{ kind: "add" } | { kind: "alternative"; id: string } | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [feedback, setFeedback] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  function editExercise(id: string, update: Partial<DraftExercise>) {
-    setDraft((current) => ({ ...current, exercises: current.exercises.map((exercise) => exercise.id === id ? { ...exercise, ...update } : exercise) }));
-  }
-
-  async function save() {
-    const validation = validateWorkoutDraft(draft);
-    setErrors(validation); setFeedback("");
-    if (Object.keys(validation).length) { setFeedback("Check the highlighted workout fields."); return; }
-    setSaving(true);
-    try {
-      const result = await workoutLibrary.saveWorkout(draft, selectedClients, clients.map((client) => client.id), auth.currentUser?.displayName ?? "Coach", reusable, template?.id);
-      router.replace({ pathname: "/coach/workouts", params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? "" } });
-    } catch (cause) { setFeedback(cause instanceof Error ? cause.message : "Your workout could not be saved. Try again."); }
-    finally { setSaving(false); }
-  }
+  const editor = useWorkoutEditor({ template, initialClientId, availableClientIds: clients.map((client) => client.id),
+    onSaved: (result) => router.replace({ pathname: "/coach/workouts", params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? "" } }) });
+  const { draft, selectedClients, reusable, picker, errors, feedback, saving, editExercise, save, setSelectedClients } = editor;
 
   return <ThemedBackground><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -59,11 +37,11 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
       <Text style={styles.title}>{template ? "Edit Workout" : "Build Workout"}</Text>
       <Text style={styles.muted}>Build a reusable plan or assign a fresh copy to selected demo clients. All weights are in pounds.</Text>
       <BuilderField label="Workout name" value={draft.title} disabled={saving} error={errors.title}
-        onChange={(title) => setDraft((current) => ({ ...current, title }))} />
+        onChange={(title) => editor.editField("title", title)} />
       <BuilderField label="Estimated duration (minutes, optional)" value={draft.durationMinutes} disabled={saving}
-        error={errors.durationMinutes} keyboardType="number-pad" onChange={(durationMinutes) => setDraft((current) => ({ ...current, durationMinutes }))} />
+        error={errors.durationMinutes} keyboardType="number-pad" onChange={(durationMinutes) => editor.editField("durationMinutes", durationMinutes)} />
       <BuilderField label="Coach's workout note (shown to the client)" value={draft.notes} multiline disabled={saving}
-        onChange={(notes) => setDraft((current) => ({ ...current, notes }))} />
+        onChange={(notes) => editor.editField("notes", notes)} />
       <Text style={styles.heading}>Exercises</Text>
       {errors.exercises && <Text accessibilityRole="alert" style={styles.error}>{errors.exercises}</Text>}
       {!draft.exercises.length && <Text style={styles.muted}>Add an exercise from the catalog or use a custom name.</Text>}
@@ -85,17 +63,17 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
           onChange={(coachNotes) => editExercise(exercise.id, { coachNotes })} />
         {exercise.alternative && <Text style={styles.muted}>Alternative: {exercise.alternative}</Text>}
         <View style={[styles.actions, compact && styles.stacked]}>
-          <BuilderButton label={exercise.alternative ? "Change alternative" : "Add alternative"} accessibilityLabel={`Choose alternative for ${exercise.name}`} secondary disabled={saving} onPress={() => setPicker({ kind: "alternative", id: exercise.id })} />
+          <BuilderButton label={exercise.alternative ? "Change alternative" : "Add alternative"} accessibilityLabel={`Choose alternative for ${exercise.name}`} secondary disabled={saving} onPress={() => editor.openPicker({ kind: "alternative", id: exercise.id })} />
           {exercise.alternative && <BuilderButton label="Remove alternative" accessibilityLabel={`Remove alternative for ${exercise.name}`} secondary disabled={saving}
             onPress={() => editExercise(exercise.id, { alternative: undefined })} />}
           <BuilderButton label="Remove exercise" accessibilityLabel={`Remove ${exercise.name}`} secondary disabled={saving}
-            onPress={() => setDraft((current) => ({ ...current, exercises: current.exercises.filter((item) => item.id !== exercise.id) }))} />
+            onPress={() => editor.removeExercise(exercise.id)} />
         </View>
       </View>)}
-      <BuilderButton label="Add exercise" secondary disabled={saving} onPress={() => setPicker({ kind: "add" })} />
+      <BuilderButton label="Add exercise" secondary disabled={saving} onPress={() => editor.openPicker({ kind: "add" })} />
       <View style={styles.card}>
         <Pressable accessibilityRole="checkbox" accessibilityLabel="Save as reusable template" accessibilityState={{ checked: reusable, disabled: saving }}
-          disabled={saving} onPress={() => setReusable((current) => !current)} style={({ pressed }) => [styles.clientRow, pressed && styles.pressed]}>
+          disabled={saving} onPress={editor.toggleReusable} style={({ pressed }) => [styles.clientRow, pressed && styles.pressed]}>
           <View style={[styles.checkbox, reusable && styles.checkboxChecked]}>{reusable && <Text style={styles.check}>✓</Text>}</View>
           <Text style={[styles.label, styles.flex]}>Save as reusable template</Text>
         </Pressable>
@@ -109,10 +87,6 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
         onPress={() => { void save(); }} />
     </ScrollView>
     {picker && <ExercisePicker title={picker.kind === "add" ? "Add exercise" : "Choose alternative exercise"}
-      onClose={() => setPicker(null)} onSelect={(exercise) => {
-        if (picker.kind === "add") setDraft((current) => ({ ...current, exercises: [...current.exercises, newDraftExercise(exercise.name, exercise.instructions)] }));
-        else editExercise(picker.id, { alternative: exercise.name });
-        setPicker(null);
-      }} />}
+      onClose={editor.closePicker} onSelect={editor.selectExercise} />}
   </KeyboardAvoidingView></ThemedBackground>;
 }

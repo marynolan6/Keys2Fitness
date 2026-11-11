@@ -40,7 +40,6 @@ export type ClientWorkoutAssignment = {
 };
 
 export type WorkoutLibraryData = {
-  version: 1;
   templates: WorkoutTemplate[];
   assignments: ClientWorkoutAssignment[];
   previewClientId: string;
@@ -115,35 +114,4 @@ export function workoutTemplateSummary(template: WorkoutTemplate): string {
   const sets = template.exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
   return [`${template.exercises.length} ${template.exercises.length === 1 ? "exercise" : "exercises"}`, `${sets} ${sets === 1 ? "set" : "sets"}`,
     template.durationMinutes ? `${template.durationMinutes} min` : null].filter(Boolean).join(" · ");
-}
-
-export function parseWorkoutLibrary(raw: string): WorkoutLibraryData {
-  const data = JSON.parse(raw) as WorkoutLibraryData;
-  const validTemplate = (template: WorkoutTemplate) => {
-    if (!template || typeof template.id !== "string" || !template.id || typeof template.title !== "string" ||
-        typeof template.notes !== "string" || typeof template.updatedAt !== "string" || !Number.isFinite(Date.parse(template.updatedAt)) ||
-        (template.durationMinutes !== undefined && (typeof template.durationMinutes !== "number" || !Number.isInteger(template.durationMinutes))) ||
-        !Array.isArray(template.exercises)) return false;
-    if (!template.exercises.every((exercise) => exercise && typeof exercise.id === "string" && typeof exercise.name === "string" &&
-        typeof exercise.instructions === "string" && typeof exercise.coachNotes === "string" &&
-        typeof exercise.sets === "number" && typeof exercise.reps === "number" && typeof exercise.weightLb === "number" &&
-        (exercise.alternative === undefined || typeof exercise.alternative === "string"))) return false;
-    return Object.keys(validateWorkoutDraft(draftFromTemplate(template))).length === 0;
-  };
-  if (!data || data.version !== 1 || typeof data.previewClientId !== "string" || !data.previewClientId ||
-      !Array.isArray(data.templates) || !data.templates.every(validTemplate) ||
-      new Set(data.templates.map((template) => template.id)).size !== data.templates.length ||
-      !Array.isArray(data.assignments) || !data.assignments.every((assignment) => assignment &&
-        typeof assignment.id === "string" && assignment.id && typeof assignment.clientId === "string" && assignment.clientId &&
-        typeof assignment.templateId === "string" && typeof assignment.assignedAt === "string" && assignment.workout &&
-        assignment.workout.id === assignment.id && typeof assignment.workout.title === "string" && assignment.workout.status === "current" &&
-        [assignment.workout.notes, assignment.workout.notesAuthor, assignment.workout.notesUpdatedAt].every((text) => text === undefined || typeof text === "string") &&
-        Array.isArray(assignment.workout.exercises) && assignment.workout.exercises.every((exercise) => exercise &&
-          typeof exercise.id === "string" && typeof exercise.name === "string" && Number.isInteger(exercise.sets) && exercise.sets > 0 &&
-          Number.isInteger(exercise.reps) && exercise.reps > 0 && typeof exercise.weight === "string" && exercise.completed === false &&
-          [exercise.instructions, exercise.coachNotes, exercise.alternative].every((text) => text === undefined || typeof text === "string"))) ||
-      new Set(data.assignments.map((assignment) => assignment.id)).size !== data.assignments.length) {
-    throw new Error("Saved workout library could not be read. Your saved data has not been replaced.");
-  }
-  return data;
 }

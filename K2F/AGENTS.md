@@ -33,6 +33,17 @@ Run lint and typecheck before declaring any task done.
 - Interactive elements must have accessible roles/labels, visible pressed states, and touch areas at least `layout.minTouchTarget` (48 dp) in both dimensions. Ensure text has readable contrast on the actual background at every gradient stop.
 - Before calling a UI story Done: run lint and typecheck; verify the screen on an Android emulator at 320 dp, ~390 dp, and tablet width plus 1.5× font scale; test empty/optional data and navigation/back; document what was actually tested. Mock data does not prove a client-specific assignment: a story requiring the *client's assigned workout* needs an authenticated assignment source or an explicitly agreed prototype-only scope.
 
+## Workout Architecture
+
+- **Required for new or substantially modified workout features:** keep business rules in pure domain functions and application services, and route files focused on presentation and navigation. Extend the existing architecture as the feature is touched; keep unrelated legacy refactors out of the change.
+- Use controller hooks and explicit reducer states for workflows involving restoration, validation, saving, retries or coordinated transitions. Follow `useWorkoutSession` / `useWorkoutEditor`; preserve drafts and recorded progress when operations fail, and guard duplicate submissions and stale async results.
+- Keep simple presentation state, such as menu visibility or the selected modal, in `useState` when sufficient. Small components do not require their own controller, service or reducer. Introduce an abstraction to separate a concrete responsibility or enable meaningful reuse/testing; avoid adding layers, classes or state libraries solely to match a pattern.
+- Services depend on the domain ports in `src/workouts/workoutRepositories.ts`. Domain functions, reducers, services and repository contracts must remain independent of React, React Native, Expo Router, Firebase and AsyncStorage. Keep navigation in the presentation layer and storage primitives in adapters.
+- Wire concrete storage, author identity, business clocks/IDs and client-directory implementations in the composition roots. Screens and controller hooks invoke application use cases through these boundaries; business operations must not acquire their own concrete dependencies.
+- Handle persisted format changes through explicit validation/migrations in `workoutMigrations.ts`. Preserve existing keys, assignment snapshots and recorded performance; unsupported/corrupt data must not be silently replaced. Keep read-time migrations and writes ordered.
+- For workflow changes, run `npm run test:workouts` and add meaningful reducer/application integration coverage, including applicable failure/retry and persistence compatibility cases. Run lint and TypeScript checks, and report what actually passed and any existing failures.
+- These Markdown rules guide agent work and code review. TypeScript contracts and tests provide executable checks; dedicated import-boundary lint rules and CI enforcement are follow-up work. Do not claim those automated gates exist until they are configured and verified. See `docs/workout-architecture.md` for examples, scope and the Android smoke driver.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
