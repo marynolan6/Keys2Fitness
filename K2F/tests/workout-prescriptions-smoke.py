@@ -1,8 +1,9 @@
-"""K2F-38 Android smoke. Retains assignment fixtures; removes its template on success."""
+"""K2F-38 Android smoke; restores pre-test workout data even on failure."""
 import argparse
 import time
 
-from helpers.android_ui import adb, delete_test_template, fill, matches, open_route, scroll_to, snapshot, tap, wait_for
+from helpers.android_ui import adb, fill, matches, open_route, scroll_to, snapshot, tap, wait_for
+from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 BASE = "exp://127.0.0.1:8081"
 FIELD = "Client-specific coach recommendation"
@@ -115,19 +116,13 @@ def recommendations(title):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--title")
-    parser.add_argument("--phase", choices=["all", "create", "recommendations", "cleanup"], default="all")
-    parser.add_argument("--keep-template", action="store_true")
-    args = parser.parse_args()
-    title = args.title or "Prescription smoke " + str(int(time.time()))
+    title = smoke_title("Prescription")
     print("Fixture: " + title, flush=True)
-    if args.phase in ["all", "create"]: create(title)
-    if args.phase in ["all", "recommendations"]: recommendations(title)
-    if args.phase == "cleanup" or (args.phase == "all" and not args.keep_template):
-        delete_test_template(title, BASE)
-        print("Removed test template: " + title, flush=True)
+    create(title)
+    recommendations(title)
 
 
 if __name__ == "__main__":
-    main()
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    with workout_sandbox():
+        main()

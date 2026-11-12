@@ -4,6 +4,7 @@ import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
+from helpers.workout_sandbox import workout_sandbox
 
 
 DEVICE_XML = "/sdcard/k2f-exercise-modal-smoke.xml"
@@ -132,4 +133,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with workout_sandbox(reset_workouts=("today",), preview_client="1"):
+        main()
