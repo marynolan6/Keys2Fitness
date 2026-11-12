@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import type { AssignedWorkout } from "@/workouts/workout";
-import { getWorkoutCardLabels, type WorkoutSession } from "@/workouts/workoutSessionStore";
+import { getWorkoutCardLabels, type WorkoutSession } from "@/workouts/workoutSessionModel";
 
 type Props = {
   workout: AssignedWorkout | null;

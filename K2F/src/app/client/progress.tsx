@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db } from "@/lib/firebase";
 import { colors, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 
 const MAX_HISTORY = 5;
 const TAB_BAR_CLEARANCE = 96;
@@ -336,6 +337,7 @@ const saveWeight = async () => {
           <Text style={styles.brand}>KEYS2FITNESS</Text>
           <Text style={styles.title}>Your Progress</Text>
           <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
+          <WorkoutHistorySection />
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.card}>

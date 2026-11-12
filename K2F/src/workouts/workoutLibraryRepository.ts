@@ -1,97 +1,78 @@
-import { assignmentFromTemplate, draftFromTemplate, parseWorkoutLibrary, templateFromDraft } from "./workoutLibraryModel";
-import type { WorkoutDraft, WorkoutLibraryData } from "./workoutLibraryModel";
+import type { WorkoutLibraryData } from "./workoutLibraryModel";
+import { decodeWorkoutLibrary, encodeWorkoutLibrary } from "./workoutMigrations";
+import type { ObservableWorkoutLibraryRepository, SaveWorkoutPlan, WorkoutLibraryState } from "./workoutRepositories";
+import { createStorageQueue, type KeyValueStorage } from "./workoutStorage";
 
+// Retain the original key. The envelope carries its own schema version.
 export const workoutLibraryKey = "keys2fitness:workout-library:v1";
-export type WorkoutLibraryState = { status: "loading" | "ready" | "error"; data: WorkoutLibraryData; error: string };
-type Storage = { getItem: (key: string) => Promise<string | null>; setItem: (key: string, value: string) => Promise<unknown> };
 
-export function createWorkoutLibraryRepository(storage: Storage, initialData: WorkoutLibraryData,
-  makeId: (prefix: string) => string, now = () => new Date().toISOString()) {
+export function createWorkoutLibraryRepository(storage: KeyValueStorage, initialData: WorkoutLibraryData): ObservableWorkoutLibraryRepository {
   let state: WorkoutLibraryState = { status: "loading", data: initialData, error: "" };
   let loading: Promise<void> | null = null;
-  let writes: Promise<unknown> = Promise.resolve();
+  const queue = createStorageQueue();
   const listeners = new Set<() => void>();
   const publish = (next: WorkoutLibraryState) => { state = next; listeners.forEach((listener) => listener()); };
 
   async function load(): Promise<void> {
     if (state.status === "ready") return;
     if (loading) return loading;
-    publish({ ...state, status: "loading", error: "" });
-    loading = (async () => {
+    loading = queue.run(async () => {
+      publish({ status: "loading", data: state.data, error: "" });
       try {
         const raw = await storage.getItem(workoutLibraryKey);
-        publish({ status: "ready", data: raw === null ? initialData : parseWorkoutLibrary(raw), error: "" });
+        const decoded = raw === null ? { data: initialData, migrated: false } : decodeWorkoutLibrary(raw);
+        if (decoded.migrated) await storage.setItem(workoutLibraryKey, encodeWorkoutLibrary(decoded.data));
+        publish({ status: "ready", data: decoded.data, error: "" });
       } catch (error) {
-        publish({ ...state, status: "error", error: error instanceof Error ? error.message : "Your library could not be loaded." });
+        publish({ status: "error", data: state.data, error: error instanceof Error ? error.message : "Your library could not be loaded." });
       }
-    })();
-    await loading;
-    loading = null;
+    });
+    try { await loading; } finally { loading = null; }
   }
 
-  async function mutate<T>(operation: (data: WorkoutLibraryData) => { data: WorkoutLibraryData; result: T }): Promise<T> {
+  function requireReady(): WorkoutLibraryData {
+    if (state.status !== "ready") throw new Error(state.status === "error" ? state.error : "Your workout library is still loading.");
+    return state.data;
+  }
+
+  async function read<T>(select: (data: WorkoutLibraryData) => T): Promise<T> {
     await load();
-    const result = writes.then(async () => {
-      if (state.status !== "ready") throw new Error(state.error || "Your workout library is still loading.");
-      const next = operation(state.data);
-      await storage.setItem(workoutLibraryKey, JSON.stringify(next.data));
-      publish({ status: "ready", data: next.data, error: "" });
-      return next.result;
-    });
-    writes = result.catch(() => undefined);
-    return result;
+    return queue.run(async () => select(requireReady()));
   }
 
-  function checkClients(ids: readonly string[], availableIds: readonly string[]) {
-    const unique = [...new Set(ids)];
-    if (!unique.length) throw new Error("Select at least one client.");
-    if (unique.some((id) => !availableIds.includes(id))) throw new Error("A selected client is no longer available. Select clients again.");
-    return unique;
-  }
-
-  async function saveWorkout(draft: WorkoutDraft, selectedIds: readonly string[], availableIds: readonly string[], author: string,
-    reusable = true, existingId?: string) {
-    // Capture the draft immediately, independently of subsequent text edits.
-    const template = templateFromDraft(draft, reusable && existingId ? existingId : makeId("template"), now());
-    const clients = selectedIds.length ? checkClients(selectedIds, availableIds) : [];
-    if (!reusable && clients.length === 0) throw new Error("Select clients or save this workout as a reusable template.");
-    return mutate((data) => {
-      if (reusable && existingId && !data.templates.some((item) => item.id === existingId)) throw new Error("This template is no longer available.");
-      const assignments = clients.map((id) => assignmentFromTemplate(template, id, makeId("assigned"), now(), author));
-      return { data: { ...data,
-        templates: reusable ? [template, ...data.templates.filter((item) => item.id !== template.id)] : data.templates,
-        assignments: [...assignments, ...data.assignments] }, result: { templateId: reusable ? template.id : null, assignments } };
+  async function persist(update: (data: WorkoutLibraryData) => WorkoutLibraryData): Promise<void> {
+    await load();
+    await queue.run(async () => {
+      const next = update(requireReady());
+      await storage.setItem(workoutLibraryKey, encodeWorkoutLibrary(next));
+      publish({ status: "ready", data: next, error: "" });
     });
   }
 
-  async function assignTemplate(templateId: string, selectedIds: readonly string[], availableIds: readonly string[], author: string) {
-    const clients = checkClients(selectedIds, availableIds);
-    return mutate((data) => {
-      const template = data.templates.find((item) => item.id === templateId);
-      if (!template) throw new Error("Select an available workout template.");
-      const assignments = clients.map((id) => assignmentFromTemplate(template, id, makeId("assigned"), now(), author));
-      return { data: { ...data, assignments: [...assignments, ...data.assignments] }, result: assignments };
+  async function saveWorkoutPlan(plan: SaveWorkoutPlan): Promise<void> {
+    // Snapshot the command before queued I/O; callers can keep editing their drafts.
+    const snapshot: SaveWorkoutPlan = JSON.parse(JSON.stringify(plan));
+    await persist((data) => {
+      if (snapshot.existingTemplateId && !data.templates.some((template) => template.id === snapshot.existingTemplateId)) {
+        throw new Error("This template is no longer available.");
+      }
+      return { ...data,
+        templates: snapshot.template ? [snapshot.template, ...data.templates.filter((template) => template.id !== snapshot.template!.id)] : data.templates,
+        assignments: [...snapshot.assignments, ...data.assignments],
+      };
     });
   }
 
-  async function duplicateTemplate(id: string) {
-    return mutate((data) => {
-      const original = data.templates.find((item) => item.id === id);
-      if (!original) throw new Error("This template is no longer available.");
-      const copy = templateFromDraft({ ...draftFromTemplate(original), title: `${original.title.slice(0, 93)} (copy)` }, makeId("template"), now());
-      return { data: { ...data, templates: [copy, ...data.templates] }, result: copy.id };
-    });
-  }
-
-  async function deleteTemplate(id: string) {
-    return mutate((data) => ({ data: { ...data, templates: data.templates.filter((item) => item.id !== id) }, result: undefined }));
-  }
-
-  async function setPreviewClient(clientId: string) {
-    if (!clientId.trim()) throw new Error("Choose a demo client.");
-    return mutate((data) => ({ data: { ...data, previewClientId: clientId }, result: undefined }));
-  }
-
-  return { getState: () => state, load, saveWorkout, assignTemplate, duplicateTemplate, deleteTemplate, setPreviewClient,
-    subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; } };
+  return {
+    getState: () => state, load,
+    subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    listTemplates: () => read((data) => data.templates),
+    findTemplate: (id) => read((data) => data.templates.find((template) => template.id === id) ?? null),
+    listAssignments: (clientId) => read((data) => clientId === undefined ? data.assignments : data.assignments.filter((assignment) => assignment.clientId === clientId)),
+    findAssignment: (id) => read((data) => data.assignments.find((assignment) => assignment.id === id) ?? null),
+    getPreviewClientId: () => read((data) => data.previewClientId),
+    saveWorkoutPlan,
+    deleteTemplate: (id) => persist((data) => ({ ...data, templates: data.templates.filter((template) => template.id !== id) })),
+    setPreviewClient: (clientId) => persist((data) => ({ ...data, previewClientId: clientId })),
+  };
 }

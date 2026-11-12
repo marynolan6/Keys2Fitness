@@ -36,6 +36,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Python Android smoke-test helpers
+__pycache__/
+*.pyc
+
 example
 
 # generated native folders
