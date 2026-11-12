@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 import { newDraftExercise } from "@/workouts/exerciseCatalog";
 import { validateWorkoutDraft, type DraftExercise, type WorkoutTemplate } from "@/workouts/workoutLibraryModel";
@@ -17,6 +17,7 @@ export function useWorkoutEditor(options: {
   const { onSaved } = options;
   const [state, dispatch] = useReducer(workoutEditorReducer, options, createWorkoutEditorState);
   const pending = useRef(false);
+  const [reviewClients, setReviewClients] = useState<{ id: string; name: string }[] | null>(null);
   const deliveredResult = useRef<SaveWorkoutResult | null>(null);
   useEffect(() => {
     if (state.workflow.status === "saved" && deliveredResult.current !== state.workflow.result) {
@@ -25,8 +26,18 @@ export function useWorkoutEditor(options: {
     }
   }, [state.workflow, onSaved]);
 
+  function requestSave(clients: readonly { id: string; name: string }[]) {
+    if (pending.current || state.workflow.status === "saved" || reviewClients) return;
+    const errors = validateWorkoutDraft(state.draft);
+    if (Object.keys(errors).length) { dispatch({ type: "validation-failed", errors }); return; }
+    if (!state.selectedClients.length) { void save(); return; }
+    setReviewClients(state.selectedClients.map((id) => ({ id, name: clients.find((client) => client.id === id)?.name ?? "Unavailable client" })));
+    dispatch({ type: "confirmation-requested" });
+  }
+
   async function save(): Promise<void> {
     if (pending.current || state.workflow.status === "saved") return;
+    if (state.selectedClients.length && !reviewClients) return;
     const errors = validateWorkoutDraft(state.draft);
     if (Object.keys(errors).length) { dispatch({ type: "validation-failed", errors }); return; }
     pending.current = true;
@@ -46,7 +57,8 @@ export function useWorkoutEditor(options: {
     state, draft: state.draft, selectedClients: state.selectedClients, reusable: state.reusable, picker: state.picker, errors: state.errors,
     saving: state.workflow.status === "saving" || state.workflow.status === "saved",
     feedback: state.workflow.status === "error" ? state.workflow.message : "",
-    save,
+    requestSave, confirmSave: save, reviewClients,
+    cancelSave: () => { if (!pending.current) { setReviewClients(null); dispatch({ type: "confirmation-canceled" }); } },
     editField: (field: "title" | "durationMinutes" | "notes", value: string) => dispatch({ type: "field-changed", field, value }),
     editExercise: (id: string, update: Partial<DraftExercise>) => dispatch({ type: "exercise-changed", id, update }),
     removeExercise: (id: string) => dispatch({ type: "exercise-removed", id }),

@@ -2,7 +2,7 @@ import { draftFromTemplate, emptyWorkoutDraft, type DraftExercise, type WorkoutD
 import type { SaveWorkoutResult } from "./workoutLibraryService";
 
 export type ExercisePickerState = { kind: "add" } | { kind: "alternative"; id: string } | null;
-type EditorWorkflow = { status: "editing" } | { status: "saving" } | { status: "saved"; result: SaveWorkoutResult } | { status: "error"; message: string };
+type EditorWorkflow = { status: "editing" } | { status: "confirming" } | { status: "saving" } | { status: "saved"; result: SaveWorkoutResult } | { status: "error"; message: string };
 export type WorkoutEditorState = {
   draft: WorkoutDraft;
   selectedClients: string[];
@@ -22,6 +22,8 @@ export type WorkoutEditorAction =
   | { type: "picker-opened"; picker: Exclude<ExercisePickerState, null> }
   | { type: "picker-closed" }
   | { type: "validation-failed"; errors: Record<string, string> }
+  | { type: "confirmation-requested" }
+  | { type: "confirmation-canceled" }
   | { type: "save-started" }
   | { type: "save-succeeded"; result: SaveWorkoutResult }
   | { type: "save-failed"; error: string };
@@ -38,6 +40,8 @@ export function workoutEditorReducer(state: WorkoutEditorState, action: WorkoutE
   if (action.type === "save-succeeded") return state.workflow.status === "saving" ? { ...state, workflow: { status: "saved", result: action.result } } : state;
   if (action.type === "save-failed") return state.workflow.status === "saving" ? { ...state, workflow: { status: "error", message: action.error } } : state;
   if (state.workflow.status === "saving" || state.workflow.status === "saved") return state;
+  if (action.type === "confirmation-canceled") return { ...state, workflow: { status: "editing" } };
+  if (state.workflow.status === "confirming" && action.type !== "save-started") return state;
   const edited = { ...state, workflow: { status: "editing" } as const };
   switch (action.type) {
     case "field-changed": {
@@ -54,5 +58,6 @@ export function workoutEditorReducer(state: WorkoutEditorState, action: WorkoutE
     case "picker-closed": return { ...state, picker: null };
     case "validation-failed": return { ...state, errors: action.errors, workflow: { status: "error", message: "Check the highlighted workout fields." } };
     case "save-started": return { ...state, errors: {}, workflow: { status: "saving" } };
+    case "confirmation-requested": return { ...state, errors: {}, workflow: { status: "confirming" } };
   }
 }

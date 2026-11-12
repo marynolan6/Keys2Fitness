@@ -1,8 +1,8 @@
-"""K2F-33 Android smoke test. Requires a one-exercise Bench Press template."""
+"""K2F-33 Android smoke test. Creates a Bench Press fixture and cleans up its template."""
 import time
 import argparse
 import re
-from helpers.android_ui import adb, fill, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.android_ui import adb, delete_test_template, fill, open_route, scroll_to, snapshot, tap, tap_node, wait_for
 
 
 def completed_count():
@@ -22,14 +22,16 @@ def main():
     title = args.resume_title or "Completion smoke " + str(int(time.time()))
     route = lambda path: open_route(path, "exp://127.0.0.1:8081")
     if not args.resume_title:
-        route("coach/workouts")
-        fill("Search workout templates", "Builder Demo Plan")
-        tap("Duplicate Builder Demo Plan")
-        tap("Edit Builder Demo Plan (copy)")
+        route("coach/workouts/editor?clientId=2")
         fill("Workout name", title)
+        tap("Add exercise")
+        tap("Choose Bench Press")
+        fill("Reps for Bench Press", "8")
+        fill("Weight (lb) for Bench Press", "135")
         client = scroll_to("Assign to Alex Morgan")
         if client.get("checked") != "true": tap_node(client)
         tap("Assign workout · 1 selected")
+        tap("Confirm assignment")
         wait_for("Workout Template Library")
         tap("Preview assigned client workout")
     route("client/progress")
@@ -71,6 +73,8 @@ def main():
     route("client/progress")
     assert completed_count() == baseline + 1
     print("PASS: second attempt ended early preserves completed history and does not inflate totals", flush=True)
+    delete_test_template(title, "exp://127.0.0.1:8081")
+    print("Removed test template from the workout library: " + title, flush=True)
     print("Retained local test assignment: " + title, flush=True)
 
 

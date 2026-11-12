@@ -9,6 +9,7 @@ import { getClientAssignedWorkout, getWorkoutById, workoutBelongsToClient } from
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
+import { BuilderButton, builderStyles } from "@/components/WorkoutBuilderControls";
 import { useCoachClients } from "@/clients/clientStore";
 import { isWorkoutInProgress, loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
@@ -100,6 +101,19 @@ export default function ClientHome() {
             ) : <AssignedWorkoutCard workout={displayedWorkout} session={displayedSession}
               loading={library.status !== "ready" || !matchingClient || sessionState.loading} onOpen={openWorkout} />}
           </View>
+
+          {library.status === "ready" && <View style={styles.goalSection}>
+            <Text style={styles.sectionTitle}>Your assigned workouts</Text>
+            {library.data.assignments.filter((assignment) => assignment.clientId === previewClientId).map((assignment) =>
+              <View key={assignment.id} style={[builderStyles.card, { marginBottom: spacing.md }]}>
+                <Text style={builderStyles.heading}>{assignment.workout.title}</Text>
+                <Text style={builderStyles.muted}>Assigned {new Date(assignment.assignedAt).toLocaleString()} · {assignment.workout.exercises.length} exercises</Text>
+                <BuilderButton label={`Open ${assignment.workout.title}`} accessibilityLabel={`Open assigned workout ${assignment.workout.title} from ${new Date(assignment.assignedAt).toLocaleString()}`}
+                  onPress={() => router.push({ pathname: "/client/home/workout/[workoutId]", params: { workoutId: assignment.id } })} />
+              </View>)}
+            {!library.data.assignments.some((assignment) => assignment.clientId === previewClientId) &&
+              <Text style={builderStyles.muted}>No coach-built workouts assigned yet.</Text>}
+          </View>}
 
           <View style={styles.goalSection}>
             <CurrentGoalCard

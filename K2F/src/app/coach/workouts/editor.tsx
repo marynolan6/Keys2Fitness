@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, useWindowD
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, ExercisePicker, PrescriptionStepper, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { useWorkoutEditor } from "@/hooks/useWorkoutEditor";
 import { isCompactLayout, layout } from "@/theme";
@@ -18,7 +19,7 @@ export default function WorkoutEditorScreen() {
     {state.status === "error" && <><Text style={styles.error}>{state.error}</Text>
       <BuilderButton label="Retry library" onPress={() => { void workoutLibrary.load(); }} /></>}
   </View></ThemedBackground>;
-  return <WorkoutEditorForm key={templateId || "new"} template={template} initialClientId={clientId} />;
+  return <WorkoutEditorForm key={`${templateId || "new"}:${clientId ?? ""}`} template={template} initialClientId={clientId} />;
 }
 
 function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTemplate; initialClientId?: string }) {
@@ -29,7 +30,8 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
   const wideControls = !compact && width >= layout.maxContentWidth;
   const editor = useWorkoutEditor({ template, initialClientId, availableClientIds: clients.map((client) => client.id),
     onSaved: (result) => router.replace({ pathname: "/coach/workouts", params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? "" } }) });
-  const { draft, selectedClients, reusable, picker, errors, feedback, saving, editExercise, save, setSelectedClients } = editor;
+  const { draft, selectedClients, reusable, picker, errors, feedback, saving: savingNow, editExercise, setSelectedClients } = editor;
+  const saving = savingNow || editor.reviewClients !== null;
 
   return <ThemedBackground><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -84,9 +86,12 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
       {!reusable && !selectedClients.length && <Text style={styles.muted}>Select clients to assign without saving a reusable template.</Text>}
       <BuilderButton label={saving ? "Saving…" : selectedClients.length ? `Assign workout · ${selectedClients.length} selected` : "Save template"}
         disabled={saving || (!reusable && !selectedClients.length) || (selectedClients.length > 0 && loadStatus !== "ready")}
-        onPress={() => { void save(); }} />
+        onPress={() => editor.requestSave(clients)} />
     </ScrollView>
     {picker && <ExercisePicker title={picker.kind === "add" ? "Add exercise" : "Choose alternative exercise"}
       onClose={editor.closePicker} onSelect={editor.selectExercise} />}
+    {editor.reviewClients && editor.state.workflow.status !== "saved" && <WorkoutAssignmentConfirmation title={draft.title.trim()}
+      summary={`${draft.exercises.length} ${draft.exercises.length === 1 ? "exercise" : "exercises"}${draft.durationMinutes ? ` · ${draft.durationMinutes} min` : ""}${reusable ? " · Also saves a reusable template" : ""}`}
+      clients={editor.reviewClients} saving={savingNow} error={feedback} onConfirm={() => { void editor.confirmSave(); }} onCancel={editor.cancelSave} />}
   </KeyboardAvoidingView></ThemedBackground>;
 }
