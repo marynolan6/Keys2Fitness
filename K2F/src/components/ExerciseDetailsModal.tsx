@@ -69,6 +69,11 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
 
             </View>
 
+            {exercise.restSeconds !== undefined && <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Rest between sets / exercises</Text>
+              <Text style={styles.body}>{exercise.restSeconds} seconds</Text>
+            </View>}
+
             {/* K2F-167: Display instructions for the selected exercise.
                 K2F-107: Keep the section when instructions are missing and say so.
             */}

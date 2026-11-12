@@ -58,10 +58,13 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
             error={errors[exercise.id + ".reps"]} onChange={(reps) => editExercise(exercise.id, { reps })} />
           <PrescriptionStepper label="Weight (lb)" exerciseName={exercise.name} value={exercise.weightLb} min={0} max={2000} step={5} disabled={saving}
             error={errors[exercise.id + ".weightLb"]} onChange={(weightLb) => editExercise(exercise.id, { weightLb })} />
+          <PrescriptionStepper label="Rest (seconds)" exerciseName={exercise.name} value={exercise.restSeconds ?? ""} min={0} max={3600} step={15} disabled={saving}
+            error={errors[exercise.id + ".restSeconds"]} onChange={(restSeconds) => editExercise(exercise.id, { restSeconds })} />
         </View>
+        <Text style={styles.muted}>Rest is the recovery after each set / before the next exercise. Leave weight or rest blank when not prescribed; 0 lb means bodyweight and 0 seconds means no rest.</Text>
         <BuilderField label="Instructions" accessibilityLabel={`Instructions for ${exercise.name}`} value={exercise.instructions} multiline disabled={saving}
           onChange={(instructions) => editExercise(exercise.id, { instructions })} />
-        <BuilderField label="Coach's exercise note" accessibilityLabel={`Coach notes for ${exercise.name}`} value={exercise.coachNotes} multiline disabled={saving}
+        <BuilderField label="Default coach recommendation (copied to new assignments)" accessibilityLabel={`Coach notes for ${exercise.name}`} value={exercise.coachNotes} multiline disabled={saving}
           onChange={(coachNotes) => editExercise(exercise.id, { coachNotes })} />
         {exercise.alternative && <Text style={styles.muted}>Alternative: {exercise.alternative}</Text>}
         <View style={[styles.actions, compact && styles.stacked]}>

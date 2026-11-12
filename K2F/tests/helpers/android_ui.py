@@ -64,7 +64,7 @@ def tap(label):
     tap_node(scroll_to(label))
 
 
-def fill(label, text):
+def fill(label, text, dismiss_keyboard=True):
     node = scroll_to(label, editable=True)
     previous = node.get("text", "")
     tap_node(node)
@@ -75,7 +75,11 @@ def fill(label, text):
         time.sleep(1)
     if text:
         adb("shell", "input", "text", text.replace(" ", "%s"))
-    adb("shell", "input", "keyevent", "111")
+    # Escape without an active keyboard can close a React Native Modal.
+    # Android Back can also pop an Expo route, so use Escape only for the IME.
+    ime = adb("shell", "dumpsys", "input_method")
+    if dismiss_keyboard and re.search(r"mInputShown=true", ime) and re.search(r"mIsInputViewShown=true", ime):
+        adb("shell", "input", "keyevent", "111")
     time.sleep(1)
     actual = next((node.get("text") for node in snapshot()
                    if node.get("content-desc") == label and node.get("class") == "android.widget.EditText"), None)

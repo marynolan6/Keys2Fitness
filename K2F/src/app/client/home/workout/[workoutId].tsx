@@ -228,6 +228,7 @@ return (
                 <Text style={styles.prescription}>
                   {exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight"}
                 </Text>
+                {exercise.restSeconds !== undefined && <Text style={styles.exerciseStatus}>Rest: {exercise.restSeconds} seconds between sets / exercises</Text>}
                 <Text style={styles.exerciseStatus}>
                   {exercise.actualSets?.filter((set) => set.completed).length ?? 0}/{exercise.actualSets?.length ?? 0} sets complete
                 </Text>

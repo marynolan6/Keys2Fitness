@@ -48,8 +48,12 @@ export function workoutEditorReducer(state: WorkoutEditorState, action: WorkoutE
       const errors = { ...state.errors }; delete errors[action.field];
       return { ...edited, errors, draft: { ...state.draft, [action.field]: action.value } };
     }
-    case "exercise-changed": return { ...edited, draft: { ...state.draft,
-      exercises: state.draft.exercises.map((exercise) => exercise.id === action.id ? { ...exercise, ...action.update } : exercise) } };
+    case "exercise-changed": {
+      const errors = { ...state.errors };
+      for (const field of Object.keys(action.update)) delete errors[`${action.id}.${field}`];
+      return { ...edited, errors, draft: { ...state.draft,
+        exercises: state.draft.exercises.map((exercise) => exercise.id === action.id ? { ...exercise, ...action.update } : exercise) } };
+    }
     case "exercise-added": return { ...edited, picker: null, errors: {}, draft: { ...state.draft, exercises: [...state.draft.exercises, action.exercise] } };
     case "exercise-removed": return { ...edited, draft: { ...state.draft, exercises: state.draft.exercises.filter((exercise) => exercise.id !== action.id) } };
     case "clients-selected": return { ...edited, selectedClients: [...new Set(action.ids)] };
