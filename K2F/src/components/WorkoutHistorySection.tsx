@@ -60,6 +60,7 @@ export function WorkoutHistorySection() {
             {detail?.session.exercises.map((exercise) => <View key={exercise.id} style={styles.entry}>
               <Text style={styles.label}>{exercise.name}</Text>
               <Text style={styles.muted}>Target: {exercise.sets} × {exercise.reps} · {exercise.weight || "Bodyweight"}</Text>
+              {exercise.restSeconds !== undefined && <Text style={styles.muted}>Prescribed rest: {exercise.restSeconds} seconds</Text>}
               <Text style={styles.body}>{exercise.completed ? "Completed" : "Not complete"}</Text>
               {exercise.actualSets?.map((set, index) => <Text key={set.id} style={styles.body}>
                 Set {index + 1}: {set.actualReps || "—"} reps · {set.actualWeightLb || "—"} lb · {set.completed ? "Confirmed" : "Unconfirmed"}

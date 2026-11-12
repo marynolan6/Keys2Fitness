@@ -94,6 +94,8 @@ The library domain model no longer carries a storage version. Canonical session 
 
 K2F-33 subsequently advances session envelopes to schema 3 with a `history` array alongside the latest checkpoint. The library remains schema 2. A domain repository finalization operation commits the checkpoint and one immutable history entry in a single local write, keyed by attempt ID for idempotency. Clearing/restarting a checkpoint preserves earlier attempts. See [completion verification](workout-completion-testing.md) for outcome rules and compatibility.
 
+K2F-38 subsequently advances the **library to schema 3** for optional rest/weight and per-assigned-exercise recommendation overrides. V1 and V2 libraries migrate while preserving their existing assignments; session envelopes remain schema 3 and continue accepting V2 checkpoints. The recommendation controller uses explicit load/edit/save/retry states, and its repository operation merges only the scoped recommendation atomically. See [prescription verification](workout-prescription-testing.md).
+
 ## Verification
 
 ```bash

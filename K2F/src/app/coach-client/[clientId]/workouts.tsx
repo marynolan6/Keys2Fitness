@@ -7,12 +7,18 @@ import { useCoachClients } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { BuilderButton, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
+import { ExerciseRecommendationEditor } from "@/components/ExerciseRecommendationEditor";
+import { getCoachTip } from "@/workouts/coachTips";
 import { getWorkoutCoachNote } from "@/workouts/coachNote";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { spacing } from "@/theme";
 
 export default function ClientWorkouts() {
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
+  return <ClientWorkoutsContent key={clientId} clientId={clientId} />;
+}
+
+function ClientWorkoutsContent({ clientId }: { clientId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const clients = useCoachClients();
@@ -20,6 +26,8 @@ export default function ClientWorkouts() {
   const state = useWorkoutLibraryState();
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState<{ clientId: string; assignmentId: string; exerciseId: string } | null>(null);
+  const [feedback, setFeedback] = useState("");
   const assignments = state.data.assignments.filter((assignment) => assignment.clientId === clientId);
 
   return <ThemedBackground><ScrollView style={styles.screen} contentContainerStyle={[styles.content,
@@ -46,9 +54,13 @@ export default function ClientWorkouts() {
           <Text style={styles.feedback}>Assigned to {client.name} · {new Date(assignment.assignedAt).toLocaleString()}</Text>
           <Text style={styles.heading}>{assignment.workout.title}</Text>
           <Text style={styles.muted}>{assignment.workout.exercises.length} exercises{assignment.workout.durationMinutes ? ` · ${assignment.workout.durationMinutes} min` : ""}</Text>
-          {assignment.workout.exercises.map((exercise) => <Text key={exercise.id} style={styles.label}>
-            {exercise.name}: {exercise.sets} × {exercise.reps} · {exercise.weight}
-          </Text>)}
+          {assignment.workout.exercises.map((exercise) => <View key={exercise.id} style={styles.field}>
+            <Text style={styles.label}>{exercise.name}: {exercise.sets} × {exercise.reps} · {exercise.weight || "No weight prescribed"}</Text>
+            {exercise.restSeconds !== undefined && <Text style={styles.muted}>Rest: {exercise.restSeconds} seconds</Text>}
+            <Text style={styles.muted}>Recommendation for {client.name}: {getCoachTip(state.data, clientId, exercise) ?? "None"}</Text>
+            <BuilderButton label={`Edit recommendation for ${exercise.name}`} secondary
+              onPress={() => { setFeedback(""); setEditing({ clientId, assignmentId: assignment.id, exerciseId: exercise.id }); }} />
+          </View>)}
           {note && <WorkoutCoachNoteCard note={note} sessionLabel={assignment.workout.title} collapsible />}
           <BuilderButton label={`Preview ${assignment.workout.title} as ${client.name}`} secondary disabled={previewing}
             onPress={() => {
@@ -60,6 +72,11 @@ export default function ClientWorkouts() {
         </View>;
       })}
       {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      {feedback && <Text accessibilityLiveRegion="polite" style={styles.feedback}>{feedback}</Text>}
     </>}
-  </ScrollView></ThemedBackground>;
+  </ScrollView>
+    {client && editing?.clientId === clientId && <ExerciseRecommendationEditor
+      key={`${clientId}:${editing.assignmentId}:${editing.exerciseId}`} {...editing} clientName={client.name}
+      onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setFeedback(`Recommendation saved for ${client.name}.`); }} />}
+  </ThemedBackground>;
 }

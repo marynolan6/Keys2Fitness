@@ -78,6 +78,8 @@ function WorkoutLibraryContent({ clientId, saved }: { clientId?: string; saved?:
             {selected?.id === template.id && <Text style={styles.feedback}>Selected</Text>}</View>
           <Text style={styles.muted}>{workoutTemplateSummary(template)}</Text>
           <Text style={styles.muted}>{template.exercises.map((exercise) => `${exercise.name} ${exercise.sets} × ${exercise.reps}`).join(" · ")}</Text>
+          {template.exercises.filter((exercise) => exercise.restSeconds !== undefined).map((exercise) =>
+            <Text key={exercise.id} style={styles.muted}>{exercise.name} · Rest {exercise.restSeconds} seconds</Text>)}
         </Pressable>
         {[...new Set(state.data.assignments.filter((item) => item.templateId === template.id).map((item) => item.clientId))].map((id) =>
           <View key={id} style={styles.field}>
