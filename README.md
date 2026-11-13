@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Keys2Fitness</h1>
-<p align="center"><strong>Personalized coaching. Organized workouts. Progress in one place.</strong></p>
+<p align="center"><strong>Personalized coaching, nutrition tracking, and organized workouts, all in one place!</strong></p>
 <p align="center">Team 404 · Senior Project</p>
 
 Keys2Fitness is a mobile application for a personal fitness coaching business. It gives coaches a place to organize clients, build workout plans, and provide exercise guidance, while clients can follow their workouts, record performed sets, and track their progress.
