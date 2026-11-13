@@ -2,6 +2,8 @@
 
 Source snapshot: **`e260ec3`**, on `spencer/sprint-5/K2F-39/confirm-workout-assignment`.
 
+**Later implementation:** K2F-292 replaces the history loader/selection coordination and W18 demo-client picker with explicit reducers and controller hooks. See [completed-workout history verification](workout-history-testing.md). The inventory below remains a record of the pinned snapshot, including its original source line references.
+
 ## Scope and terminology
 
 This is a source audit of the **108 tracked files under `K2F/src`** at that snapshot. The inventory covers routes, components, hooks, message read-state handling, external stores, domain transitions, and persistence adapters. State declarations were cross-checked against their setters, event handlers, effects, async completions, cleanup functions, and rendering conditions. Generated output, dependencies, design PDFs, and hypothetical future features are outside the scope.

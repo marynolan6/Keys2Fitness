@@ -9,6 +9,8 @@ export default function ClientLayout() {
       <Tabs.Screen name="messages" options={{ title: "Messages" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       <Tabs.Screen name="workout" options={{ href: null }} />
+      {/* AppTabBar's icon allowlist hides this route. SDK 58's href:null redirects it. */}
+      <Tabs.Screen name="history" options={{ title: "Workout history" }} />
     </Tabs>
   );
 }

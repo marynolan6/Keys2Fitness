@@ -96,6 +96,8 @@ K2F-33 subsequently advances session envelopes to schema 3 with a `history` arra
 
 K2F-38 subsequently advances the **library to schema 3** for optional rest/weight and per-assigned-exercise recommendation overrides. V1 and V2 libraries migrate while preserving their existing assignments; session envelopes remain schema 3 and continue accepting V2 checkpoints. The recommendation controller uses explicit load/edit/save/retry states, and its repository operation merges only the scoped recommendation atomically. See [prescription verification](workout-prescription-testing.md).
 
+K2F-292 adds request/client-scoped history loading and key-based read-only record selection in `useWorkoutHistory` / `workoutHistoryReducer`, plus explicit demo-client selection in `useWorkoutPreview` / `workoutPreviewReducer`. The history use case enforces client scoping and chronological order independently of the adapter. Existing session envelopes and immutable records are reused without a schema change. See [history verification](workout-history-testing.md) for the acceptance criteria, lifecycle transitions and current checks.
+
 ## Verification
 
 ```bash
@@ -117,7 +119,7 @@ adb reverse tcp:8081 tcp:8081
 python3 tests/workout-flow-smoke.py --source "Builder Demo Plan"
 ```
 
-Use `--base-url exp://YOUR-TUNNEL-HOST` when using a tunnel. The driver duplicates the supplied template, creates a uniquely named local test assignment for Alex, edits both note types, verifies their client display, exercises Start/checkpoint/Continue/Pause/Resume/End, deletes only the test template, and checks that its assigned copy and ended session remain available. Existing assignments and sessions are not reset. The named test assignment remains in local history; no Firebase workout writes occur.
+Use `--base-url exp://YOUR-TUNNEL-HOST` when using a tunnel. The driver duplicates the supplied template, creates a uniquely named local test assignment for Alex, edits both note types, verifies their client display, exercises Start/checkpoint/Continue/Pause/Resume/End, deletes the test template, and checks that its assigned copy and ended session remain available during the assertion. A shared sandbox then restores the pre-run workout baseline, including removing the assigned copy and history, even when the test fails. See [automatic smoke cleanup](smoke-test-cleanup.md).
 
 The full flow passed on the normal connected Android emulator using Builder Demo Plan. The timer-sensitive portions use captured control positions because UIAutomator can otherwise fail to become idle while the clock ticks. An earlier run timed out at that automation boundary; its local test workout was ended, and the corrected driver completed successfully.
 

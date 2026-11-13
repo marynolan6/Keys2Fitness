@@ -4,6 +4,7 @@ import type { WorkoutSessionRepository } from "./workoutRepositories";
 import { initializeSetPerformance, resetSetPerformance } from "./setPerformance";
 import { initialWorkoutTimer, transitionWorkoutTimer } from "./workoutTimer";
 import { getWorkoutProgress } from "./workoutProgress";
+import { getClientWorkoutHistory } from "./workoutHistory";
 
 export type WorkoutTimerAction = "start" | "pause" | "resume" | "end" | "finish";
 export type WorkoutSessionService = ReturnType<typeof createWorkoutSessionService>;
@@ -62,6 +63,6 @@ export function createWorkoutSessionService(repository: WorkoutSessionRepository
   return { openWorkout, changeSession,
     checkpoint: (session: WorkoutSession) => repository.saveWorkoutSession(session),
     findActiveWorkout: (isAvailable?: (id: string) => boolean) => repository.loadActiveWorkoutSession(isAvailable),
-    listHistory: (clientId: string) => repository.listWorkoutHistory(clientId),
+    listHistory: async (clientId: string) => getClientWorkoutHistory(await repository.listWorkoutHistory(clientId), clientId),
   };
 }
