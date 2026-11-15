@@ -4,8 +4,10 @@ The client workout opens exercise details in a modal without leaving the workout
 screen. Instructions and coach recommendations currently come from the assigned
 workout mock in `src/workouts/mockWorkout.ts`. Editing recommendations belongs to
 a later coach-side workout assignment story; no coach editor is included here.
-The demonstration frame is a local **Video coming soon** placeholder, not a
-playable video. Embedded YouTube playback is future work.
+K2F-71: the Demonstration section plays a video with `expo-video` when
+`src/workouts/exerciseVideos.ts` has one for that exercise name. For now these
+are labeled CC0 sample clips, not real exercise footage. Exercises without a
+video (the lower body workout) show "No demonstration video for this exercise yet."
 
 ## Android acceptance checks
 
@@ -15,7 +17,7 @@ scale, and at tablet width:
 
 1. Open **View Details** for each of the four exercises. The modal shows the
    selected name, sets, reps, imperial weight, written instructions and the
-   demonstration placeholder. Bench Press and Seated Cable Row show the sample
+   Demonstration video (tap play to start it). Bench Press and Seated Cable Row show the sample
    coach recommendation; the other two omit that optional section.
 2. Scroll to the bottom of the modal, close it, and open another exercise. The
    selected content changes and the workout stays at its previous scroll position.
