@@ -1,33 +1,46 @@
 import { useIsFocused } from "expo-router";
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
+import { findWorkoutHistoryEntry, getClientWorkoutHistory } from "@/workouts/workoutHistory";
+import { initialWorkoutHistoryState, workoutHistoryReducer } from "@/workouts/workoutHistoryReducer";
 import { workoutSessionService } from "@/workouts/workoutSession";
-import type { WorkoutHistoryEntry } from "@/workouts/workoutSessionModel";
 
-type State = { clientId: string; status: "loading" | "ready" | "error"; entries: WorkoutHistoryEntry[]; retry: number };
-type Action = { type: "loading"; clientId: string } | { type: "loaded"; clientId: string; entries: WorkoutHistoryEntry[] }
-  | { type: "failed"; clientId: string } | { type: "retry" };
-function reducer(state: State, action: Action): State {
-  if (action.type === "retry") return { ...state, retry: state.retry + 1 };
-  if (action.type === "loaded") return { ...state, clientId: action.clientId, status: "ready", entries: action.entries };
-  return { ...state, clientId: action.clientId, status: action.type === "loading" ? "loading" : "error", entries: [] };
-}
-
-export function useWorkoutHistory(clientId: string) {
+export function useWorkoutHistory(clientId: string | null) {
   const focused = useIsFocused();
-  const [state, dispatch] = useReducer(reducer, { clientId, status: "loading", entries: [], retry: 0 });
+  const request = useRef(0);
+  const [state, dispatch] = useReducer(workoutHistoryReducer, initialWorkoutHistoryState);
   useEffect(() => {
+    if (!focused) dispatch({ type: "leave" });
+  }, [focused]);
+  useEffect(() => {
+    if (clientId === null) {
+      dispatch({ type: "clear" });
+      return;
+    }
     if (!focused) return;
     let active = true;
-    async function load() {
-      dispatch({ type: "loading", clientId });
-      try {
-        const entries = await workoutSessionService.listHistory(clientId);
-        if (active) dispatch({ type: "loaded", clientId, entries });
-      } catch { if (active) dispatch({ type: "failed", clientId }); }
-    }
-    void load();
+    const requestId = ++request.current;
+    dispatch({ type: "load-started", clientId, requestId });
+    workoutSessionService.listHistory(clientId).then((entries) => {
+      if (active) dispatch({ type: "loaded", clientId, requestId, entries });
+    }).catch(() => {
+      if (active) dispatch({ type: "failed", clientId, requestId });
+    });
     return () => { active = false; };
   }, [focused, clientId, state.retry]);
-  return { status: state.clientId === clientId ? state.status : "loading" as const,
-    entries: state.clientId === clientId ? state.entries : [], retry: () => dispatch({ type: "retry" }) };
+
+  // Suppress old data in the render that precedes the client-change effect.
+  const matching = clientId !== null && state.clientId === clientId;
+  const entries = matching && state.status === "ready" ? state.entries : [];
+  const selection = matching && focused && state.view.type === "detail" ? state.view.key : null;
+  return {
+    status: matching ? state.status : "loading" as const,
+    entries,
+    visibleEntries: getClientWorkoutHistory(entries, clientId ?? "", state.filter),
+    detail: selection ? findWorkoutHistoryEntry(entries, clientId!, selection) : null,
+    detailOpen: selection !== null,
+    filter: state.filter,
+    expanded: state.expanded,
+    dispatch,
+    retry: () => dispatch({ type: "retry" }),
+  };
 }

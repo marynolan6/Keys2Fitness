@@ -32,6 +32,7 @@ export function ExerciseSetsModal({ exercise, disabled, onClose, ...actions }: P
             <View style={styles.prescription}>
               <Text style={styles.heading}>Coach prescribed</Text>
               <Text style={styles.body}>{exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight / no weight prescribed"}</Text>
+              {exercise.restSeconds !== undefined && <Text style={styles.body}>Rest: {exercise.restSeconds} seconds between sets / exercises</Text>}
             </View>
             {disabled && <Text style={styles.body}>Start or resume the workout to edit and confirm sets.</Text>}
             <ExerciseSetEntries key={exercise.id} exercise={exercise} disabled={disabled} {...actions} />

@@ -4,6 +4,7 @@ import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
+from helpers.workout_sandbox import workout_sandbox
 
 
 DEVICE_XML = "/sdcard/k2f-exercise-modal-smoke.xml"
@@ -107,7 +108,7 @@ def main():
         tap(scroll_to(f"View {name} details"))
         root = wait_for("Exercise details")
         assert matching(root, name), f"Wrong exercise shown for {name}"
-        for section in ("Instructions", "Exercise demonstration", "Video coming soon"):
+        for section in ("Instructions", "Demonstration"):  # K2F-71 replaced the placeholder with a player
             assert matching(root, section), f"{name} missing {section}"
         if has_coach_note:
             scroll_to("Coach recommendation")
@@ -132,4 +133,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with workout_sandbox(reset_workouts=("today",), preview_client="1"):
+        main()

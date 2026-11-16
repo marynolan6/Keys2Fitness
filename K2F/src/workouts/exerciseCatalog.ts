@@ -21,5 +21,5 @@ export function makeWorkoutId(prefix: string): string {
 }
 
 export function newDraftExercise(name: string, instructions = ""): DraftExercise {
-  return { id: makeWorkoutId("exercise"), name: name.trim(), instructions, coachNotes: "", sets: "3", reps: "10", weightLb: "0" };
+  return { id: makeWorkoutId("exercise"), name: name.trim(), instructions, coachNotes: "", sets: "3", reps: "10", weightLb: "0", restSeconds: "" };
 }

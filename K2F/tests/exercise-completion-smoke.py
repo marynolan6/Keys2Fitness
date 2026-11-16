@@ -1,7 +1,8 @@
-"""K2F-31 Android acceptance test; open the sample workout before running."""
+"""K2F-31 Android acceptance test; automatically restores the sample afterward."""
 
 import runpy
 from pathlib import Path
+from helpers.workout_sandbox import workout_sandbox
 
 helpers = runpy.run_path(str(Path(__file__).with_name("exercise-modal-smoke.py")))
 adb = helpers["adb"]
@@ -18,6 +19,9 @@ def assert_summary(text):
 
 
 def main():
+    helpers["adb"]("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d",
+                   "exp://127.0.0.1:8081/--/client/home/workout/today")
+    wait_for("Workout progress")
     root = snapshot()
     for label in ("Start Workout", "Start New Workout", "Resume"):
         if matching(root, label):
@@ -60,10 +64,8 @@ def main():
     assert_summary("3 of 4 exercises complete · 1 remaining")
     assert not matching(snapshot(), "All exercises complete")
     print("PASS: modal preserves completion; unchecking reverses complete state")
-    # Restore the original demo completion pattern for subsequent walkthroughs.
-    tap(scroll_to("Seated Cable Row completed"))
-    assert_summary("2 of 4 exercises complete · 2 remaining")
 
 
 if __name__ == "__main__":
-    main()
+    with workout_sandbox(reset_workouts=("today",), preview_client="1"):
+        main()

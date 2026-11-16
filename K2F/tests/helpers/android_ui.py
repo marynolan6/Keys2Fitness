@@ -64,7 +64,7 @@ def tap(label):
     tap_node(scroll_to(label))
 
 
-def fill(label, text):
+def fill(label, text, dismiss_keyboard=True):
     node = scroll_to(label, editable=True)
     previous = node.get("text", "")
     tap_node(node)
@@ -75,7 +75,11 @@ def fill(label, text):
         time.sleep(1)
     if text:
         adb("shell", "input", "text", text.replace(" ", "%s"))
-    adb("shell", "input", "keyevent", "111")
+    # Escape without an active keyboard can close a React Native Modal.
+    # Android Back can also pop an Expo route, so use Escape only for the IME.
+    ime = adb("shell", "dumpsys", "input_method")
+    if dismiss_keyboard and re.search(r"mInputShown=true", ime) and re.search(r"mIsInputViewShown=true", ime):
+        adb("shell", "input", "keyevent", "111")
     time.sleep(1)
     actual = next((node.get("text") for node in snapshot()
                    if node.get("content-desc") == label and node.get("class") == "android.widget.EditText"), None)
@@ -85,13 +89,3 @@ def fill(label, text):
 def open_route(path, base_url):
     adb("shell", "am", "start", "-W", "-a", "android.intent.action.VIEW", "-d", base_url.rstrip("/") + "/--/" + path)
     time.sleep(4)
-
-
-def delete_test_template(title, base_url):
-    """Remove only the exact test template; assignment/history snapshots remain available."""
-    open_route("coach/workouts", base_url)
-    fill("Search workout templates", title)
-    tap("Delete " + title)
-    wait_for("Delete Workout Template?")
-    tap("Delete template")
-    wait_for("Template deleted.")

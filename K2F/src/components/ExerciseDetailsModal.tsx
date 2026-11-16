@@ -1,5 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { ExerciseVideoSection } from "@/components/ExerciseVideo";
 import { getCoachTip } from "@/workouts/coachTips";
 import type { WorkoutExercise } from "@/workouts/workout";
 import { useWorkoutLibraryState } from "@/workouts/workoutLibraryStore";
@@ -69,6 +70,11 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
 
             </View>
 
+            {exercise.restSeconds !== undefined && <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Rest between sets / exercises</Text>
+              <Text style={styles.body}>{exercise.restSeconds} seconds</Text>
+            </View>}
+
             {/* K2F-167: Display instructions for the selected exercise.
                 K2F-107: Keep the section when instructions are missing and say so.
             */}
@@ -83,7 +89,9 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
               )}
             </View>
 
-              {exercise.demonstrationAvailable && <VideoPlaceholder />}
+            {/* K2F-71: demonstration video below the instructions so it never hides them */}
+            <ExerciseVideoSection exerciseName={exercise.name} />
+
               {exercise.alternative?.trim() && <View style={styles.notesCard}>
                 <Text style={styles.sectionTitle}>Alternative exercise</Text>
                 <Text style={styles.body}>{exercise.alternative}</Text>
@@ -106,18 +114,6 @@ export function ExerciseDetailsModal({ exercise, onClose }: ExerciseDetailsModal
         </View>
       </View>
     </Modal>
-  );
-}
-
-function VideoPlaceholder() {
-  return (
-    <View accessibilityLabel="Exercise demonstration video coming soon" style={styles.videoPlaceholder}>
-      <View style={styles.playIcon}>
-        <Text style={styles.playIconText}>▶</Text>
-      </View>
-      <Text style={styles.videoTitle}>Exercise demonstration</Text>
-      <Text style={styles.videoSubtitle}>Video coming soon</Text>
-    </View>
   );
 }
 
@@ -236,40 +232,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.body,
     lineHeight: typography.bodyLineHeight,
-  },
-  videoPlaceholder: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 180,
-    padding: spacing.lg,
-  },
-  playIcon: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 32,
-    height: 64,
-    justifyContent: "center",
-    width: 64,
-  },
-  playIconText: {
-    color: colors.surface,
-    fontSize: 24,
-    marginLeft: spacing.xs,
-  },
-  videoTitle: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginTop: spacing.md,
-  },
-  videoSubtitle: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.xs,
   },
   notesCard: {
     backgroundColor: colors.surfaceMuted,

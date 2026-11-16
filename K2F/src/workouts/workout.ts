@@ -11,10 +11,13 @@ export type WorkoutExercise = {
   sets: number;
   reps: number;
   weight: string;
+  restSeconds?: number;
   completed: boolean;
   instructions?: string;
   demonstrationAvailable?: boolean;
   coachNotes?: string;
+  // Assigned-client override. An explicit empty string removes the recommendation.
+  recommendation?: string;
   alternative?: string;
   // Client entries are separate from the coach's read-only sets/reps/weight.
   actualSets?: PerformedSet[];

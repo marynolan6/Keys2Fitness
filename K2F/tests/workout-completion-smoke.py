@@ -1,8 +1,8 @@
-"""K2F-33 Android smoke test. Creates a Bench Press fixture and cleans up its template."""
-import time
+"""K2F-33 Android smoke; restores the library, assignments and sessions afterward."""
 import argparse
 import re
-from helpers.android_ui import adb, delete_test_template, fill, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.android_ui import adb, fill, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
 def completed_count():
@@ -16,34 +16,29 @@ def completed_count():
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--resume-title", help="Resume verification of an already-created paused fixture")
-    args = parser.parse_args()
-    title = args.resume_title or "Completion smoke " + str(int(time.time()))
+    title = smoke_title("Completion")
     route = lambda path: open_route(path, "exp://127.0.0.1:8081")
-    if not args.resume_title:
-        route("coach/workouts/editor?clientId=2")
-        fill("Workout name", title)
-        tap("Add exercise")
-        tap("Choose Bench Press")
-        fill("Reps for Bench Press", "8")
-        fill("Weight (lb) for Bench Press", "135")
-        client = scroll_to("Assign to Alex Morgan")
-        if client.get("checked") != "true": tap_node(client)
-        tap("Assign workout · 1 selected")
-        tap("Confirm assignment")
-        wait_for("Workout Template Library")
-        tap("Preview assigned client workout")
+    route("coach/workouts/editor?clientId=2")
+    fill("Workout name", title)
+    tap("Add exercise")
+    tap("Choose Bench Press")
+    fill("Reps for Bench Press", "8")
+    fill("Weight (lb) for Bench Press", "135")
+    client = scroll_to("Assign to Alex Morgan")
+    if client.get("checked") != "true": tap_node(client)
+    tap("Assign workout · 1 selected")
+    tap("Confirm assignment")
+    wait_for("Workout Template Library")
+    tap("Preview assigned client workout")
     route("client/progress")
     baseline = completed_count()
     route("coach-client/2/workouts")
     tap("Preview " + title + " as Alex Morgan")
-    if not args.resume_title:
-        wait_for(title)
-        checkbox = scroll_to("Bench Press completed")
-        tap("Start Workout")
-        tap_node(checkbox)
-        tap("Ⅱ Pause Workout")
+    wait_for(title)
+    checkbox = scroll_to("Bench Press completed")
+    tap("Start Workout")
+    tap_node(checkbox)
+    tap("Ⅱ Pause Workout")
     wait_for("Workout paused. Your progress is saved.")
     tap("Finish Workout")
     wait_for("Confirm workout completion?")
@@ -56,10 +51,12 @@ def main():
     wait_for("Workout completed successfully! Saved to your workout history.")
     route("client/progress")
     assert completed_count() == baseline + 1
-    tap("View " + title + ", completed")
+    tap(title)
     wait_for("Recorded workout")
-    scroll_to("Set 1: 8 reps · 135 lb · Confirmed")
-    tap("Close workout record")
+    wait_for("Set 1 · Confirmed")
+    wait_for("8 reps")
+    wait_for("135 lb")
+    tap_node(next(node for node in snapshot() if node.get("content-desc") == "Back to workout history"))
     print("PASS: confirmed completion appears in progress/history with recorded sets", flush=True)
     route("coach-client/2/workouts")
     tap("Preview " + title + " as Alex Morgan")
@@ -73,9 +70,9 @@ def main():
     route("client/progress")
     assert completed_count() == baseline + 1
     print("PASS: second attempt ended early preserves completed history and does not inflate totals", flush=True)
-    delete_test_template(title, "exp://127.0.0.1:8081")
-    print("Removed test template from the workout library: " + title, flush=True)
-    print("Retained local test assignment: " + title, flush=True)
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    with workout_sandbox():
+        main()

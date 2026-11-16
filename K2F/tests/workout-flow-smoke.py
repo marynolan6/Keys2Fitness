@@ -1,16 +1,13 @@
-"""Expo Go integration test. Creates a uniquely named local demo assignment; never resets existing records."""
+"""Expo Go integration test; restores pre-test workout data even on failure."""
 import argparse
 import time
 
 from helpers.android_ui import adb, bounds, fill, matches, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default="exp://127.0.0.1:8081")
-    parser.add_argument("--source", default="Upper Body Strength", help="Existing template containing Bench Press")
-    args = parser.parse_args()
-    title = "Architecture smoke " + str(int(time.time()))
+def run(args):
+    title = smoke_title("Architecture")
     workout_note = "Architecture smoke workout note. Keep a controlled tempo."
     exercise_note = "Architecture smoke exercise note. Keep feet planted."
     route = lambda path: open_route(path, args.base_url)
@@ -96,7 +93,15 @@ def main():
     tap("Expand coach's note")
     wait_for(workout_note)
     print("PASS: deleting the test template preserves the assigned snapshot and ended session", flush=True)
-    print("Local test assignment retained as: " + title, flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-url", default="exp://127.0.0.1:8081")
+    parser.add_argument("--source", default="Upper Body Strength", help="Existing template containing Bench Press")
+    args = parser.parse_args()
+    with workout_sandbox():
+        run(args)
 
 
 if __name__ == "__main__":

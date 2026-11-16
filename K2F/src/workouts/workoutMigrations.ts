@@ -5,13 +5,14 @@ import type { WorkoutHistoryEntry, WorkoutSession } from "./workoutSessionModel"
 import { getWorkoutProgress } from "./workoutProgress";
 import type { WorkoutExercise } from "./workout";
 
-export const workoutSchemaVersion = 2;
+export const workoutSchemaVersion = 3;
 export const workoutSessionSchemaVersion = 3;
 type RecordValue = Record<string, unknown>;
 const isRecord = (value: unknown): value is RecordValue => value !== null && typeof value === "object" && !Array.isArray(value);
 const nonempty = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
 const optionalText = (value: unknown) => value === undefined || typeof value === "string";
 const integer = (value: unknown, min: number) => typeof value === "number" && Number.isInteger(value) && value >= min;
+const optionalRest = (value: unknown) => value === undefined || (integer(value, 0) && (value as number) <= 3600);
 
 function invalid(kind: string): never {
   throw new Error(`Saved ${kind} could not be read. Your saved data has not been replaced.`);
@@ -23,7 +24,8 @@ function validateTemplate(value: unknown): value is WorkoutTemplate {
       (value.durationMinutes !== undefined && !integer(value.durationMinutes, 1)) || !Array.isArray(value.exercises)) return false;
   if (!value.exercises.every((exercise) => isRecord(exercise) && nonempty(exercise.id) && typeof exercise.name === "string" &&
       typeof exercise.instructions === "string" && typeof exercise.coachNotes === "string" &&
-      integer(exercise.sets, 1) && integer(exercise.reps, 1) && typeof exercise.weightLb === "number" && optionalText(exercise.alternative))) return false;
+      integer(exercise.sets, 1) && integer(exercise.reps, 1) && (exercise.weightLb === undefined || typeof exercise.weightLb === "number") &&
+      optionalRest(exercise.restSeconds) && optionalText(exercise.alternative))) return false;
   // Structural checks precede conversion into the domain validation function.
   return Object.keys(validateWorkoutDraft(draftFromTemplate(value as unknown as WorkoutTemplate))).length === 0;
 }
@@ -40,14 +42,15 @@ function validateLibrary(value: unknown): WorkoutLibraryData {
           [workout.notes, workout.notesAuthor, workout.notesUpdatedAt].every(optionalText) &&
           Array.isArray(workout.exercises) && workout.exercises.length > 0 && workout.exercises.every((exercise) =>
             isRecord(exercise) && nonempty(exercise.id) && nonempty(exercise.name) && integer(exercise.sets, 1) && integer(exercise.reps, 1) &&
-            typeof exercise.weight === "string" && exercise.completed === false &&
-            [exercise.instructions, exercise.coachNotes, exercise.alternative].every(optionalText));
+            typeof exercise.weight === "string" && exercise.completed === false && optionalRest(exercise.restSeconds) &&
+            [exercise.instructions, exercise.coachNotes, exercise.alternative, exercise.recommendation].every(optionalText));
       }) || new Set(value.assignments.map((assignment) => assignment.id)).size !== value.assignments.length) return invalid("workout library");
   return { templates: value.templates, assignments: value.assignments, previewClientId: value.previewClientId } as WorkoutLibraryData;
 }
 
-// V1 stored the schema marker beside the domain fields. V2 uses an envelope so
-// application models no longer carry storage-version metadata.
+// V1 stored the schema marker beside the domain fields. V2 introduced the
+// envelope; V3 adds optional rest, optional weight, and assigned recommendation
+// overrides without fabricating values for older templates/assignments.
 export function migrateWorkoutLibraryV1(value: unknown) {
   if (!isRecord(value) || value.version !== 1) return invalid("workout library");
   return { schemaVersion: workoutSchemaVersion, data: validateLibrary(value) };
@@ -57,8 +60,8 @@ export function decodeWorkoutLibrary(raw: string): { data: WorkoutLibraryData; m
   const value: unknown = JSON.parse(raw);
   if (!isRecord(value)) return invalid("workout library");
   if (value.schemaVersion !== undefined) {
-    if (value.schemaVersion !== workoutSchemaVersion) throw new Error("This workout library uses an unsupported storage version. Your saved data has not been replaced.");
-    return { data: validateLibrary(value.data), migrated: false };
+    if (value.schemaVersion !== workoutSchemaVersion && value.schemaVersion !== 2) throw new Error("This workout library uses an unsupported storage version. Your saved data has not been replaced.");
+    return { data: validateLibrary(value.data), migrated: value.schemaVersion !== workoutSchemaVersion };
   }
   return { data: migrateWorkoutLibraryV1(value).data, migrated: true };
 }
@@ -70,7 +73,7 @@ export function normalizeWorkoutSession(value: unknown, workoutId: string, legac
   if (!isRecord(value) || value.workoutId !== workoutId || !Array.isArray(value.exercises) || !value.exercises.every((exercise) =>
       isRecord(exercise) && nonempty(exercise.id) && typeof exercise.name === "string" && typeof exercise.completed === "boolean" &&
       integer(exercise.sets, 0) && integer(exercise.reps, 0) && optionalText(exercise.weight) &&
-      [exercise.instructions, exercise.coachNotes, exercise.alternative].every(optionalText) &&
+      [exercise.instructions, exercise.coachNotes, exercise.alternative, exercise.recommendation].every(optionalText) && optionalRest(exercise.restSeconds) &&
       (exercise.actualSets === undefined || isValidPerformedSets(exercise.actualSets)))) return invalid("workout checkpoint");
   if (value.updatedAt !== undefined && (typeof value.updatedAt !== "number" || !Number.isFinite(value.updatedAt) || value.updatedAt < 0)) return invalid("workout checkpoint");
   const timer = value.timer ?? (legacy && value.paused === true ? { status: "paused", elapsedMs: 0, runningSince: null } : null);
@@ -118,7 +121,7 @@ export function decodeWorkoutSessionRecord(raw: string, workoutId: string): Work
     return { data: value.data === null ? null : normalizeWorkoutSession(value.data, workoutId), history, migrated: false };
   }
   if (value.schemaVersion !== undefined) {
-    if (value.schemaVersion !== workoutSchemaVersion) throw new Error("This workout checkpoint uses an unsupported storage version. Your saved data has not been replaced.");
+    if (value.schemaVersion !== 2) throw new Error("This workout checkpoint uses an unsupported storage version. Your saved data has not been replaced.");
     return { data: normalizeWorkoutSession(value.data, workoutId), history: [], migrated: true };
   }
   return { data: migrateWorkoutSessionV1(value, workoutId), history: [], migrated: true };

@@ -1,6 +1,6 @@
 import type { WorkoutLibraryData } from "./workoutLibraryModel";
 import { decodeWorkoutLibrary, encodeWorkoutLibrary } from "./workoutMigrations";
-import type { ObservableWorkoutLibraryRepository, SaveWorkoutPlan, WorkoutLibraryState } from "./workoutRepositories";
+import type { ObservableWorkoutLibraryRepository, SaveExerciseRecommendation, SaveWorkoutPlan, WorkoutLibraryState } from "./workoutRepositories";
 import { createStorageQueue, type KeyValueStorage } from "./workoutStorage";
 
 // Retain the original key. The envelope carries its own schema version.
@@ -63,6 +63,22 @@ export function createWorkoutLibraryRepository(storage: KeyValueStorage, initial
     });
   }
 
+  async function saveExerciseRecommendation(request: SaveExerciseRecommendation): Promise<void> {
+    const command = { ...request };
+    await persist((data) => {
+      const assignment = data.assignments.find((item) => item.id === command.assignmentId && item.clientId === command.clientId);
+      const exercise = assignment?.workout.exercises.find((item) => item.id === command.exerciseId);
+      if (!assignment || !exercise) throw new Error("This client's assigned exercise is no longer available.");
+      if (exercise.recommendation !== command.expectedRecommendation && exercise.recommendation !== command.recommendation) {
+        throw new Error("This recommendation changed. Reopen the editor before saving.");
+      }
+      return { ...data, assignments: data.assignments.map((item) => item !== assignment ? item : { ...item,
+        workout: { ...item.workout, exercises: item.workout.exercises.map((row) => row !== exercise ? row : {
+          ...row, recommendation: command.recommendation,
+        }) } }) };
+    });
+  }
+
   return {
     getState: () => state, load,
     subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
@@ -71,7 +87,7 @@ export function createWorkoutLibraryRepository(storage: KeyValueStorage, initial
     listAssignments: (clientId) => read((data) => clientId === undefined ? data.assignments : data.assignments.filter((assignment) => assignment.clientId === clientId)),
     findAssignment: (id) => read((data) => data.assignments.find((assignment) => assignment.id === id) ?? null),
     getPreviewClientId: () => read((data) => data.previewClientId),
-    saveWorkoutPlan,
+    saveWorkoutPlan, saveExerciseRecommendation,
     deleteTemplate: (id) => persist((data) => ({ ...data, templates: data.templates.filter((template) => template.id !== id) })),
     setPreviewClient: (clientId) => persist((data) => ({ ...data, previewClientId: clientId })),
   };

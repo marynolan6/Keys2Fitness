@@ -41,6 +41,7 @@ export function getCoachTip(
     .filter((assignment) => assignment.clientId === clientId)
     .flatMap((assignment) => assignment.workout.exercises)
     .find((item) => item.id === exercise.id);
+  if (assigned?.recommendation !== undefined) return assigned.recommendation.trim() || null;
   const coachNote = assigned?.coachNotes?.trim();
   if (coachNote) return coachNote;
   return getDemoCoachTip(clientId, exercise.name);

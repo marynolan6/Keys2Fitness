@@ -1,7 +1,7 @@
-"""K2F-39 Android smoke: creates local assignment fixtures and cleans up its reusable template."""
-import time
+"""K2F-39 Android smoke; removes all fixture data on success or failure."""
 
-from helpers.android_ui import adb, delete_test_template, fill, open_route, scroll_to, snapshot, tap, wait_for
+from helpers.android_ui import adb, fill, open_route, scroll_to, snapshot, tap, wait_for
+from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
 BASE = "exp://127.0.0.1:8081"
@@ -12,7 +12,7 @@ def route(path):
 
 
 def main():
-    title = "Assignment smoke " + str(int(time.time()))
+    title = smoke_title("Assignment")
     print("Fixture: " + title, flush=True)
     for client_id, name in [("2", "Alex Morgan"), ("1", "Spencer"), ("2", "Alex Morgan")]:
         route("coach/workouts?clientId=" + client_id)
@@ -79,9 +79,8 @@ def main():
     route("coach-client/2/workouts")
     scroll_to(title)
     print("PASS: library cancellation/confirmation, repeated assignments and restart persistence", flush=True)
-    delete_test_template(title, BASE)
-    print("Removed test template from the workout library: " + title, flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    with workout_sandbox():
+        main()

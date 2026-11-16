@@ -1,6 +1,12 @@
 import { assignmentFromTemplate, draftFromTemplate, templateFromDraft } from "./workoutLibraryModel";
 import type { ClientWorkoutAssignment, WorkoutDraft } from "./workoutLibraryModel";
 import type { WorkoutClientDirectory, WorkoutLibraryRepository } from "./workoutRepositories";
+import { getCoachTip } from "./coachTips";
+
+export type ExerciseRecommendationDetails = {
+  clientId: string; assignmentId: string; workoutTitle: string;
+  exercise: ClientWorkoutAssignment["workout"]["exercises"][number]; recommendation: string;
+};
 
 export type SaveWorkoutRequest = {
   draft: WorkoutDraft;
@@ -70,6 +76,23 @@ export function createWorkoutLibraryService(repository: WorkoutLibraryRepository
     await repository.setPreviewClient(clientId);
   }
 
-  return { saveWorkout, assignTemplate, duplicateTemplate, setPreviewClient,
+  async function openExerciseRecommendation(scope: { clientId: string; assignmentId: string; exerciseId: string }): Promise<ExerciseRecommendationDetails> {
+    await validateClients([scope.clientId]);
+    const assignment = await repository.findAssignment(scope.assignmentId);
+    const exercise = assignment?.clientId === scope.clientId ? assignment.workout.exercises.find((row) => row.id === scope.exerciseId) : undefined;
+    if (!assignment || !exercise) throw new Error("This client's assigned exercise is no longer available.");
+    return { clientId: scope.clientId, assignmentId: assignment.id, workoutTitle: assignment.workout.title,
+      exercise: { ...exercise }, recommendation: getCoachTip({ assignments: [assignment] }, scope.clientId, exercise) ?? "" };
+  }
+
+  async function saveExerciseRecommendation(request: { clientId: string; assignmentId: string; exerciseId: string;
+    recommendation: string; expectedRecommendation: string | undefined }): Promise<void> {
+    const command = { ...request };
+    await validateClients([command.clientId]);
+    if (typeof command.recommendation !== "string") throw new Error("Enter a text recommendation or leave it blank.");
+    await repository.saveExerciseRecommendation({ ...command, recommendation: command.recommendation.trim() });
+  }
+
+  return { saveWorkout, assignTemplate, duplicateTemplate, setPreviewClient, openExerciseRecommendation, saveExerciseRecommendation,
     deleteTemplate: (id: string) => repository.deleteTemplate(id) };
 }

@@ -5,7 +5,8 @@ export type TemplateExercise = {
   name: string;
   sets: number;
   reps: number;
-  weightLb: number;
+  weightLb?: number;
+  restSeconds?: number;
   instructions: string;
   coachNotes: string;
   alternative?: string;
@@ -20,8 +21,8 @@ export type WorkoutTemplate = {
   updatedAt: string;
 };
 
-export type DraftExercise = Omit<TemplateExercise, "sets" | "reps" | "weightLb"> & {
-  sets: string; reps: string; weightLb: string;
+export type DraftExercise = Omit<TemplateExercise, "sets" | "reps" | "weightLb" | "restSeconds"> & {
+  sets: string; reps: string; weightLb: string; restSeconds?: string;
 };
 
 export type WorkoutDraft = {
@@ -50,8 +51,9 @@ export const emptyWorkoutDraft = (): WorkoutDraft => ({ title: "", durationMinut
 export function draftFromTemplate(template: WorkoutTemplate): WorkoutDraft {
   return {
     title: template.title, durationMinutes: template.durationMinutes?.toString() ?? "", notes: template.notes,
-    exercises: template.exercises.map((exercise) => ({ ...exercise,
-      sets: String(exercise.sets), reps: String(exercise.reps), weightLb: String(exercise.weightLb) })),
+    exercises: template.exercises.map(({ restSeconds, ...exercise }) => ({ ...exercise,
+      sets: String(exercise.sets), reps: String(exercise.reps), weightLb: exercise.weightLb?.toString() ?? "",
+      ...(restSeconds === undefined ? {} : { restSeconds: String(restSeconds) }) })),
   };
 }
 
@@ -73,8 +75,12 @@ export function validateWorkoutDraft(draft: WorkoutDraft): Record<string, string
         errors[exercise.id + "." + field] = `Use a whole number from 1 to ${max}.`;
       }
     }
-    if (!/^\d+(?:\.\d+)?$/.test(exercise.weightLb) || Number(exercise.weightLb) > 2000) {
-      errors[exercise.id + ".weightLb"] = "Use 0–2000 lb. Zero means bodyweight / no added weight.";
+    if (exercise.weightLb !== "" && (!/^\d+(?:\.\d+)?$/.test(exercise.weightLb) || Number(exercise.weightLb) > 2000)) {
+      errors[exercise.id + ".weightLb"] = "Use 0–2000 lb, or leave blank. Zero means bodyweight / no added weight.";
+    }
+    const rest = exercise.restSeconds ?? "";
+    if (rest !== "" && (!/^\d+$/.test(rest) || Number(rest) > 3600)) {
+      errors[exercise.id + ".restSeconds"] = "Use a whole number from 0 to 3600 seconds, or leave blank.";
     }
   }
   return errors;
@@ -85,9 +91,11 @@ export function templateFromDraft(draft: WorkoutDraft, id: string, updatedAt: st
   if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
   return {
     id, updatedAt, title: draft.title.trim(), durationMinutes: draft.durationMinutes ? Number(draft.durationMinutes) : undefined,
-    notes: draft.notes.trim(), exercises: draft.exercises.map((exercise) => ({
+    notes: draft.notes.trim(), exercises: draft.exercises.map(({ restSeconds, ...exercise }) => ({
       ...exercise, name: exercise.name.trim(), sets: Number(exercise.sets), reps: Number(exercise.reps),
-      weightLb: Number(exercise.weightLb), instructions: exercise.instructions.trim(), coachNotes: exercise.coachNotes.trim(),
+      weightLb: exercise.weightLb === "" ? undefined : Number(exercise.weightLb),
+      ...(restSeconds === undefined || restSeconds === "" ? {} : { restSeconds: Number(restSeconds) }),
+      instructions: exercise.instructions.trim(), coachNotes: exercise.coachNotes.trim(),
       alternative: exercise.alternative?.trim() || undefined,
     })),
   };
@@ -102,7 +110,8 @@ export function assignmentFromTemplate(template: WorkoutTemplate, clientId: stri
       notesUpdatedAt: template.notes ? assignedAt.slice(0, 10) : undefined,
       exercises: template.exercises.map((exercise) => ({
         id: `${id}-${exercise.id}`, name: exercise.name, sets: exercise.sets, reps: exercise.reps,
-        weight: exercise.weightLb ? `${exercise.weightLb} lb` : "Bodyweight", completed: false,
+        weight: exercise.weightLb === undefined ? "" : exercise.weightLb ? `${exercise.weightLb} lb` : "Bodyweight", completed: false,
+        ...(exercise.restSeconds === undefined ? {} : { restSeconds: exercise.restSeconds }),
         instructions: exercise.instructions || undefined, coachNotes: exercise.coachNotes || undefined,
         alternative: exercise.alternative,
       })),

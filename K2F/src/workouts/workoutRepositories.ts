@@ -8,6 +8,11 @@ export type SaveWorkoutPlan = {
   existingTemplateId?: string;
 };
 
+export type SaveExerciseRecommendation = {
+  clientId: string; assignmentId: string; exerciseId: string;
+  recommendation: string; expectedRecommendation: string | undefined;
+};
+
 // Application ports describe domain operations, never JSON keys or AsyncStorage.
 // A remote implementation must preserve atomic plan/assignment commits and snapshots.
 export interface WorkoutLibraryRepository {
@@ -17,6 +22,7 @@ export interface WorkoutLibraryRepository {
   findAssignment(id: string): Promise<ClientWorkoutAssignment | null>;
   getPreviewClientId(): Promise<string>;
   saveWorkoutPlan(plan: SaveWorkoutPlan): Promise<void>;
+  saveExerciseRecommendation(request: SaveExerciseRecommendation): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
   setPreviewClient(clientId: string): Promise<void>;
 }
