@@ -20,8 +20,8 @@ const clientItems = [
   { label: "Home", path: "/client/home", icon: { ios: "house", android: "home", web: "home" } },
   { label: "Workout", path: "/client/home/workout", icon: { ios: "dumbbell", android: "fitness_center", web: "fitness_center" } },
   { label: "Workout history", path: "/client/history", icon: { ios: "clock.arrow.circlepath", android: "history", web: "history" } },
-  { label: "Nutrition", path: null, icon: { ios: "fork.knife", android: "restaurant", web: "restaurant" } },
-  { label: "Messages", path: "/client/messages", icon: { ios: "message", android: "chat", web: "chat" } },
+  // K2F-127: Connect Nutrition menu to the daily nutrition screen.
+  { label: "Nutrition", path: "/client/home/nutrition", icon: { ios: "fork.knife", android: "restaurant", web: "restaurant" } },  { label: "Messages", path: "/client/messages", icon: { ios: "message", android: "chat", web: "chat" } },
   { label: "Progress", path: "/client/progress", icon: { ios: "chart.bar", android: "bar_chart", web: "bar_chart" } },
   { label: "Profile", path: "/client/profile", icon: { ios: "person", android: "person", web: "person" } },
 ] as const;
