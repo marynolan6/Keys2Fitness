@@ -28,6 +28,7 @@ import { Stack } from "expo-router";
 // Reuse the Keys2Fitness gradient background.
 // This is also used by other screens in the app.
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 
 // Import the shared Keys2Fitness theme settings.
 // These control the colors, spacing, and screen width.
@@ -172,9 +173,7 @@ export default function NutritionScreen() {
         <View style={styles.content}>
 
           {/* Keys2Fitness branding above the title. */}
-          <Text style={styles.brand}>
-            KEYS2FITNESS
-          </Text>
+          <K2FBrand />
 
           {/* Main Nutrition page heading. */}
           <Text style={styles.title}>
@@ -256,17 +255,9 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
   },
 
-  // Small Keys2Fitness branding above the heading.
-  brand: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: colors.primaryDark,
-    letterSpacing: 1.5,
-    marginBottom: spacing.sm,
-  },
-
   // Large Nutrition heading matching the Figma design.
   title: {
+    marginTop: spacing.sm,
     fontSize: typography.title,
     fontWeight: "400",
     color: colors.text,

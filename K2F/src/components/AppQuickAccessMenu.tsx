@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { K2FBrand } from "@/components/K2FBrand";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
@@ -79,11 +80,12 @@ export function AppQuickAccessMenu({ role, visible, onClose }: {
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.content}>
+            <K2FBrand coach={role === "coach"} />
             <View style={styles.identity}>
               <ClientAvatar name={name} />
               <View style={styles.identityText}>
                 <Text style={styles.name}>{name}</Text>
-                <Text style={styles.subtitle}>{role === "client" ? "Client" : "Coach"} · Keys2Fitness</Text>
+                <Text style={styles.subtitle}>{role === "client" ? "Client" : "Coach"}</Text>
               </View>
             </View>
             <View style={styles.divider} />

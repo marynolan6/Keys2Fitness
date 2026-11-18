@@ -3,6 +3,9 @@ import type { CheckIn } from "./checkIn";
 // Flip to `true` to preview a client with no recorded progress (no check-ins, no progress stats).
 export const PREVIEW_NO_PROGRESS = false;
 
+// The date of the sample Progress screen. Demo ranges should not drift with the device clock.
+export const sampleCheckInAsOf = "2026-10-03";
+
 // Placeholder until check-ins come from the backend. Kept out of date order on purpose; screens sort them.
 const sampleCheckIns: CheckIn[] = [
   { id: "c2", date: "2026-09-08", weightKg: 71.4 },

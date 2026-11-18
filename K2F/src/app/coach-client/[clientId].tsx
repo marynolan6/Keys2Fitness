@@ -18,6 +18,7 @@ import { colors, radii, spacing, typography, layout } from "@/theme";
 
 // Import the same gradient background used in Keys2Fitness
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 
 // K2F-153: Get the selected client's information
 import { getClientById } from "@/clients/mockClients";
@@ -96,7 +97,7 @@ export default function ClientProfile() {
         </TouchableOpacity>
 
         {/* Keys2Fitness branding */}
-        <Text style={styles.brand}>KEYS2FITNESS</Text>
+        <K2FBrand coach />
 
         {/* Page title */}
         <Text style={styles.heading}>Client Profile</Text>
@@ -321,15 +322,6 @@ const styles = StyleSheet.create({
   back: {
     color: colors.primaryDark,
     fontSize: typography.body,
-  },
-
-  // Small Keys2Fitness branding above the title
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginTop: spacing.sm,
   },
 
   // Large, lightweight heading matching the workout screen

@@ -3,16 +3,12 @@ import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context"
+import { AuthFormScreen, authFormStyles as styles } from "@/components/AuthFormScreen";
+import { colors } from "@/theme";
 
 import { auth, db } from "@/lib/firebase";
 
@@ -97,168 +93,35 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.content}>
-            <Text style={styles.title}>Create account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
+    <AuthFormScreen>
+      <Text accessibilityRole="header" style={styles.title}>Create account</Text>
+      <Text style={styles.subtitle}>Sign up to get started</Text>
+      {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+      {success ? <Text style={styles.successText}>{success}</Text> : null}
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            {success ? <Text style={styles.successText}>{success}</Text> : null}
+      <Text style={styles.label}>First name</Text>
+      <TextInput accessibilityLabel="First name" style={styles.input} placeholder="Enter your first name"
+        placeholderTextColor={colors.textMuted} value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+      <Text style={styles.label}>Last name</Text>
+      <TextInput accessibilityLabel="Last name" style={styles.input} placeholder="Enter your last name"
+        placeholderTextColor={colors.textMuted} value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+      <Text style={styles.label}>Email</Text>
+      <TextInput accessibilityLabel="Email" style={styles.input} placeholder="Enter your email" placeholderTextColor={colors.textMuted}
+        value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+      <Text style={styles.label}>Password</Text>
+      <TextInput accessibilityLabel="Password" style={styles.input} placeholder="Enter your password"
+        placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry />
+      <Text style={styles.label}>Confirm password</Text>
+      <TextInput accessibilityLabel="Confirm password" style={styles.input} placeholder="Re-enter your password"
+        placeholderTextColor={colors.textMuted} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
-            {/* first name text field */}
-            <Text style={styles.label}>First name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your first name"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoCapitalize="words"
-            />
-
-            {/* last name text field */}
-            <Text style={styles.label}>Last name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your last name"
-              value={lastName}
-              onChangeText={setLastName}
-              autoCapitalize="words"
-            />
-
-            {/* email text field */}
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            {/* password text fields */}
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <Text style={styles.label}>Confirm password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-
-            <TouchableOpacity
-              style={[styles.signupButton, isSubmitting && styles.disabledButton]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.signupButtonText}>
-                {isSubmitting ? "Creating account..." : "Create account"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text style={styles.loginText}>Already have an account? Log in</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <TouchableOpacity accessibilityRole="button" style={[styles.primary, isSubmitting && styles.disabled]}
+        onPress={handleSubmit} disabled={isSubmitting}>
+        <Text style={styles.primaryText}>{isSubmitting ? "Creating account..." : "Create account"}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" onPress={() => router.back()} style={styles.link}>
+        <Text style={styles.linkText}>Already have an account? Log in</Text>
+      </TouchableOpacity>
+    </AuthFormScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f7f8fa",
-  },
-  // allows text fields to be seen when keyboard would cover it
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 32,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  title: {
-    color: "#222",
-    fontSize: 30,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: "#777",
-    fontSize: 16,
-    marginBottom: 24,
-  },
-  label: {
-    color: "#333",
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderColor: "#ddd",
-    borderRadius: 10,
-    borderWidth: 1,
-    fontSize: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  errorText: {
-    color: "#c62828",
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  successText: {
-    color: "#2e7d32",
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  signupButton: {
-    alignItems: "center",
-    backgroundColor: "#2563eb",
-    borderRadius: 10,
-    marginTop: 8,
-    paddingVertical: 15,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signupButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  loginText: {
-    color: "#2563eb",
-    fontSize: 14,
-    marginTop: 20,
-    textAlign: "center",
-  },
-});

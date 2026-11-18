@@ -1,24 +1,32 @@
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseSetEntries } from "@/components/ExerciseSetEntries";
+import { RecordedSets } from "@/components/RecordedSets";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import type { WorkoutExercise } from "@/workouts/workout";
 import type { PerformanceField } from "@/workouts/setPerformance";
+import { countLabel, prescriptionLabel } from "@/workouts/workoutLabels";
+import type { WorkoutTimer } from "@/workouts/workoutTimer";
 
 type Props = {
   exercise: WorkoutExercise | null;
   disabled: boolean;
+  status: WorkoutTimer["status"];
   onClose: () => void;
   onChange: (setId: string, field: PerformanceField, value: string) => void;
   onAdd: () => void;
   onRemove: () => void;
   onToggle: (setId: string) => void;
+  onFillTargets: (setId: string) => void;
 };
 
-export function ExerciseSetsModal({ exercise, disabled, onClose, ...actions }: Props) {
+export function ExerciseSetsModal({ exercise, disabled, status, onClose, ...actions }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal transparent visible={exercise !== null} animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={[styles.overlay, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.sm }]}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View accessibilityViewIsModal style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.heading}>Workout sets</Text>
@@ -27,15 +35,19 @@ export function ExerciseSetsModal({ exercise, disabled, onClose, ...actions }: P
               <Text style={styles.closeText}>Close</Text>
             </Pressable>
           </View>
-          {exercise && <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
+          {exercise && <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={styles.title}>{exercise.name}</Text>
             <View style={styles.prescription}>
               <Text style={styles.heading}>Coach prescribed</Text>
-              <Text style={styles.body}>{exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight / no weight prescribed"}</Text>
-              {exercise.restSeconds !== undefined && <Text style={styles.body}>Rest: {exercise.restSeconds} seconds between sets / exercises</Text>}
+              <Text style={styles.body}>{prescriptionLabel(exercise)}</Text>
+              {exercise.restSeconds !== undefined && <Text style={styles.body}>Rest: {countLabel(exercise.restSeconds, "second")}</Text>}
             </View>
-            {disabled && <Text style={styles.body}>Start or resume the workout to edit and confirm sets.</Text>}
-            <ExerciseSetEntries key={exercise.id} exercise={exercise} disabled={disabled} {...actions} />
+            {status === "running" ? <ExerciseSetEntries key={exercise.id} exercise={exercise} disabled={disabled} {...actions} />
+              : <>
+                <Text style={styles.heading}>Your log</Text>
+                {status !== "ended" && <Text style={styles.body}>{status === "ready" ? "Start the workout to log sets." : "Resume the workout to edit your sets."}</Text>}
+                <RecordedSets exercise={exercise} />
+              </>}
           </ScrollView>}
         </View>
       </KeyboardAvoidingView>
@@ -45,7 +57,8 @@ export function ExerciseSetsModal({ exercise, disabled, onClose, ...actions }: P
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "center", alignItems: "center", padding: spacing.sm },
-  card: { width: "100%", maxWidth: layout.maxContentWidth, maxHeight: "92%", backgroundColor: colors.surface, borderRadius: radii.card, overflow: "hidden" },
+  card: { flex: 1, width: "100%", maxWidth: layout.maxContentWidth, backgroundColor: colors.surface, borderRadius: radii.card, overflow: "hidden" },
+  scroll: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border, gap: spacing.sm },
   heading: { color: colors.text, fontSize: typography.body, fontWeight: "700", flexShrink: 1 },
   close: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.sm },

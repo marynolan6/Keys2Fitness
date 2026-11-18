@@ -5,11 +5,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClients } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { BuilderButton, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { ExerciseRecommendationEditor } from "@/components/ExerciseRecommendationEditor";
 import { getCoachTip } from "@/workouts/coachTips";
 import { getWorkoutCoachNote } from "@/workouts/coachNote";
+import { assignmentForDisplay } from "@/workouts/workoutAssignmentLookup";
+import { countLabel } from "@/workouts/workoutLabels";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { spacing } from "@/theme";
 
@@ -33,7 +36,7 @@ function ClientWorkoutsContent({ clientId }: { clientId: string }) {
   return <ThemedBackground><ScrollView style={styles.screen} contentContainerStyle={[styles.content,
     { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]}>
     <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
-    <Text style={styles.brand}>KEYS2FITNESS / COACH</Text>
+    <K2FBrand coach />
     <Text style={styles.title}>{client ? `Workouts for ${client.name}` : "Client unavailable"}</Text>
     <Text style={styles.muted}>Local prototype · assigned workout copies and coach notes on this device.</Text>
     {client && <>
@@ -48,21 +51,22 @@ function ClientWorkoutsContent({ clientId }: { clientId: string }) {
         <Text style={styles.heading}>No built workouts assigned yet</Text>
         <Text style={styles.muted}>Build a plan or assign a reusable template to this client.</Text>
       </View> : assignments.map((assignment, index) => {
-        const note = getWorkoutCoachNote(assignment.workout);
+        const display = assignmentForDisplay(assignment, state.data.templates);
+        const note = getWorkoutCoachNote(display);
         return <View key={assignment.id} style={styles.card}>
           <Text style={styles.muted}>{index === 0 ? "Latest assignment" : "Earlier assignment"}</Text>
           <Text style={styles.feedback}>Assigned to {client.name} · {new Date(assignment.assignedAt).toLocaleString()}</Text>
-          <Text style={styles.heading}>{assignment.workout.title}</Text>
-          <Text style={styles.muted}>{assignment.workout.exercises.length} exercises{assignment.workout.durationMinutes ? ` · ${assignment.workout.durationMinutes} min` : ""}</Text>
+          <Text style={styles.heading}>{display.title}</Text>
+          <Text style={styles.muted}>{countLabel(display.exercises.length, "exercise")}{display.durationMinutes ? ` · ${display.durationMinutes} min` : ""}</Text>
           {assignment.workout.exercises.map((exercise) => <View key={exercise.id} style={styles.field}>
             <Text style={styles.label}>{exercise.name}: {exercise.sets} × {exercise.reps} · {exercise.weight || "No weight prescribed"}</Text>
-            {exercise.restSeconds !== undefined && <Text style={styles.muted}>Rest: {exercise.restSeconds} seconds</Text>}
+            {exercise.restSeconds !== undefined && <Text style={styles.muted}>Rest: {countLabel(exercise.restSeconds, "second")}</Text>}
             <Text style={styles.muted}>Recommendation for {client.name}: {getCoachTip(state.data, clientId, exercise) ?? "None"}</Text>
-            <BuilderButton label={`Edit recommendation for ${exercise.name}`} secondary
+            <BuilderButton label="Edit recommendation" accessibilityLabel={`Edit recommendation for ${exercise.name}`} secondary
               onPress={() => { setFeedback(""); setEditing({ clientId, assignmentId: assignment.id, exerciseId: exercise.id }); }} />
           </View>)}
-          {note && <WorkoutCoachNoteCard note={note} sessionLabel={assignment.workout.title} collapsible />}
-          <BuilderButton label={`Preview ${assignment.workout.title} as ${client.name}`} secondary disabled={previewing}
+          {note && <WorkoutCoachNoteCard note={note} sessionLabel={display.title} collapsible />}
+          <BuilderButton label="Preview workout" accessibilityLabel={`Preview ${display.title} as ${client.name}`} secondary disabled={previewing}
             onPress={() => {
               setPreviewing(true); setError("");
               workoutLibrary.setPreviewClient(clientId).then(() => router.push({ pathname: "/client/home/workout/[workoutId]", params: { workoutId: assignment.id } }))

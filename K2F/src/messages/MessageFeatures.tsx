@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { K2FBrand } from "@/components/K2FBrand";
 import { SearchIcon } from "@/messages/ConversationSearchBar";
 import { colors, layout, spacing, typography } from "@/theme";
 
@@ -21,38 +22,26 @@ export function ConversationHeader({
   isSearchActive = false,
 }: ConversationHeaderProps) {
   return (
-    <View style={styles.header}>
-      {onBack && <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations"
-        onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>←</Text>
-      </Pressable>}
-
-      <ClientAvatar
-        name={name}
-        imageUrl={imageUrl}
-        size={44}
-      />
-
-      <View style={styles.profileInfo}>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.brand}>KEYS2FITNESS</Text>
+    <View style={styles.headerGroup}>
+      <K2FBrand />
+      <View style={styles.header}>
+        {onBack && <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations"
+          onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backText}>←</Text>
+        </Pressable>}
+        <ClientAvatar name={name} imageUrl={imageUrl} size={layout.minTouchTarget} />
+        <View style={styles.profileInfo}>
+          <Text style={styles.name}>{name}</Text>
+        </View>
+        {onSearchPress && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Search conversation"
+            accessibilityState={{ expanded: isSearchActive }} onPress={onSearchPress}
+            style={({ pressed }) => [styles.searchButton, isSearchActive && styles.searchButtonActive,
+              pressed && styles.searchButtonPressed]}>
+            <SearchIcon color={isSearchActive ? colors.surface : colors.primaryDark} />
+          </Pressable>
+        )}
       </View>
-
-      {onSearchPress && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search conversation"
-          accessibilityState={{ expanded: isSearchActive }}
-          onPress={onSearchPress}
-          style={({ pressed }) => [
-            styles.searchButton,
-            isSearchActive && styles.searchButtonActive,
-            pressed && styles.searchButtonPressed,
-          ]}
-        >
-          <SearchIcon color={isSearchActive ? colors.surface : colors.primaryDark} />
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -112,16 +101,16 @@ export function TypingIndicator({
 }
 
 const styles = StyleSheet.create({
+  headerGroup: { gap: spacing.xs, paddingBottom: spacing.sm },
   header: {
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
-    paddingBottom: spacing.md,
   },
   backButton: {
     justifyContent: "center",
-    minHeight: 44,
-    minWidth: 32,
+    minHeight: layout.minTouchTarget,
+    minWidth: layout.minTouchTarget,
   },
   backText: {
     color: colors.primaryDark,
@@ -134,11 +123,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.heading,
     fontWeight: "700",
-  },
-  brand: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    marginTop: spacing.xs,
   },
   searchButton: {
     alignItems: "center",
