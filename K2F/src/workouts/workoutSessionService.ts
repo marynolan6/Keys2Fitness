@@ -22,7 +22,9 @@ export function createWorkoutSessionService(repository: WorkoutSessionRepository
   async function openWorkout(workout: AssignedWorkout, resume = false): Promise<WorkoutSession> {
     const saved = await repository.loadWorkoutSession(workout.id);
     if (!saved) return createNewWorkoutSession(workout);
-    const session = { ...saved, exercises: saved.exercises.map(initializeSetPerformance) };
+    // Ended checkpoints are results, not editable plans. Do not manufacture set
+    // rows from the prescription when an older result has no recorded sets.
+    const session = { ...saved, exercises: saved.timer.status === "ended" ? saved.exercises : saved.exercises.map(initializeSetPerformance) };
     // Stable identity for a previously started legacy checkpoint; do not invent
     // successful completion records for old ended sessions.
     if (!session.sessionId && session.timer.status !== "ready") {
@@ -51,10 +53,9 @@ export function createWorkoutSessionService(repository: WorkoutSessionRepository
     }
     const timer = transitionWorkoutTimer(session.timer, action, now());
     if (timer === session.timer) return session;
-    const exercises = action === "start" && session.timer.status === "ended" ? workout.exercises.map(resetSetPerformance) : session.exercises;
     const newAttempt = action === "start";
     const next: WorkoutSession = newAttempt
-      ? { workoutId: workout.id, exercises, timer, sessionId: makeId(), startedAt: timer.runningSince! }
+      ? { workoutId: workout.id, exercises: workout.exercises.map(resetSetPerformance), timer, sessionId: makeId(), startedAt: timer.runningSince! }
       : { ...session, timer };
     await repository.saveWorkoutSession(next);
     return next;

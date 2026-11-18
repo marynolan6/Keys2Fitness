@@ -7,7 +7,7 @@ const { createWorkoutLibraryRepository, workoutLibraryKey } = await import("../s
 const { createWorkoutLibraryService } = await import("../src/workouts/workoutLibraryService.ts");
 const { draftFromTemplate, validateWorkoutDraft } = await import("../src/workouts/workoutLibraryModel.ts");
 const { parseWorkoutLibrary } = await import("../src/workouts/workoutMigrations.ts");
-const { resolveClientWorkout, resolveWorkoutById, canPreviewWorkout } = await import("../src/workouts/workoutAssignmentLookup.ts");
+const { resolveClientWorkout, resolveWorkoutById, canPreviewWorkout, assignmentForDisplay, clientHomeWorkoutRows } = await import("../src/workouts/workoutAssignmentLookup.ts");
 hooks.deregister();
 
 const draft = () => ({ title: "Upper Body Strength", durationMinutes: "45", notes: "Keep a controlled tempo.", exercises: [{
@@ -93,6 +93,21 @@ test("editing and deleting templates preserve already assigned notes, prescripti
   assert.equal(parseWorkoutLibrary(entries.get(workoutLibraryKey)).assignments.length, 1);
 });
 
+test("a note saved as the title is shown separately only for an exact linked-template match, without editing the assignment", async () => {
+  const { repo } = fixture();
+  const { assignments: [original] } = await repo.saveWorkout(request(draft(), ["2"]));
+  const templates = repo.getState().data.templates;
+  const workout = Object.freeze({ ...original.workout, title: original.workout.notes, notes: undefined });
+  const legacy = { ...original, workout };
+  const display = assignmentForDisplay(legacy, templates);
+  assert.deepEqual(display, { ...workout, title: templates[0].title, notes: workout.title });
+  assert.equal(display.exercises, workout.exercises);
+  assert.equal(assignmentForDisplay(original, templates), original.workout);
+  assert.equal(assignmentForDisplay(legacy, [{ ...templates[0], id: "another-template" }]), workout);
+  assert.equal(assignmentForDisplay(legacy, [{ ...templates[0], notes: "A different note" }]), workout);
+  assert.equal(assignmentForDisplay(legacy, []), workout);
+});
+
 test("duplicate is independently editable; assignment-only drafts do not create reusable templates", async () => {
   const { repo } = fixture();
   const saved = await repo.saveWorkout(request());
@@ -122,6 +137,28 @@ test("client preview isolation and latest assignment work while preserving earli
   assert.equal(resolveWorkoutById(data, first.assignments[0].id, () => undefined).id, first.assignments[0].id);
   const restarted = create(); await restarted.load();
   assert.equal(restarted.getState().data.previewClientId, "2");
+});
+
+test("Home pins the active assignment once, keeps dated, same-title copies reachable and never mixes clients", async () => {
+  const { repo } = fixture();
+  const { assignments: [first], templateId } = await repo.saveWorkout(request(draft(), ["2"]));
+  const [newer, foreign] = await repo.assignTemplate({ templateId, clientIds: ["2", "1"] });
+  await repo.setPreviewClient("2");
+  const data = repo.getState().data;
+  const rows = (activeId) => clientHomeWorkoutRows(data, activeId, null, () => undefined);
+  assert.deepEqual(rows(first.id).map((r) => [r.workout.id, r.assignedAt]), [[first.id, first.assignedAt], [newer.id, newer.assignedAt]]);
+  for (const activeId of [undefined, newer.id, foreign.id, "missing"]) {
+    assert.deepEqual(rows(activeId).map((r) => r.workout.id), [newer.id, first.id]);
+  }
+});
+
+test("Home shows only the first demo client's current or fallback sample when no assignments exist", () => {
+  const sample = { id: "today", title: "Today's sample" };
+  const active = { id: "lower-body-next", title: "Lower body" };
+  const lookup = (id) => id === active.id ? active : undefined;
+  assert.deepEqual(clientHomeWorkoutRows(initial(), active.id, sample, lookup), [{ workout: active }]);
+  assert.deepEqual(clientHomeWorkoutRows(initial(), undefined, sample, lookup), [{ workout: sample }]);
+  assert.deepEqual(clientHomeWorkoutRows({ ...initial(), previewClientId: "2" }, active.id, sample, lookup), []);
 });
 
 test("invalid assignment selections, missing templates and malformed stored data do not overwrite saved work", async () => {

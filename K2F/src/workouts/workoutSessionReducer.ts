@@ -1,4 +1,4 @@
-import { addPerformedSet, removeLastPerformedSet, toggleExercisePerformance, togglePerformedSet, updateSetPerformance, type PerformanceField } from "./setPerformance";
+import { addPerformedSet, fillSetTargets, removeLastPerformedSet, toggleExercisePerformance, togglePerformedSet, updateSetPerformance, type PerformanceField } from "./setPerformance";
 import type { WorkoutSession } from "./workoutSessionModel";
 
 type CheckpointState = { status: "saved" } | { status: "saving"; revision: number } | { status: "error"; revision: number; message: string };
@@ -25,6 +25,7 @@ export type WorkoutSessionAction =
   | { type: "retry-load" }
   | { type: "toggle-exercise"; exerciseId: string }
   | { type: "toggle-set"; exerciseId: string; setId: string }
+  | { type: "fill-set-targets"; exerciseId: string; setId: string }
   | { type: "update-set"; exerciseId: string; setId: string; field: PerformanceField; value: string }
   | { type: "add-set"; exerciseId: string; setId: string }
   | { type: "remove-set"; exerciseId: string }
@@ -77,6 +78,7 @@ export function workoutSessionReducer(state: WorkoutSessionState, action: Workou
     switch (action.type) {
       case "toggle-exercise": return toggleExercisePerformance(exercise);
       case "toggle-set": return togglePerformedSet(exercise, action.setId);
+      case "fill-set-targets": return fillSetTargets(exercise, action.setId);
       case "update-set": return updateSetPerformance(exercise, action.setId, action.field, action.value);
       case "add-set": return addPerformedSet(exercise, action.setId);
       case "remove-set": return removeLastPerformedSet(exercise);

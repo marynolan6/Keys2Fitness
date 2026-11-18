@@ -2,16 +2,18 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import type { AssignedWorkout } from "@/workouts/workout";
+import { countLabel } from "@/workouts/workoutLabels";
 import { getWorkoutCardLabels, type WorkoutSession } from "@/workouts/workoutSessionModel";
 
 type Props = {
   workout: AssignedWorkout | null;
-  onOpen: (workoutId: string) => void;
+  onOpen: (workoutId: string, resume: boolean) => void;
   session?: WorkoutSession | null;
-  loading?: boolean;
+  assignedAt?: string;
+  featured?: boolean;
 };
 
-export function AssignedWorkoutCard({ workout, onOpen, session = null, loading = false }: Props) {
+export function AssignedWorkoutCard({ workout, onOpen, session = null, assignedAt, featured = false }: Props) {
   if (!workout) {
     return (
       <View style={styles.card}>
@@ -22,11 +24,12 @@ export function AssignedWorkoutCard({ workout, onOpen, session = null, loading =
   }
 
   const labels = getWorkoutCardLabels(workout, session);
-  const status = loading ? "Checking workout..." : labels.status;
-  const action = loading ? "Loading..." : labels.action;
+  const date = assignedAt ? new Date(assignedAt).toLocaleString() : null;
+  const status = featured || session ? labels.status : null;
+  const action = featured || labels.continuing ? labels.action : "Open workout";
   const summary = [
     workout.scheduleLabel?.trim(),
-    `${workout.exercises.length} ${workout.exercises.length === 1 ? "exercise" : "exercises"}`,
+    countLabel(workout.exercises.length, "exercise"),
     workout.durationMinutes != null && workout.durationMinutes > 0
       ? `${workout.durationMinutes} min`
       : undefined,
@@ -35,18 +38,19 @@ export function AssignedWorkoutCard({ workout, onOpen, session = null, loading =
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${action}: ${workout.title}. ${status}. ${summary}`}
+      accessibilityLabel={date
+        ? `${labels.continuing ? "Continue" : "Open"} assigned workout ${workout.title} from ${date}. ${[status, summary].filter(Boolean).join(". ")}`
+        : `${action}: ${workout.title}. ${[status, summary].filter(Boolean).join(". ")}`}
       accessibilityHint={labels.continuing ? "Continues your saved workout progress" : "Opens the assigned workout details"}
-      accessibilityState={{ disabled: loading, busy: loading }}
-      disabled={loading}
-      onPress={() => onOpen(workout.id)}
+      onPress={() => onOpen(workout.id, labels.continuing)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <Text style={styles.status}>{status}</Text>
+      {status && <Text style={styles.status}>{status}</Text>}
       <Text style={styles.title}>{workout.title}</Text>
       <Text style={styles.summary}>{summary}</Text>
-      <View style={styles.action}>
-        <Text style={styles.actionText}>{action} →</Text>
+      {date && <Text style={styles.date}>Assigned {date}</Text>}
+      <View style={[styles.action, !featured && styles.secondaryAction]}>
+        <Text style={[styles.actionText, !featured && styles.secondaryText]}>{action} →</Text>
       </View>
     </Pressable>
   );
@@ -65,6 +69,7 @@ const styles = StyleSheet.create({
   status: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700" },
   title: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
   summary: { color: colors.textMuted, fontSize: typography.body },
+  date: { color: colors.textMuted, fontSize: typography.label },
   action: {
     backgroundColor: colors.primaryDark,
     borderRadius: radii.button,
@@ -75,4 +80,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   actionText: { color: colors.surface, fontSize: typography.body, fontWeight: "700" },
+  secondaryAction: { backgroundColor: colors.surfaceMuted },
+  secondaryText: { color: colors.primaryDark },
 });

@@ -18,6 +18,7 @@ import {
 
 // Reuse the existing Keys2Fitness gradient
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 
 
 // K2F-262 / K2F-263: Sample check-in data
@@ -80,10 +81,10 @@ export default function RecentCheckIns() {
               <Text style={styles.backText}>← Back to Coach Home</Text>
             </TouchableOpacity>
 
-            <Text style={styles.brand}>KEYS2FITNESS</Text>
+            <K2FBrand coach />
             <Text style={styles.heading}>Recent Check-ins</Text>
             <Text style={styles.subtitle}>
-             Review your clients' latest updates
+             Review your clients&apos; latest updates
             </Text>
           </View>
         }
@@ -177,13 +178,6 @@ const styles = StyleSheet.create({
   backText: {
     color: colors.primaryDark,
     fontSize: typography.body,
-  },
-
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
   },
 
   heading: {

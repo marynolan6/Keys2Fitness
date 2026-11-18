@@ -71,7 +71,7 @@ The project is a working UI prototype with selected Firebase-backed features. **
 | Exercise prescriptions | Sets, repetitions, optional weight in pounds, optional rest duration, instructions, alternatives, and validation. |
 | Workout assignment | Review the workout and named recipients, confirm or cancel, and see saved assignment status. Independent copies are available to the selected demo clients on the same device. |
 | Client-specific recommendations | Edit an existing assigned exercise's recommendation independently of reusable instructions and prescriptions, scoped to the client, workout, and exercise. |
-| Workout tracking | Start, pause, resume, and record actual performed sets. Completion requires explicit confirmation; early-ended sessions are recorded separately. |
+| Workout tracking | Log reps and pounds per set, review the entries before finishing, and see those same values in history. Checking a set preserves unrecorded values; clients can explicitly copy the prescription. |
 | Workout history | Quick-access history screen plus Home/Progress sections, newest-first completed records, client-scoped read-only actual-set details, completed totals, and active time persisted on-device. |
 | Profiles and preferences | Client profile/preferences persist locally. Coach profile editing is currently a local UI prototype. |
 | Goals and weight measurements | Authenticated Firestore reads/writes for the current weight goal and weight entries, including entry editing/deletion. Dashboard goal summaries also include mock data. |
@@ -299,7 +299,7 @@ npm run lint
 
 The workout suite covers validation, reducers, assignment isolation, local persistence/migrations, performed sets, pause/resume, completion/history, and client-specific recommendation edits. Android smoke drivers and feature verification notes supplement the logic tests.
 
-Current verification records **94 passing workout tests**, **7 passing coach-tip tests**, and **4 passing profile tests**, plus passing TypeScript and changed-file lint. The Android smoke drivers automatically restore their pre-test workout data; see [smoke cleanup and recovery](K2F/docs/smoke-test-cleanup.md). Full-project lint still reports **33 existing errors and 2 warnings** in login, Progress, coach check-ins, root index, and DoorOpeningIntro; see the feature notes for context.
+Current verification records **101 passing workout tests**, **7 passing coach-tip tests**, **4 passing profile tests**, **4 passing exercise-video tests**, and passing TypeScript. The Android smoke drivers automatically restore their pre-test workout data; see [smoke cleanup and recovery](K2F/docs/smoke-test-cleanup.md). Full-project lint still reports **31 existing errors and 3 warnings** in client Progress, the root index, DoorOpeningIntro, and DailyNutritionSummary.
 
 Android is the primary manually verified platform so far, including compact phones, large text, and tablet layouts. iOS stability and broader platform verification remain on the roadmap.
 
@@ -337,6 +337,7 @@ Official references: [Expo pricing](https://expo.dev/pricing) · [Firebase prici
 - [Assignment flow verification](K2F/docs/workout-assignment-testing.md)
 - [Prescription and recommendation verification](K2F/docs/workout-prescription-testing.md)
 - [Workout completion/history verification](K2F/docs/workout-completion-testing.md)
+- [Per-set performance and review verification](K2F/docs/set-performance-testing.md)
 - [Completed-workout browsing and state-machine verification](K2F/docs/workout-history-testing.md)
 - [Automatic smoke-test cleanup and recovery](K2F/docs/smoke-test-cleanup.md)
 - [Application state-machine audit](K2F/docs/implicit-state-machines.md)

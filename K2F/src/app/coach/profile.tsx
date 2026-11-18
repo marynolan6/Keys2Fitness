@@ -18,6 +18,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 export default function CoachProfile() {
@@ -73,7 +74,7 @@ export default function CoachProfile() {
         { paddingTop: Math.max(useSafeAreaInsets().top + spacing.sm, spacing.xl), 
         paddingBottom: useSafeAreaInsets().bottom + 32 },]}>
         <View style={styles.content}>
-          <Text style={styles.brand}>KEYS2FITNESS</Text>
+          <K2FBrand coach />
 
           <View style={styles.titleRow}>
             <View accessibilityLabel="Coach profile photo placeholder" style={styles.avatar}>
@@ -216,7 +217,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, paddingBottom: spacing.xl },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
-  brand: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700", letterSpacing: 1 },
   titleRow: { alignItems: "center", justifyContent: "center", marginTop: spacing.xl, minHeight: avatarSize, position: "relative" },
   title: { color: colors.text, fontSize: typography.title, fontWeight: "300", paddingHorizontal: avatarSize + spacing.md, textAlign: "center" },
   avatar: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: avatarSize / 2, height: avatarSize, justifyContent: "center", left: 0, position: "absolute", width: avatarSize },

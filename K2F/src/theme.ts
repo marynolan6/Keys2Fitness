@@ -66,6 +66,13 @@ export function isCompactLayout(width: number, fontScale: number): boolean {
   return width < layout.compactWidth || fontScale >= layout.largeFontScale;
 }
 
+export const branding = {
+  headerMark: 32,
+  welcomeMark: 80,
+  compactWelcomeMark: 64,
+  wordmarkTracking: 1,
+} as const;
+
 // Shared bottom navigation standard for both client and coach layouts.
 // Render through AppTabBar so role-specific destinations never fork the design.
 export const navigation = {
@@ -87,5 +94,6 @@ export const theme = {
   radii,
   typography,
   layout,
+  branding,
   navigation,
 } as const;
