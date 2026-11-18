@@ -51,6 +51,22 @@ export default function CoachHome() {
     <ThemedBackground>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Coach Dashboard</Text>
+        <View style={styles.quickActionsRow}>
+          <PendingVideosWidget
+            onPress={() => router.push("/coach/client_list")}
+          />
+
+          <NewCoachMessagesWidget
+            messages={mockMessages}
+            onPress={() => router.push("/coach/messages")}
+          />
+        </View>
+        <ClientActivityCard
+          activities={workoutActivities}
+          allActivities={allActivities}
+          status={workoutActivityStatus}
+          onOpenClient={openClientProfile}
+        />
 
        <View style={styles.widgetGrid}>
   <View style={styles.widgetCell}>

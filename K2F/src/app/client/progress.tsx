@@ -28,9 +28,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { auth, db } from "@/lib/firebase";
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
+import { WeightProgressChart } from "@/components/WeightProgressChart";
+import { mockCheckIns, sampleCheckInAsOf } from "@/checkins/mockCheckIns";
 
 const MAX_HISTORY = 5;
 const TAB_BAR_CLEARANCE = 96;
@@ -64,8 +67,44 @@ const displayChange = (change: number) =>
 
 export default function Progress() {
   const insets = useSafeAreaInsets();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
+  useEffect(() => onAuthStateChanged(auth, (user) => setUserId(user?.uid ?? null)), []);
+
+  return (
+    <ThemedBackground>
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: Math.max(insets.top + spacing.sm, spacing.xl), paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
+          ]}
+        >
+          <K2FBrand />
+          <Text style={styles.title}>Your Progress</Text>
+          <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
+          <WeightProgressChart checkIns={mockCheckIns} through={sampleCheckInAsOf} />
+          <WorkoutHistorySection />
+          {userId === undefined ? <LoadingAccountProgress /> : userId === null ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Your measurements</Text>
+              <Text style={styles.muted}>Sign in to see your saved goal and weight history.</Text>
+            </View>
+          ) : <AccountProgress key={userId} userId={userId} />}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedBackground>
+  );
+}
+
+function LoadingAccountProgress() {
+  return <View style={styles.card}>
+    <ActivityIndicator color={colors.primaryDark} />
+    <Text style={styles.muted}>Loading your goal and measurements…</Text>
+  </View>;
+}
+
+function AccountProgress({ userId }: { userId: string }) {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,27 +122,6 @@ export default function Progress() {
   const [savingGoal, setSavingGoal] = useState(false);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid ?? null);
-      setAuthReady(true);
-
-      if (user) {
-        setError("");
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!authReady) {
-      return;
-    }
-
-    if (!userId) {
-      setError("You must be logged in to view your progress.");
-      setLoading(false);
-      return;
-    }
-
     const goalUnsubscribe = onSnapshot(
       doc(db, "users", userId, "goals", "current"),
       (snapshot) => {
@@ -147,7 +165,7 @@ export default function Progress() {
       goalUnsubscribe();
       entriesUnsubscribe();
     };
-  }, [authReady, userId]);
+  }, [userId]);
 
   const currentWeight = entries[0]?.weightLb ?? goal?.startWeightLb;
   const progress = useMemo(() => {
@@ -313,31 +331,10 @@ const saveWeight = async () => {
     }
   };
 
-  if (loading) {
-    return (
-      <ThemedBackground>
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primaryDark} />
-          <Text style={styles.muted}>Loading your progress...</Text>
-        </View>
-      </ThemedBackground>
-    );
-  }
+  if (loading) return <LoadingAccountProgress />;
 
   return (
-    <ThemedBackground>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            styles.content,
-            { paddingTop: Math.max(insets.top + spacing.sm, spacing.xl), paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
-          ]}
-        >
-          <Text style={styles.brand}>KEYS2FITNESS</Text>
-          <Text style={styles.title}>Your Progress</Text>
-          <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
-          <WorkoutHistorySection />
+    <>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.card}>
@@ -480,9 +477,7 @@ const saveWeight = async () => {
               ))
             )}
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ThemedBackground>
+    </>
   );
 }
 
@@ -499,19 +494,11 @@ const styles = StyleSheet.create({
   screen: { 
     flex: 1 
   },
-  content: { 
-    padding: spacing.lg 
-  },
-  centered: { 
-    alignItems: "center", 
-    flex: 1, 
-    justifyContent: "center" 
-  },
-  brand: { 
-    color: colors.primaryDark, 
-    fontSize: typography.label, 
-    fontWeight: "700", 
-    letterSpacing: 1 
+  content: {
+    width: "100%",
+    maxWidth: layout.maxContentWidth,
+    alignSelf: "center",
+    padding: spacing.lg,
   },
   title: { 
     color: colors.text, 

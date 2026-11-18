@@ -30,18 +30,11 @@ export function initializeSetPerformance(exercise: WorkoutExercise): WorkoutExer
     const complete = exercise.actualSets.length > 0 && exercise.actualSets.every((set) => set.completed);
     return exercise.completed === complete ? exercise : withSets(exercise, exercise.actualSets);
   }
-  const defaults = prescribedSetDefaults(exercise);
   const rows: PerformedSet[] = exercise.actualSets ?? Array.from({ length: exercise.sets }, (_, index) => ({
     id: `${exercise.id}-set-${index + 1}`, actualReps: "", actualWeightLb: "",
   }));
-  return withSets(exercise, rows.map((set) => {
-    const completed = set.completed ?? exercise.completed;
-    return {
-      ...set, completed,
-      actualReps: completed && set.actualReps === "" ? defaults.actualReps : set.actualReps,
-      actualWeightLb: completed && set.actualWeightLb === "" ? defaults.actualWeightLb : set.actualWeightLb,
-    };
-  }));
+  // Legacy completion flags identify completed rows, not how many reps or pounds were logged.
+  return withSets(exercise, rows.map((set) => ({ ...set, completed: set.completed ?? exercise.completed })));
 }
 
 export function prescribedSetDefaults(exercise: WorkoutExercise): Pick<PerformedSet, "actualReps" | "actualWeightLb"> {
@@ -49,7 +42,7 @@ export function prescribedSetDefaults(exercise: WorkoutExercise): Pick<Performed
   const numericWeight = weight.match(/^(\d+(?:\.\d+)?)\s*(?:lbs?)?$/i)?.[1];
   return {
     actualReps: String(exercise.reps),
-    actualWeightLb: numericWeight ?? (!weight || /^(?:body\s?weight|bw|no weight)$/i.test(weight) ? "0" : ""),
+    actualWeightLb: numericWeight ?? (/^(?:body\s?weight|bw|no weight)$/i.test(weight) ? "0" : ""),
   };
 }
 
@@ -59,23 +52,27 @@ function withSets(exercise: WorkoutExercise, actualSets: PerformedSet[]): Workou
 
 export function togglePerformedSet(exercise: WorkoutExercise, setId: string): WorkoutExercise {
   const current = initializeSetPerformance(exercise);
-  const defaults = prescribedSetDefaults(current);
+  if (!current.actualSets!.some((set) => set.id === setId)) return exercise;
   return withSets(current, current.actualSets!.map((set) => set.id === setId ? {
     ...set, completed: !set.completed,
-    actualReps: !set.completed && set.actualReps === "" ? defaults.actualReps : set.actualReps,
-    actualWeightLb: !set.completed && set.actualWeightLb === "" ? defaults.actualWeightLb : set.actualWeightLb,
   } : set));
 }
 
 export function toggleExercisePerformance(exercise: WorkoutExercise): WorkoutExercise {
   const current = initializeSetPerformance(exercise);
-  const defaults = prescribedSetDefaults(current);
   const completed = !current.completed;
-  return withSets(current, current.actualSets!.map((set) => ({
-    ...set, completed,
-    actualReps: completed && set.actualReps === "" ? defaults.actualReps : set.actualReps,
-    actualWeightLb: completed && set.actualWeightLb === "" ? defaults.actualWeightLb : set.actualWeightLb,
-  })));
+  return withSets(current, current.actualSets!.map((set) => ({ ...set, completed })));
+}
+
+// A deliberate shortcut in the editor, never called on restore, confirmation or finish.
+export function fillSetTargets(exercise: WorkoutExercise, setId: string): WorkoutExercise {
+  const row = exercise.actualSets?.find((set) => set.id === setId);
+  if (!row || row.completed) return exercise;
+  const defaults = prescribedSetDefaults(exercise);
+  const actualReps = row.actualReps || defaults.actualReps;
+  const actualWeightLb = row.actualWeightLb || defaults.actualWeightLb;
+  if (actualReps === row.actualReps && actualWeightLb === row.actualWeightLb) return exercise;
+  return withSets(exercise, exercise.actualSets!.map((set) => set === row ? { ...row, actualReps, actualWeightLb } : set));
 }
 
 export function updateSetPerformance(
@@ -83,6 +80,8 @@ export function updateSetPerformance(
 ): WorkoutExercise {
   if (!isValidPerformanceValue(field, value)) return exercise;
   const initialized = initializeSetPerformance(exercise);
+  const row = initialized.actualSets!.find((set) => set.id === setId);
+  if (!row || row[field] === value) return exercise;
   return withSets(initialized, initialized.actualSets!.map((set) => set.id === setId && set[field] !== value
     ? { ...set, [field]: value, completed: false } : set));
 }

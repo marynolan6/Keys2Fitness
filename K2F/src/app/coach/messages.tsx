@@ -10,6 +10,7 @@ import {
 
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 
 // K2F-97: Import all clients so the coach can see everyone,
 // including clients who haven't sent messages yet.
@@ -60,6 +61,7 @@ export default function CoachMessages() {
           <Text style={styles.backButton}>← Back</Text>
         </Pressable>
 
+        <K2FBrand coach />
         <Text style={styles.title}>Messages</Text>
 
         {/* K2F-98: Display every client in the list. */}
@@ -141,6 +143,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
+    marginTop: spacing.sm,
     color: colors.text,
     fontSize: typography.title,
     fontWeight: "700",

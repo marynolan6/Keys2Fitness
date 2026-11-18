@@ -103,6 +103,7 @@ export function useWorkoutSession(workout: AssignedWorkout, resumeRequest?: stri
     changeSession, retryLoad: () => dispatch({ type: "retry-load" }), retrySave: () => dispatch({ type: "retry-save" }),
     toggleExercise: (exerciseId: string) => dispatch({ type: "toggle-exercise", exerciseId }),
     toggleSet: (exerciseId: string, setId: string) => dispatch({ type: "toggle-set", exerciseId, setId }),
+    fillSetTargets: (exerciseId: string, setId: string) => dispatch({ type: "fill-set-targets", exerciseId, setId }),
     updateSet: (exerciseId: string, setId: string, field: PerformanceField, value: string) => dispatch({ type: "update-set", exerciseId, setId, field, value }),
     addSet: (exerciseId: string) => dispatch({ type: "add-set", exerciseId, setId: makeId("set") }),
     removeSet: (exerciseId: string) => dispatch({ type: "remove-set", exerciseId }),

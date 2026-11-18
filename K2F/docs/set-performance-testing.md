@@ -1,6 +1,22 @@
-# K2F-32 — Per-set workout logging (K2F-166–168)
+# Per-set workout logging
 
-## Behavior and scope
+## K2F-34 — Record and review actual performance (Sprint 4)
+
+| Subtask | Behavior |
+| --- | --- |
+| K2F-181 — inputs | **Log sets** records reps, pounds and completion by exercise ID and set ID. Checking a set or exercise marks completion only. **Use prescribed values** explicitly fills missing fields on that one set; an existing zero or custom value is preserved. |
+| K2F-182 — preservation and review | Entries survive closing the editor, switching exercises and pause/reopen. Each active exercise has a compact log preview; the finish/early-end confirmation shows the recorded rows for all exercises. **Keep Workout** returns without finalizing. |
+| K2F-183 — result | The ended session and history render the same read-only rows as the review. Skipped rows keep their original set numbers; confirmed sets with blank values explicitly say “not recorded.” Old archives are not rewritten or filled from targets. |
+
+Client Home lists each assignment ID once, with the active workout first and its **Continue** action intact. Separately assigned copies of the same plan retain their dates and open independently. A legacy title matching its linked template’s coach note exactly is presented as a note alongside the template name; the stored assignment is preserved.
+
+**Verification:** `npm run test:workouts` passed 101 tests, including cross-exercise edits → checkpoint → pause/reopen → review → immutable completion. The Android completion smoke entered **7 reps / 127.5 lb** against an **8 reps / 135 lb** target and checked the review, cancel, finish, history and early-end paths. The assignment smoke checked client isolation, distinct copies and restart. Both restored their fixtures via the shared sandbox.
+
+On Android, the branded welcome, signup, client/coach Home and menu plus the paused set log and pre-finish review were checked at **320 dp / 1.5×**, **390 dp / 1×**, and **800 dp / 1×**. TypeScript and the web production export also passed. See [brand placement and previews](theme-standards.md#brand-placement). iOS and screen-reader interactions were not manually exercised.
+
+## Original K2F-32 behavior and verification (K2F-166–168)
+
+The notes below describe the earlier K2F-32 implementation. K2F-34 supersedes its automatic target-filling, gray placeholder, and disabled-editor presentation described below.
 
 - Exercise cards stay compact. **View Details** opens the existing instructions,
   demonstration placeholder, and recommendations. **View Sets** opens the separate

@@ -121,7 +121,6 @@ export const builderStyles = StyleSheet.create({
   screen: { flex: 1 },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", padding: spacing.lg,
     paddingBottom: spacing.xl, gap: spacing.md },
-  brand: { color: colors.primaryDark, fontSize: typography.caption, fontWeight: "700", letterSpacing: 1 },
   title: { color: colors.text, fontSize: typography.title, fontWeight: "300", flexShrink: 1 },
   heading: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
   label: { color: colors.text, fontSize: typography.label, fontWeight: "600", flexShrink: 1 },

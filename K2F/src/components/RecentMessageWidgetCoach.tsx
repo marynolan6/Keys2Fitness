@@ -276,7 +276,7 @@ iconContainer: {
 
   modalTitle: {
     color: colors.text,
-    fontSize: typography.heading,
+    fontSize: typography.body,
     fontWeight: "700",
   },
 

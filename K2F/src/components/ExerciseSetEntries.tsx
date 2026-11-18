@@ -12,9 +12,10 @@ type Props = {
   onAdd: () => void;
   onRemove: () => void;
   onToggle: (setId: string) => void;
+  onFillTargets: (setId: string) => void;
 };
 
-export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemove, onToggle }: Props) {
+export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemove, onToggle, onFillTargets }: Props) {
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,7 +36,7 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
   return (
     <View style={styles.section}>
       <Text style={styles.heading}>Your performed sets</Text>
-      <Text style={styles.hint}>Gray = coach target. Check a set to record it, or enter your own values. 0 lb = no added weight.</Text>
+      <Text style={styles.hint}>Enter what you did, then check the set. Leave a value blank if you didn’t track it. For bodyweight, enter 0 lb.</Text>
       {rows.length === 0 && <Text style={styles.hint}>No performed sets. Add a set to record your workout.</Text>}
       {rows.map((set, index) => (
         <View key={set.id} style={[styles.setCard, set.completed && styles.completedCard]}>
@@ -46,7 +47,7 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
             </View>
             <Pressable accessibilityRole="checkbox"
               accessibilityLabel={`${exercise.name}, set ${index + 1} completed`}
-              accessibilityHint="Confirms the set. Untouched fields use the prescribed targets."
+              accessibilityHint="Marks this set complete or incomplete. Blank values stay unrecorded."
               accessibilityState={{ checked: !!set.completed, disabled }} disabled={disabled}
               onPress={() => {
                 setErrors((current) => ({ ...current, [`${set.id}:actualReps`]: "", [`${set.id}:actualWeightLb`]: "" }));
@@ -65,11 +66,12 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
                   <Text style={styles.label}>{label}</Text>
                   <TextInput
                     accessibilityLabel={`${exercise.name}, set ${index + 1}, ${label.toLowerCase()}`}
-                    accessibilityHint={error || `Prescribed target: ${defaults[field] || "not specified"}. Checking the set records this target if left untouched.`}
+                    accessibilityHint={error || "Optional. Enter your performed value."}
                     editable={!disabled}
+                    returnKeyType="done"
                     keyboardType={field === "actualReps" ? "number-pad" : "decimal-pad"}
                     inputMode={field === "actualReps" ? "numeric" : "decimal"}
-                    placeholder={defaults[field] || "Not prescribed"}
+                    placeholder="Optional"
                     placeholderTextColor={colors.textMuted}
                     value={set[field]}
                     onChangeText={(value) => change(set.id, field, value)}
@@ -80,6 +82,13 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
               );
             })}
           </View>
+          {!set.completed && ((set.actualReps === "" && defaults.actualReps !== "") ||
+            (set.actualWeightLb === "" && defaults.actualWeightLb !== "")) &&
+            <SetButton label="Use prescribed values" accessibilityLabel={`Use prescribed values for ${exercise.name}, set ${index + 1}`}
+              disabled={disabled} onPress={() => {
+                setErrors((current) => ({ ...current, [`${set.id}:actualReps`]: "", [`${set.id}:actualWeightLb`]: "" }));
+                onFillTargets(set.id);
+              }} />}
         </View>
       ))}
       <View style={[styles.fields, compact && styles.fieldsCompact]}>
@@ -88,7 +97,7 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
         <SetButton label="− Remove Set" accessibilityLabel={`Remove last performed set from ${exercise.name}`}
           disabled={disabled || rows.length === 0} onPress={onRemove} />
       </View>
-      <Text style={styles.hint}>Remove Set removes the last performed row. Prescribed targets stay unchanged.</Text>
+      <Text style={styles.hint}>Remove Set removes the last row.</Text>
     </View>
   );
 }
