@@ -12,7 +12,9 @@ def adb(*args):
 def snapshot():
     for _ in range(3):
         response = adb("shell", "uiautomator", "dump", "/sdcard/k2f-workout-flow.xml")
-        if "ERROR" not in response:
+        # On some Android builds a failed idle wait writes only to stderr and
+        # leaves the previous XML on disk. Never interact with a stale screen.
+        if "dumped to:" in response:
             return list(ET.fromstring(adb("exec-out", "cat", "/sdcard/k2f-workout-flow.xml")).iter("node"))
         time.sleep(1)
     raise AssertionError("Android accessibility hierarchy did not become idle")
@@ -65,9 +67,17 @@ def tap(label):
 
 
 def fill(label, text, dismiss_keyboard=True):
-    node = scroll_to(label, editable=True)
+    # Opening the IME can resize a modal and move its fields mid-tap. Only
+    # send keystrokes after Android confirms the intended input has focus.
+    for _ in range(3):
+        tap_node(scroll_to(label, editable=True))
+        node = next((n for n in snapshot() if matches(n, label) and n.get("focused") == "true"
+                     and n.get("class") == "android.widget.EditText"), None)
+        if node is not None:
+            break
+    else:
+        raise AssertionError("Could not focus input: " + label)
     previous = node.get("text", "")
-    tap_node(node)
     adb("shell", "input", "keyevent", "123")
     if previous:
         adb("shell", "input", "keyevent", *(["67"] * (len(previous) + 2)))

@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
@@ -15,6 +16,7 @@ export default function WorkoutHistoryScreen() {
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
           <Text style={styles.link}>Back</Text>
         </Pressable>
+        <K2FBrand />
         <DemoWorkoutClientPicker />
         <WorkoutHistorySection />
       </View>

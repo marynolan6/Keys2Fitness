@@ -1,28 +1,36 @@
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
+import { RecordedSets } from "@/components/RecordedSets";
 import { CoachNoteButton, CoachNoteSheet } from "@/components/CoachNoteSheet";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getWorkoutCardLabels } from "@/workouts/workoutSessionModel";
 import { elapsedWorkoutTime, formatWorkoutTime } from "@/workouts/workoutTimer";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 import type { WorkoutTimerAction } from "@/workouts/workoutSessionService";
 
 import { getWorkoutCoachNote } from "@/workouts/coachNote";
+import { assignmentForDisplay } from "@/workouts/workoutAssignmentLookup";
 import { getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { getWorkoutProgress } from "@/workouts/workoutProgress";
+import { countLabel, prescriptionLabel } from "@/workouts/workoutLabels";
 import type { AssignedWorkout } from "@/workouts/workout";
 
 export default function WorkoutDetails() {
     const { workoutId, resume } = useLocalSearchParams<{ workoutId: string; resume?: string }>();
     const router = useRouter();
     const library = useWorkoutLibraryState();
-    const workout = workoutBelongsToClient(workoutId, library.data.previewClientId) ? getWorkoutById(workoutId) : undefined;
+    const savedWorkout = workoutBelongsToClient(workoutId, library.data.previewClientId) ? getWorkoutById(workoutId) : undefined;
+    const assignment = library.data.assignments.find((item) => item.id === savedWorkout?.id);
+    const workout = useMemo(() => assignment ? assignmentForDisplay(assignment, library.data.templates) : savedWorkout,
+      [assignment, library.data.templates, savedWorkout]);
 
     if (library.status !== "ready") return <ThemedBackground><View style={styles.content}>
       <Text style={styles.subtitle}>{library.status === "loading" ? "Loading workout…" : library.error}</Text>
@@ -52,24 +60,24 @@ export default function WorkoutDetails() {
     return <WorkoutContent key={workout.id} workout={workout} resumeRequest={resume} />;
 }
 
+type WorkoutOverlay = { kind: "details" | "sets"; exerciseId: string } | { kind: "note" | "finish" | "end" };
+
 function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; resumeRequest?: string }) {
     const { width, fontScale } = useWindowDimensions();
     const compact = isCompactLayout(width, fontScale);
+    const insets = useSafeAreaInsets();
     const session = useWorkoutSession(workout, resumeRequest);
     const { exercises, timer, outcome, now, isLoadingSession, isSavingSession, sessionLoadFailed,
       sessionError, progressSaveError, sessionDisabled, toggleExercise } = session;
-    const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-    // The note opens as an overlay on this screen, so viewing it never touches workout state.
-    const [showCoachNote, setShowCoachNote] = useState(false);
+    const [overlay, setOverlay] = useState<WorkoutOverlay | null>(null);
     const [noteScrolledAway, setNoteScrolledAway] = useState(false);
     const noteCardBottom = useRef<number | null>(null);
-    const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
-    const [selectedSetsId, setSelectedSetsId] = useState<string | null>(null);
-    const selectedSetsExercise = exercises.find((exercise) => exercise.id === selectedSetsId) ?? null;
-    const [confirmation, setConfirmation] = useState<"finish" | "end" | null>(null);
+    const selectedExercise = overlay && "exerciseId" in overlay
+      ? exercises.find((exercise) => exercise.id === overlay.exerciseId) ?? null : null;
+    const confirmation = overlay?.kind === "finish" || overlay?.kind === "end" ? overlay.kind : null;
     const isPaused = timer.status === "paused";
     async function changeSession(action: WorkoutTimerAction) {
-      if (await session.changeSession(action)) setConfirmation(null);
+      if (await session.changeSession(action)) setOverlay(null);
     }
 
     const summary = getWorkoutProgress(exercises);
@@ -78,7 +86,7 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
     const noteStatusText = [
       { ready: "Workout not started", running: "Workout running", paused: "Workout paused", ended: "Workout ended" }[timer.status],
       timer.status === "ready" ? undefined : formatWorkoutTime(elapsedWorkoutTime(timer, now)),
-      `${summary.completed} of ${summary.total} exercises complete`,
+      `${summary.completed} of ${countLabel(summary.total, "exercise")} complete`,
     ].filter(Boolean).join(" · ");
     const progress = summary.percentage;
     const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, timer, outcome }).status;
@@ -123,8 +131,7 @@ return (
           if (scrolledAway !== noteScrolledAway) setNoteScrolledAway(scrolledAway);
         }}
       >
-        <Text style={styles.brand}>KEYS2FITNESS</Text>
-        <Text style={styles.screenNumber}>03</Text>
+        <K2FBrand />
         <Text style={styles.title}>{workout.title}</Text>
         <View style={[styles.subtitleRow, compact && styles.subtitleRowCompact]}>
           <Text style={[styles.subtitle, styles.subtitleText]}>
@@ -137,7 +144,7 @@ return (
             <Text accessibilityLiveRegion="polite" style={styles.headerProgressSummary}>
               {summary.total === 0
                 ? "No exercises assigned"
-                : `${summary.completed} of ${summary.total} exercises complete · ${summary.remaining} remaining`}
+                : `${summary.completed} of ${countLabel(summary.total, "exercise")} complete · ${summary.remaining} remaining`}
             </Text>
             <Text style={styles.progressText}>{progress}%</Text>
           </View>
@@ -188,11 +195,11 @@ return (
                   </Text>
                 </Pressable>
                 {summary.isComplete && timer.status !== "ready" ? <Pressable accessibilityRole="button" disabled={isSavingSession}
-                  onPress={() => setConfirmation("finish")}
+                  onPress={() => setOverlay({ kind: "finish" })}
                   style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
                   <Text style={styles.sessionButtonText}>Finish Workout</Text>
                 </Pressable> : isPaused && <Pressable accessibilityRole="button" disabled={isSavingSession}
-                  onPress={() => setConfirmation("end")}
+                  onPress={() => setOverlay({ kind: "end" })}
                   style={({ pressed }) => [styles.sessionButton, styles.sessionAction, styles.endButton, pressed && styles.buttonPressed]}>
                   <Text style={styles.sessionButtonText}>End Workout</Text>
                 </Pressable>}
@@ -211,8 +218,8 @@ return (
           {timer.status === "ended" && (
             <Text accessibilityLiveRegion="polite" style={styles.sessionMessage}>
               {outcome === "completed" ? "Workout completed successfully! Saved to your workout history."
-                : outcome === "ended-early" ? `Workout ended early. ${summary.completed} of ${summary.total} exercises completed. Saved to history; not counted as a completed workout.`
-                : `Workout ended. ${summary.completed} of ${summary.total} exercises completed.`}
+                : outcome === "ended-early" ? `Workout ended early. ${summary.completed} of ${countLabel(summary.total, "exercise")} completed. Saved to history; not counted as a completed workout.`
+                : `Workout ended. ${summary.completed} of ${countLabel(summary.total, "exercise")} completed.`}
             </Text>
           )}
         </View>
@@ -226,11 +233,11 @@ return (
                   {exercise.completed ? "Completed" : "Not complete"}
                 </Text>
                 <Text style={styles.prescription}>
-                  {exercise.sets} sets × {exercise.reps} reps · {exercise.weight?.trim() || "Bodyweight"}
+                  Target: {prescriptionLabel(exercise)}
                 </Text>
-                {exercise.restSeconds !== undefined && <Text style={styles.exerciseStatus}>Rest: {exercise.restSeconds} seconds between sets / exercises</Text>}
+                {exercise.restSeconds !== undefined && <Text style={styles.exerciseStatus}>Rest: {countLabel(exercise.restSeconds, "second")}</Text>}
                 <Text style={styles.exerciseStatus}>
-                  {exercise.actualSets?.filter((set) => set.completed).length ?? 0}/{exercise.actualSets?.length ?? 0} sets complete
+                  {exercise.actualSets?.filter((set) => set.completed ?? exercise.completed).length ?? 0}/{countLabel(exercise.actualSets?.length ?? 0, "set")} complete
                 </Text>
               </View>
               <Pressable
@@ -239,7 +246,7 @@ return (
                 disabled={sessionDisabled || exercise.actualSets?.length === 0}
                 accessibilityState={{ checked: exercise.completed, disabled: sessionDisabled || exercise.actualSets?.length === 0 }}
                 onPress={() => toggleExercise(exercise.id)}
-                accessibilityHint="Toggles all performed sets. Completing untouched fields records the prescribed targets."
+                accessibilityHint="Marks all sets complete or incomplete without changing the reps or weights you logged."
                 style={({ pressed }) => [
                   styles.checkbox,
                   exercise.completed && styles.checkboxCompleted,
@@ -249,72 +256,61 @@ return (
                 {exercise.completed && <Text style={styles.checkmark}>✓</Text>}
               </Pressable>
             </View>
+            {timer.status !== "ready" && <RecordedSets exercise={exercise} preview={timer.status !== "ended"} />}
 
             <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`View ${exercise.name} details`}
               style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
-              onPress={() => setSelectedExerciseId(exercise.id)}
+              onPress={() => setOverlay({ kind: "details", exerciseId: exercise.id })}
             >
-              <Text style={styles.secondaryButtonText}>View Details</Text>
+              <Text style={styles.secondaryButtonText}>Exercise details</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`View ${exercise.name} sets`}
-              onPress={() => setSelectedSetsId(exercise.id)}
+              onPress={() => setOverlay({ kind: "sets", exerciseId: exercise.id })}
               style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-              <Text style={styles.secondaryButtonText}>View Sets</Text>
+              <Text style={styles.secondaryButtonText}>{timer.status === "running" ? "Log sets" : "View sets"}</Text>
             </Pressable>
             </View>
           </View>
         ))}
-
-
-        <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
-          <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-            <Text style={styles.secondaryButtonText}>+ Add Exercise</Text>
-          </Pressable>
-          <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-            <Text style={styles.secondaryButtonText}>− Remove Exercise</Text>
-          </Pressable>
-        </View>
-
       </ScrollView>
       </KeyboardAvoidingView>
-      {coachNote && noteScrolledAway && !showCoachNote && (
-        <CoachNoteButton onPress={() => setShowCoachNote(true)} />
+      {coachNote && noteScrolledAway && !overlay && (
+        <CoachNoteButton onPress={() => setOverlay({ kind: "note" })} />
       )}
       {coachNote && (
         <CoachNoteSheet
           note={coachNote}
           sessionLabel={sessionLabel}
-          visible={showCoachNote}
+          visible={overlay?.kind === "note"}
           statusText={noteStatusText}
-          onClose={() => setShowCoachNote(false)}
+          onClose={() => setOverlay(null)}
         />
       )}
       <ExerciseDetailsModal
-        exercise={selectedExercise}
-        onClose={() => setSelectedExerciseId(null)}
+        exercise={overlay?.kind === "details" ? selectedExercise : null}
+        onClose={() => setOverlay(null)}
       />
       <ExerciseSetsModal
-        exercise={selectedSetsExercise}
+        exercise={overlay?.kind === "sets" ? selectedExercise : null}
+        status={timer.status}
         disabled={sessionDisabled}
-        onClose={() => setSelectedSetsId(null)}
+        onClose={() => setOverlay(null)}
         onChange={(setId, field, value) => {
-          if (selectedSetsId) session.updateSet(selectedSetsId, setId, field, value);
+          if (selectedExercise) session.updateSet(selectedExercise.id, setId, field, value);
         }}
         onToggle={(setId) => {
-          if (selectedSetsId) session.toggleSet(selectedSetsId, setId);
+          if (selectedExercise) session.toggleSet(selectedExercise.id, setId);
         }}
-        onAdd={() => {
-          if (!selectedSetsId) return;
-          session.addSet(selectedSetsId);
-        }}
-        onRemove={() => { if (selectedSetsId) session.removeSet(selectedSetsId); }}
+        onFillTargets={(setId) => { if (selectedExercise) session.fillSetTargets(selectedExercise.id, setId); }}
+        onAdd={() => { if (selectedExercise) session.addSet(selectedExercise.id); }}
+        onRemove={() => { if (selectedExercise) session.removeSet(selectedExercise.id); }}
       />
       <Modal transparent visible={confirmation !== null} animationType="fade"
-        onRequestClose={() => { if (!isSavingSession) setConfirmation(null); }}>
-        <View style={styles.confirmOverlay}>
+        onRequestClose={() => { if (!isSavingSession) setOverlay(null); }}>
+        <View style={[styles.confirmOverlay, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
           <View accessibilityViewIsModal style={styles.confirmCard}>
             <ScrollView contentContainerStyle={styles.confirmContent}>
               <Text accessibilityRole="header" style={styles.exerciseName}>{confirmation === "finish" ? "Confirm workout completion?" : "End this workout early?"}</Text>
@@ -323,18 +319,25 @@ return (
                   ? `${summary.total === 1 ? "Your exercise is complete" : `All ${summary.total} exercises are complete`}. Confirm to save your performed sets and active time to workout history.`
                   : `You have ${summary.remaining} incomplete ${summary.remaining === 1 ? "exercise" : "exercises"}. Your progress will be recorded as ended early, not completed.`}
               </Text>
+              <Text accessibilityRole="header" style={styles.reviewHeading}>Review your log</Text>
+              {confirmation && exercises.map((exercise) => <View key={exercise.id} style={styles.reviewExercise}>
+                <Text accessibilityRole="header" style={styles.reviewHeading}>{exercise.name}</Text>
+                <RecordedSets exercise={exercise} />
+              </View>)}
+            </ScrollView>
+            <View style={styles.confirmActions}>
               <Pressable accessibilityRole="button" disabled={isSavingSession}
                 onPress={() => { if (confirmation) void changeSession(confirmation); }}
                 style={({ pressed }) => [styles.sessionButton, confirmation === "end" && styles.endButton, pressed && styles.buttonPressed]}>
                 <Text style={styles.sessionButtonText}>{isSavingSession ? "Saving..." : confirmation === "finish" ? "Confirm completion" : "End Anyway"}</Text>
               </Pressable>
               <Pressable accessibilityRole="button" disabled={isSavingSession}
-                onPress={() => setConfirmation(null)}
+                onPress={() => setOverlay(null)}
                 style={({ pressed }) => [styles.leaveButton, pressed && styles.buttonPressed]}>
                 <Text style={styles.leaveButtonText}>Keep Workout</Text>
               </Pressable>
               {sessionError ? <Text accessibilityRole="alert" style={styles.progressSummary}>{sessionError}</Text> : null}
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -356,8 +359,11 @@ const styles = StyleSheet.create({
   sessionAction: { flex: 1, minWidth: layout.minTouchTarget },
   endButton: { backgroundColor: colors.danger },
   confirmOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "center", alignItems: "center", padding: spacing.lg },
-  confirmCard: { backgroundColor: colors.surface, borderRadius: radii.card, width: "100%", maxWidth: layout.maxContentWidth, maxHeight: "90%" },
-  confirmContent: { padding: spacing.lg, gap: spacing.md },
+  confirmCard: { backgroundColor: colors.surface, borderRadius: radii.card, width: "100%", maxWidth: layout.maxContentWidth, maxHeight: "100%", overflow: "hidden" },
+  confirmContent: { padding: spacing.md, gap: spacing.md },
+  confirmActions: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  reviewHeading: { color: colors.text, fontSize: typography.body, fontWeight: "700" },
+  reviewExercise: { backgroundColor: colors.surfaceMuted, borderRadius: radii.control, padding: spacing.md, gap: spacing.sm },
   sessionLoading: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md },
   sessionCard: {
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
@@ -399,25 +405,11 @@ const styles = StyleSheet.create({
   },
   // Room for the floating "Coach's note" button so it never covers the last actions.
   contentWithNoteButton: { paddingBottom: spacing.xl + spacing.md + layout.minTouchTarget + spacing.lg },
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  screenNumber: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-    fontWeight: "700",
-    position: "absolute",
-    right: spacing.lg,
-    top: spacing.lg,
-  },
   title: {
     color: colors.text,
     fontSize: typography.title,
     fontWeight: "300",
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
   },
   subtitle: {
     color: colors.textMuted,
@@ -470,6 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     marginBottom: spacing.md,
     padding: spacing.lg,
+    gap: spacing.sm,
   },
   exerciseText: {
     flex: 1,
@@ -521,7 +514,6 @@ const styles = StyleSheet.create({
     minHeight: layout.minTouchTarget + spacing.xs,
     paddingHorizontal: spacing.sm,
   },
-  detailsButton: { marginTop: spacing.sm },
   buttonPressed: { opacity: 0.75 },
   secondaryButtonText: {
     color: colors.primaryDark,

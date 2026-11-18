@@ -15,7 +15,7 @@ This branch is based on `spencer/general-updates/architecture-refinement` (commi
 - Completed and ended-early are separate outcomes; early ends are shown in history but excluded from completed counts and completed active-time totals.
 - The existing Pause → End Workout route remains available for incomplete sessions and always requires confirmation.
 - Starting a new attempt creates a new session ID, clears completion/performance as before, and preserves all earlier history. The title and exercises in history are snapshots; changing a template cannot rewrite those records.
-- Only started, nonempty workouts with all required exercise IDs and confirmed sets pass the service's finish guard. Checking a box still records prescribed defaults for untouched set fields, as in existing logging behavior.
+- Only started, nonempty workouts with all required exercise IDs and confirmed sets pass the service's finish guard. [K2F-34](set-performance-testing.md) subsequently made filling targets a separate explicit action; checking a box now preserves blank actuals.
 - A finalized attempt has one history entry. Duplicate confirmations and retries do not duplicate totals; late autosaves for a finalized attempt cannot reopen it.
 - Checkpoint finalization and history append share a single AsyncStorage write under the existing per-workout key. There is no separate history write that can succeed while finalization fails or vice versa.
 - History is filtered by the selected demo client. Current local assignments provide the client ID; the original mock workouts belong to demo client 1. This is the previously agreed on-device prototype, not authenticated cross-device/Firebase workout history.

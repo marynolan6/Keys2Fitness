@@ -11,6 +11,7 @@ import {
 // Use the existing Keys2Fitness theme for consistent styling
 import { colors, radii, spacing, typography, layout } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 
 // K2F-240: Coach can view progress information for a selected client
 export default function ClientProgress() {
@@ -55,6 +56,7 @@ export default function ClientProgress() {
       </TouchableOpacity>
 
       {/* Main heading of the progress screen */}
+      <K2FBrand coach />
       <Text style={styles.heading}>Client Progress</Text>
 
       {/* Displays the ID of the selected client */}
@@ -115,15 +117,6 @@ const styles = StyleSheet.create({
   back: {
     color: colors.primaryDark,
     fontSize: typography.body,
-  },
-
-  // Small Keys2Fitness branding above the page title
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginTop: spacing.sm,
   },
 
   // Main "Client Progress" heading

@@ -18,6 +18,7 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 // Coach messages widget
 import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { mockMessages } from "@/messages/mockMessageCoachClient";
 
 // Shared Keys2Fitness theme
@@ -82,6 +83,7 @@ export default function CoachHome() {
       <ScrollView contentContainerStyle={styles.container}>
 
         {/* Dashboard heading */}
+        <K2FBrand coach />
         <Text style={styles.title}>Coach Dashboard</Text>
 
         {/* K2F-235 / K2F-236: Current clients summary */}

@@ -5,18 +5,23 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CurrentGoalCard } from "@/components/CurrentGoalCard";
 import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { getClientAssignedWorkout, getWorkoutById, workoutBelongsToClient } from "@/workouts/workoutSource";
+import { K2FBrand } from "@/components/K2FBrand";
+import { getClientAssignedWorkout, getClientHomeWorkouts, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
-import { BuilderButton, builderStyles } from "@/components/WorkoutBuilderControls";
 import { useCoachClients } from "@/clients/clientStore";
-import { isWorkoutInProgress, loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
+import { loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, layout, radii, spacing, typography } from "@/theme";
+
+type HomeSessions = { clientId: string } & (
+  | { status: "loading" | "error" }
+  | { status: "ready"; active: WorkoutSession | null; assigned: WorkoutSession | null }
+);
 
 export default function ClientHome() {
   const router = useRouter();
@@ -30,9 +35,7 @@ export default function ClientHome() {
     ? clients.find((client) => client.id === previewClientId)?.name.trim().split(/\s+/)[0]
     : undefined;
   const greetingName = demoFirstName || firstName;
-  const [sessionState, setSessionState] = useState<{
-    active: WorkoutSession | null; assigned: WorkoutSession | null; loading: boolean; error: boolean; clientId: string;
-  }>({ active: null, assigned: null, loading: true, error: false, clientId: previewClientId });
+  const [sessionState, setSessionState] = useState<HomeSessions>({ status: "loading", clientId: previewClientId });
   const [sessionRetry, setSessionRetry] = useState(0);
 
   useFocusEffect(useCallback(() => {
@@ -51,43 +54,42 @@ export default function ClientHome() {
     if (!focused || library.status !== "ready") return;
     let active = true;
     async function refreshSession() {
-      setSessionState({ active: null, assigned: null, loading: true, error: false, clientId: previewClientId });
+      setSessionState({ status: "loading", clientId: previewClientId });
       try {
         const [session, assigned] = await Promise.all([
           loadActiveWorkoutSession((id) => workoutBelongsToClient(id, previewClientId)),
           assignedWorkout ? loadWorkoutSession(assignedWorkout.id) : Promise.resolve(null),
         ]);
-        if (active) setSessionState({ active: session, assigned, loading: false, error: false, clientId: previewClientId });
+        if (active) setSessionState({ status: "ready", active: session, assigned, clientId: previewClientId });
       } catch {
-        if (active) setSessionState({ active: null, assigned: null, loading: false, error: true, clientId: previewClientId });
+        if (active) setSessionState({ status: "error", clientId: previewClientId });
       }
     }
     void refreshSession();
     return () => { active = false; };
   }, [assignedWorkout, focused, sessionRetry, library.status, library.data, previewClientId]);
 
-  const matchingClient = sessionState.clientId === previewClientId;
-  const displayedSession = matchingClient ? sessionState.active ?? sessionState.assigned : null;
-  const displayedWorkout = matchingClient && sessionState.active ? getWorkoutById(sessionState.active.workoutId) ?? assignedWorkout : assignedWorkout;
-  const openWorkout = (workoutId: string) => router.push({
+  const sessions = sessionState.clientId === previewClientId ? sessionState : null;
+  const workoutStatus = library.status === "ready" ? sessions?.status ?? "loading" : library.status;
+  const restored = sessions?.status === "ready" ? sessions : null;
+  const checkpoints = restored ? [restored.active, restored.assigned] : [];
+  const workouts = getClientHomeWorkouts(library.data, restored?.active?.workoutId);
+  const openWorkout = (workoutId: string, resume: boolean) => router.push({
     pathname: "/client/home/workout/[workoutId]",
-    params: { workoutId, ...(isWorkoutInProgress(displayedSession) ? { resume: String(Date.now()) } : {}) },
+    params: { workoutId, ...(resume ? { resume: String(Date.now()) } : {}) },
   });
-
-
-
   return (
     <ThemedBackground>
       <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
         <View style={styles.content}>
-          <Text style={styles.brand}>KEYS2FITNESS</Text>
+          <K2FBrand />
           <Text style={styles.title}>Good morning, {greetingName}</Text>
           <Text style={styles.subtitle}>Let&apos;s build strength!</Text>
 
-          <View style={styles.goalSection}>
+          <View style={[styles.goalSection, styles.workoutList]}>
             <DemoWorkoutClientPicker />
-            <Text style={styles.sectionTitle}>Assigned workout</Text>
-            {(matchingClient && sessionState.error) || library.status === "error" ? (
+            <Text accessibilityRole="header" style={styles.sectionTitle}>Your assigned workouts</Text>
+            {workoutStatus === "error" && (
               <View style={styles.sessionFeedback}>
                 <Text accessibilityRole="alert" style={styles.sessionError}>
                   {library.status === "error" ? library.error : "We couldn't check your saved workout. Please try again."}
@@ -98,22 +100,15 @@ export default function ClientHome() {
                   <Text style={styles.retryLabel}>Try again</Text>
                 </Pressable>
               </View>
-            ) : <AssignedWorkoutCard workout={displayedWorkout} session={displayedSession}
-              loading={library.status !== "ready" || !matchingClient || sessionState.loading} onOpen={openWorkout} />}
+            )}
+            {workoutStatus === "loading" ? (
+              <Text accessibilityLiveRegion="polite" style={styles.subtitle}>Checking your workouts…</Text>
+            ) : library.status === "ready" && (workouts.length ? workouts.map(({ workout, assignedAt }, index) => (
+              <AssignedWorkoutCard key={workout.id} workout={workout} assignedAt={assignedAt} featured={index === 0 && !!restored}
+                session={checkpoints.find((checkpoint) => checkpoint?.workoutId === workout.id)}
+                onOpen={openWorkout} />
+            )) : restored && <AssignedWorkoutCard workout={null} onOpen={openWorkout} />)}
           </View>
-
-          {library.status === "ready" && <View style={styles.goalSection}>
-            <Text style={styles.sectionTitle}>Your assigned workouts</Text>
-            {library.data.assignments.filter((assignment) => assignment.clientId === previewClientId).map((assignment) =>
-              <View key={assignment.id} style={[builderStyles.card, { marginBottom: spacing.md }]}>
-                <Text style={builderStyles.heading}>{assignment.workout.title}</Text>
-                <Text style={builderStyles.muted}>Assigned {new Date(assignment.assignedAt).toLocaleString()} · {assignment.workout.exercises.length} exercises</Text>
-                <BuilderButton label={`Open ${assignment.workout.title}`} accessibilityLabel={`Open assigned workout ${assignment.workout.title} from ${new Date(assignment.assignedAt).toLocaleString()}`}
-                  onPress={() => router.push({ pathname: "/client/home/workout/[workoutId]", params: { workoutId: assignment.id } })} />
-              </View>)}
-            {!library.data.assignments.some((assignment) => assignment.clientId === previewClientId) &&
-              <Text style={builderStyles.muted}>No coach-built workouts assigned yet.</Text>}
-          </View>}
 
           <View style={styles.goalSection}>
             <CurrentGoalCard
@@ -133,6 +128,7 @@ export default function ClientHome() {
 }
 
 const styles = StyleSheet.create({
+  workoutList: { gap: spacing.md },
   sessionFeedback: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.lg, gap: spacing.md },
   sessionError: { color: colors.text, fontSize: typography.body },
   retryButton: { minHeight: layout.minTouchTarget, borderRadius: radii.button, justifyContent: "center", padding: spacing.md, backgroundColor: colors.primaryDark },
@@ -153,17 +149,11 @@ const styles = StyleSheet.create({
   goalSection: {
     marginTop: spacing.lg,
   },
-  brand: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
   title: {
     color: colors.text,
     fontSize: typography.title,
     fontWeight: "300",
-    marginTop: spacing.xl,
+    marginTop: spacing.sm,
   },
   subtitle: {
     color: colors.textMuted,
@@ -175,6 +165,5 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.heading,
     fontWeight: "700",
-    marginBottom: spacing.md,
   },
 });

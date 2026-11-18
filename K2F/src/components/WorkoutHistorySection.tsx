@@ -6,6 +6,7 @@ import { useWorkoutHistory } from "@/hooks/useWorkoutHistory";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { workoutHistoryTotals } from "@/workouts/workoutSessionModel";
 import { formatWorkoutTime } from "@/workouts/workoutTimer";
+import { countLabel } from "@/workouts/workoutLabels";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 export function WorkoutHistorySection() {
@@ -59,7 +60,7 @@ export function WorkoutHistorySection() {
           <Text style={styles.label}>{entry.title.trim() || "Untitled workout"}</Text>
           <Text style={styles.link}>{entry.session.outcome === "completed" ? "Completed" : "Ended early"}</Text>
           <Text style={styles.muted}>{new Date(entry.session.finishedAt).toLocaleString()} · {formatWorkoutTime(entry.session.timer.elapsedMs)} active</Text>
-          <Text style={styles.muted}>{entry.session.exercises.filter((exercise) => exercise.completed).length}/{entry.session.exercises.length} exercises complete · View recorded sets</Text>
+          <Text style={styles.muted}>{entry.session.exercises.filter((exercise) => exercise.completed).length}/{countLabel(entry.session.exercises.length, "exercise")} complete · View recorded sets</Text>
         </Pressable>)}
         {history.visibleEntries.length > 3 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: history.expanded }}
           onPress={() => history.dispatch({ type: "toggle-expanded" })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>

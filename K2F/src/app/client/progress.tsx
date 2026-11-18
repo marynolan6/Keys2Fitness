@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db } from "@/lib/firebase";
 import { colors, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 
 const MAX_HISTORY = 5;
@@ -334,7 +335,7 @@ const saveWeight = async () => {
             { paddingTop: Math.max(insets.top + spacing.sm, spacing.xl), paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
           ]}
         >
-          <Text style={styles.brand}>KEYS2FITNESS</Text>
+          <K2FBrand />
           <Text style={styles.title}>Your Progress</Text>
           <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
           <WorkoutHistorySection />
@@ -506,12 +507,6 @@ const styles = StyleSheet.create({
     alignItems: "center", 
     flex: 1, 
     justifyContent: "center" 
-  },
-  brand: { 
-    color: colors.primaryDark, 
-    fontSize: typography.label, 
-    fontWeight: "700", 
-    letterSpacing: 1 
   },
   title: { 
     color: colors.text, 
