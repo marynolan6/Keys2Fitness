@@ -17,7 +17,21 @@ function formatTime(timestamp: number) {
         minute: "2-digit",
     });
 }
+function formatDayLabel(timestamp?: number) {
+    if (!timestamp) return "Recent";
 
+    const date = new Date(timestamp);
+    const today = new Date();
+
+    if (date.toDateString() === today.toDateString()) {
+        return "Today";
+    }
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+    });
+}
 export function ClientActivityCard({
     activities,
     allActivities,
@@ -29,7 +43,9 @@ export function ClientActivityCard({
         <View style={styles.card}>
             <View style={styles.header}>
                 <Text style={styles.title}>Client Activity</Text>
-                <Text style={styles.today}>Today</Text>
+                <Text style={styles.today}>
+                    {formatDayLabel(allActivities[0]?.completedAt)}
+                </Text>
             </View>
 
             {status === "loading" ? (
@@ -58,7 +74,11 @@ export function ClientActivityCard({
                                     {activity.clientName}
                                 </Text>
                                 <Text style={styles.workoutName}>
-                                    {activity.workoutName} complete
+                                    {activity.workoutName}{" "}
+                                    {activity.workoutStatus === "ended-early"
+                                        ? "ended early"
+                                        : "completed"}
+
                                 </Text>
                             </View>
 
