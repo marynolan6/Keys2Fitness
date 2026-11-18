@@ -75,7 +75,9 @@ function activityReducer(
     }
 }
 
-export function useRecentClientActivity(clients: Client[]) {
+export function useRecentClientActivity(
+  clients: readonly Client[],
+) {
     const isFocused = useIsFocused();
     const [state, dispatch] = useReducer(activityReducer, initialState);
 
