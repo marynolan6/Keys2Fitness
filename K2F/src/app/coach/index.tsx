@@ -81,6 +81,7 @@ export default function CoachHome() {
 
   const {
     activities: workoutActivities,
+    allActivities,
     status: workoutActivityStatus,
   } = useRecentClientActivity(clients);
   return (
@@ -162,6 +163,7 @@ export default function CoachHome() {
         </View>
         <ClientActivityCard
           activities={workoutActivities}
+          allActivities={allActivities}
           status={workoutActivityStatus}
           onOpenClient={openClientProfile}
         />
