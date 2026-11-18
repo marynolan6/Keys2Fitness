@@ -3,7 +3,7 @@ import { SymbolView } from "expo-symbols";
 import { ComponentProps, Fragment, useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { MessageCount } from "@/components/MessageCount";
 import { AppQuickAccessMenu, type NavigationRole } from "@/components/AppQuickAccessMenu";
 import { colors, isCompactLayout, layout, navigation, radii, spacing, typography } from "@/theme";
 
@@ -55,9 +55,10 @@ export function AppTabBar({ role, state, descriptors, emitter, navigateToTab }: 
                 }}
                 onLongPress={() => emitter.emit({ type: "tabLongPress", target: route.key })}
                 style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
+                
                 <View style={[styles.iconPill, selected && styles.selected]}>
-                  <SymbolView name={tabIcons[route.name]}
-                    size={spacing.lg} tintColor={tint} />
+                  <SymbolView name={tabIcons[route.name]}size={spacing.lg} tintColor={tint} />
+                  {route.name === "messages" && ( <MessageCount  viewer={role === "coach" ? "coach" : "client"}/>)}
                 </View>
                 {showLabels && <Text style={[styles.label, compact && styles.compactLabel, { color: tint }]}>{label}</Text>}
               </Pressable>
@@ -87,7 +88,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingTop: spacing.sm },
   tab: { flex: 1, minWidth: layout.minTouchTarget, minHeight: layout.minTouchTarget,
     alignItems: "center", paddingVertical: spacing.xs, gap: spacing.xs, borderRadius: radii.button },
-  iconPill: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radii.card },
+  iconPill: { position: "relative",paddingHorizontal: spacing.md,paddingVertical: spacing.xs,borderRadius: radii.card,
+},
   selected: { backgroundColor: colors.surfaceMuted },
   label: { fontSize: typography.label, textAlign: "center", flexShrink: 1 },
   compactLabel: { fontSize: typography.caption },

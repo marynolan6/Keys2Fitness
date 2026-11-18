@@ -16,7 +16,6 @@ import { getActiveClients, getClientById } from "@/clients/mockClients";
 import { ClientAvatar } from "@/components/ClientAvatar";
 
 // Coach messages widget
-import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockMessages } from "@/messages/mockMessageCoachClient";
 import { PendingVideosWidget } from "@/components/PendingVideoWidget";
@@ -97,19 +96,8 @@ export default function CoachHome() {
           <PendingVideosWidget
             onPress={() => router.push("/coach/client_list")}
           />
-
-          <NewCoachMessagesWidget
-            messages={mockMessages}
-            onPress={() => router.push("/coach/messages")}
-          />
         </View>
-        <ClientActivityCard
-          activities={workoutActivities}
-          allActivities={allActivities}
-          status={workoutActivityStatus}
-          onOpenClient={openClientProfile}
-        />
-
+        
         {/* K2F-235 / K2F-236: Current clients summary */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
