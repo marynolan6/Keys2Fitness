@@ -12,11 +12,13 @@ K2F-33 already supplied immutable attempt records, chronological repository read
 
 | Story/subtask | Implementation |
 | --- | --- |
-| K2F-296 — history list | Quick-access **Workout history** opens `/client/history`; Home and Progress retain the shared history section. Completed workouts are the default, newest first, with date, title and outcome. **All finished workouts** also exposes ended-early records without counting them as completed. |
+| K2F-296 — history list | Quick-access **Workout history** opens `/client/history`; Home and Progress use the same card. Completed workouts appear newest first, with title, date and outcome. **Show early finishes** appears only when there are ended-early records; they do not count toward completed workouts or active minutes. |
 | K2F-297 — recorded results | Each record opens a read-only detail modal with title, finish date, active time, exercise completion and individual actual sets/reps/pounds. Targets are labeled separately. Zero, blank, decimal and missing actual-set values remain distinct. |
-| K2F-298 — empty/missing/responsive | Clear no-history, unavailable-record, missing-exercise, missing-set and load-error/retry feedback. Client/workout/attempt lookup has no fallback to another client's record or a live workout. Narrow layouts stack controls and recorded values; long content scrolls above the persistent Back action. |
+| K2F-298 — empty/missing/responsive | Clear no-history, unavailable-record, missing-exercise, missing-set and load-error/retry feedback. Client/workout/attempt lookup has no fallback to another client's record or a live workout. On narrow screens labels and actions wrap; long detail content scrolls above the Back action. |
 
 Both **Back to workout history** and Android Back close the detail and retain the same list, filter, expansion and scroll position. Leaving the history route closes its detail; returning does not reopen an old modal. Client changes reset the filter, expansion and selection.
+
+The [empty card](images/workout-history-empty.png) shows one prompt rather than zero totals and filters. The [populated card](images/workout-history-list.png) combines completed count and active minutes in one line. Up to three records are shown initially; tap a row for recorded sets or **Show all** for a longer list. Empty, completed-only, early-only and mixed histories were checked on Android at 390 dp, 320 dp with 1.5× text, and 800 dp.
 
 ### SDK 58 navigation
 

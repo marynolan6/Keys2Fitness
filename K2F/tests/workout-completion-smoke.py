@@ -10,7 +10,10 @@ def completed_count():
     for start, end in [(1500, 700), (700, 1500)]:
         for _ in range(12):
             for node in snapshot():
-                match = re.fullmatch(r"(\d+) workouts? completed", node.get("text", ""))
+                text = node.get("text", "")
+                if text in ("Finish a workout to see it here.", "No completed workouts yet."):
+                    return 0
+                match = re.match(r"^(\d+) completed(?: · |$)", text)
                 if match: return int(match[1])
             adb("shell", "input", "swipe", "100", str(start), "100", str(end), "300")
     raise AssertionError("Completed-workout count is not visible")

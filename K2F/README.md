@@ -17,6 +17,7 @@ Use an Expo Go version compatible with **Expo SDK 58**, or an appropriate develo
 
 ```bash
 npm run test:workouts
+npm run test:progress
 node --test tests/coach-tips.test.mjs tests/profile.test.mjs
 npx tsc --noEmit
 npm run lint
