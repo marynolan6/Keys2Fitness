@@ -20,6 +20,10 @@ import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { mockMessages } from "@/messages/mockMessageCoachClient";
 
+//Recent activity (messages and workouts) is shown in the dashboard, newest first. The most recent item is labeled "Latest" and has a highlighted background. Each item shows the client name, message/workout title, and time of creation. Tapping an item opens the relevant conversation or workout details.
+
+import { ClientActivityCard } from "@/components/ClientActivityCard";
+import { useRecentClientActivity } from "@/hooks/useRecentClientActivity";
 // Shared Keys2Fitness theme
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
@@ -29,12 +33,12 @@ const MAX_RECENT_ACTIVITY = 3;
 
 // K2F-235: Recent activity (client messages for now, newest first)
 const recentActivity = mockMessages
-  .filter((message) => 
-      message.clientId === "1" &&
-      message.senderType === "coach",
+  .filter((message) =>
+    message.clientId === "1" &&
+    message.senderType === "coach",
   )
   .sort(
-   (a, b) =>
+    (a, b) =>
       new Date(b.createdAt).getTime() -
       new Date(a.createdAt).getTime(),
   )
@@ -65,7 +69,6 @@ export default function CoachHome() {
   const { loadStatus, clients } = useCoachClientsState();
   const activeClients = getActiveClients(clients);
   const summaryClients = activeClients.slice(0, MAX_SUMMARY_CLIENTS);
-
   // K2F-237: Open client details from the dashboard
   const openClientProfile = (clientId: string) =>
     router.push({ pathname: "/coach-client/[clientId]", params: { clientId } });
@@ -76,6 +79,10 @@ export default function CoachHome() {
       params: { clientId },
     });
 
+  const {
+    activities: workoutActivities,
+    status: workoutActivityStatus,
+  } = useRecentClientActivity(clients);
   return (
     // Keep the gradient background from main
     <ThemedBackground>
@@ -153,12 +160,17 @@ export default function CoachHome() {
             </>
           )}
         </View>
+        <ClientActivityCard
+          activities={workoutActivities}
+          status={workoutActivityStatus}
+          onOpenClient={openClientProfile}
+        />
 
         {/* K2F-235: Recent activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle} accessibilityRole="header">
-              Recent Activity
+              Recent Messages
             </Text>
             <Text style={styles.demoLabel}>Demo data</Text>
           </View>
@@ -191,7 +203,7 @@ export default function CoachHome() {
                       {clientName} sent a message
                     </Text>
                     <Text style={styles.rowSubtitle} numberOfLines={2}>
-                       {`"${item.message}"`}
+                      {`"${item.message}"`}
                     </Text>
                     <Text style={styles.rowMeta}>
                       {formatActivityTime(item.createdAt)}
