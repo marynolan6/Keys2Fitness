@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { demoClients } from "@/clients/mockClients";
+import { getPendingVideos } from "@/videos/mockVideos";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand } from "@/components/K2FBrand";
@@ -20,6 +21,7 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export default function Client_List() {
   const clientCount = demoClients.length;
+  const pendingVideos = getPendingVideos();
 
   return (
     <ThemedBackground>
@@ -47,32 +49,44 @@ export default function Client_List() {
             </Text>
           </View>
         ) : (
-          demoClients.map((client) => (
-            <Pressable
-              key={client.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${client.name}, ${client.goal}. Open client profile`}
-              onPress={() =>
-                router.push({
-                  pathname: "/coach-client/[clientId]",
-                  params: { clientId: client.id },
-                })
-              }
-              style={({ pressed }) => [
-                styles.clientCard,
-                pressed && styles.clientCardPressed,
-              ]}
-            >
-              <ClientAvatar name={client.name} />
+          demoClients.map((client) => {
+            const hasPendingVideo = pendingVideos.some(
+              (video) => video.clientId === client.id,
+            );
+            return (
+              <Pressable
+                key={client.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${client.name}, ${client.goal}. Open client profile`}
+                onPress={() =>
+                  router.push({
+                    pathname: "/coach-client/[clientId]",
+                    params: { clientId: client.id },
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.clientCard,
+                  pressed && styles.clientCardPressed,
+                ]}
+              >
+                <ClientAvatar name={client.name} />
 
-              <View style={styles.clientInfo}>
-                <Text style={styles.clientName}>{client.name}</Text>
-                <Text style={styles.clientGoal}>{client.goal}</Text>
-              </View>
+                <View style={styles.clientInfo}>
+                  <Text style={styles.clientName}>{client.name}</Text>
+                  <Text style={styles.clientGoal}>{client.goal}</Text>
+                </View>
 
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          ))
+                <View style={styles.clientActions}>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>
+                      {hasPendingVideo ? "Review video" : "On track"}
+                    </Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
+                </View>
+              </Pressable>
+            );
+          })
         )}
       </ScrollView>
     </ThemedBackground>
@@ -92,7 +106,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
   },
-  
+
   title: {
     color: colors.text,
     fontSize: typography.title,
@@ -185,5 +199,22 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.label,
     textAlign: "center",
+  },
+  clientActions: {
+    alignItems: "flex-end",
+    gap: spacing.sm,
+  },
+
+  statusBadge: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+
+  statusText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
   },
 });

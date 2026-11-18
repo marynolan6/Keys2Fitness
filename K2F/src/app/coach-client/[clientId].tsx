@@ -6,7 +6,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
 } from "react-native";
+
+import { useState } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { getPendingVideos, type MockVideo } from "@/videos/mockVideos";
 
 // Import the team's existing theme settings
 import { colors, radii, spacing, typography, layout } from "@/theme";
@@ -28,6 +33,9 @@ export default function ClientProfile() {
   // K2F-153: Find the selected client
   const client = getClientById(clientId);
 
+  const pendingVideo = getPendingVideos().find(
+    (video) => video.clientId === String(clientId),
+  );
   // K2F-153 / K2F-237: Go back to the screen that opened this profile
   // (client list or dashboard), or the client list if there is no history
   const goBack = () => {
@@ -78,15 +86,15 @@ export default function ClientProfile() {
         contentContainerStyle={styles.content}
       >
 
-      {/* Back button returns to the previous screen (client list or dashboard) */}
-      <TouchableOpacity
-         style={styles.backButton}
-         onPress={goBack}
-         accessibilityRole="button"
-         accessibilityLabel="Go back"
-      >
-       <Text style={styles.back}>← Back</Text>
-       </TouchableOpacity>
+        {/* Back button returns to the previous screen (client list or dashboard) */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={goBack}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={styles.back}>← Back</Text>
+        </TouchableOpacity>
 
         {/* Keys2Fitness branding */}
         <K2FBrand coach />
@@ -131,6 +139,7 @@ export default function ClientProfile() {
           {/* Title and completion percentage */}
           <View style={styles.progressHeader}>
             <Text style={styles.sectionTitle}>Recent Progress</Text>
+
             <Text style={styles.progressPercent}>
               {progressPercent}%
             </Text>
@@ -153,6 +162,7 @@ export default function ClientProfile() {
             Completed {completedWorkouts} out of {totalWorkouts} scheduled workouts
           </Text>
         </View>
+        {pendingVideo && <PendingVideoCard video={pendingVideo} />}
 
         {/* K2F-240: Navigation to related client information */}
         <View style={styles.card}>
@@ -195,7 +205,97 @@ export default function ClientProfile() {
     </ThemedBackground>
   );
 }
+function PendingVideoCard({ video }: { video: MockVideo }) {
+  const [showVideo, setShowVideo] = useState(false);
 
+  return (
+    <>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Uploaded Form Checks</Text>
+
+        <View style={styles.videoSummary}>
+         <Text style={styles.videoIcon}>🎥</Text>
+
+          <View style={styles.videoInfo}>
+            <Text style={styles.videoTitle}>{video.workoutName}</Text>
+            <Text style={styles.description}>
+              Awaiting your review
+            </Text>
+            <Text style={styles.description}>
+              Uploaded {formatVideoTimestamp(video.createdAt)} · Awaiting your review
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={() => setShowVideo(true)}
+        >
+          <Text style={styles.navigationButtonText}>
+            Review Form-Check Video
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {showVideo && (
+        <VideoModal
+          video={video}
+          onClose={() => setShowVideo(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function VideoModal({
+  video,
+  onClose,
+}: {
+  video: MockVideo;
+  onClose: () => void;
+}) {
+  const player = useVideoPlayer(video.videoUri);
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.sectionTitle}>{video.workoutName}</Text>
+
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <VideoView
+            player={player}
+            nativeControls
+            contentFit="contain"
+            style={styles.video}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function formatVideoTimestamp(timestamp: string) {
+  const date = new Date(timestamp);
+
+  return `${date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })} · ${date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
 // Styles control the appearance of the profile screen
 const styles = StyleSheet.create({
   // Transparent screen allows the gradient to show
@@ -315,5 +415,58 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: typography.body,
     fontWeight: "700",
+  },
+  videoSummary: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+
+  videoIcon: {
+    color: colors.primary,
+    fontSize: 24,
+  },
+
+  videoInfo: {
+    flex: 1,
+  },
+
+  videoTitle: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  modalOverlay: {
+    backgroundColor: colors.overlay,
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.lg,
+  },
+
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+
+  modalHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  closeText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+
+  video: {
+    aspectRatio: 16 / 9,
+    backgroundColor: colors.text,
+    borderRadius: radii.control,
+    width: "100%",
   },
 });

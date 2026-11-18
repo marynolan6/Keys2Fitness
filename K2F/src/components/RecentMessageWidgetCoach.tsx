@@ -64,9 +64,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: radii.card,
-    flexDirection: "row",
-    marginTop: spacing.lg,
-    padding: spacing.lg,
+    flex: 1,
+    marginTop: 0,
+    padding: spacing.md,
+    position: "relative",
   },
   pressed: {
     opacity: 0.8,
@@ -103,10 +104,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     color: colors.text,
-    fontSize: typography.heading,
+    fontSize: typography.body,
     fontWeight: "700",
   },
   subtitle: {
@@ -115,8 +117,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   arrow: {
-    color: colors.primaryDark,
-    fontSize: 40,
-    marginLeft: spacing.sm,
-  },
+  color: colors.primaryDark,
+  fontSize: 28,
+  position: "absolute",
+  right: spacing.md,
+  top: "50%",
+  transform: [{ translateY: -14 }],
+},
 });

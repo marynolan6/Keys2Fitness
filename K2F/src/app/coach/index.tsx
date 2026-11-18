@@ -20,6 +20,7 @@ import { NewCoachMessagesWidget } from "@/components/RecentMessageWidgetCoach";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand } from "@/components/K2FBrand";
 import { mockMessages } from "@/messages/mockMessageCoachClient";
+import { PendingVideosWidget } from "@/components/PendingVideoWidget";
 
 //Recent activity (messages and workouts) is shown in the dashboard, newest first. The most recent item is labeled "Latest" and has a highlighted background. Each item shows the client name, message/workout title, and time of creation. Tapping an item opens the relevant conversation or workout details.
 
@@ -31,6 +32,7 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 // Max items shown in each dashboard section
 const MAX_SUMMARY_CLIENTS = 3;
 const MAX_RECENT_ACTIVITY = 3;
+
 
 // K2F-235: Recent activity (client messages for now, newest first)
 const recentActivity = mockMessages
@@ -93,6 +95,22 @@ export default function CoachHome() {
         {/* Dashboard heading */}
         <K2FBrand coach />
         <Text style={styles.title}>Coach Dashboard</Text>
+        <View style={styles.quickActionsRow}>
+          <PendingVideosWidget
+            onPress={() => router.push("/coach/client_list")}
+          />
+
+          <NewCoachMessagesWidget
+            messages={mockMessages}
+            onPress={() => router.push("/coach/messages")}
+          />
+        </View>
+        <ClientActivityCard
+          activities={workoutActivities}
+          allActivities={allActivities}
+          status={workoutActivityStatus}
+          onOpenClient={openClientProfile}
+        />
 
         {/* K2F-235 / K2F-236: Current clients summary */}
         <View style={styles.section}>
@@ -221,10 +239,7 @@ export default function CoachHome() {
         </View>
 
         {/* Display recent coach messages */}
-        <NewCoachMessagesWidget
-          messages={mockMessages}
-          onPress={() => router.push("/coach/messages")}
-        />
+
 
         {/* K2F-264: View recent client check-ins */}
         <TouchableOpacity
@@ -402,5 +417,13 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: typography.body,
     fontWeight: "700",
+  },
+  quickActions: {
+    gap: spacing.md,
+  },
+  quickActionsRow: {
+    alignItems: "stretch",
+    flexDirection: "row",
+    gap: spacing.sm,
   },
 });
