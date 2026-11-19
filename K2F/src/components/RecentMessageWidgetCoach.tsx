@@ -1,127 +1,390 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-
-import { colors, radii, spacing, typography } from "@/theme";
 import {
-  isUnreadFor,
-  type MockMessage,
-} from "@/messages/mockMessageCoachClient";
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-type NewCoachMessagesWidgetProps = {
+import type { MockMessage } from "@/messages/mockMessageCoachClient";
+import { colors, layout, radii, spacing, typography } from "@/theme";
+
+type WidgetProps = {
   messages: MockMessage[];
   onPress: () => void;
 };
 
+type ModalProps = {
+  visible: boolean;
+  messages: MockMessage[];
+  onClose: () => void;
+};
+
+function formatMessageTime(createdAt: string) {
+  const date = new Date(createdAt);
+
+  return `${date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })} · ${date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
+/* Coach dashboard card */
 export function NewCoachMessagesWidget({
   messages,
   onPress,
-}: NewCoachMessagesWidgetProps) {
+}: WidgetProps) {
   const unreadCount = messages.filter(
     (message) =>
       message.senderType === "client" &&
-      isUnreadFor(message, "coach"),
+      message.unreadFor === "coach"
   ).length;
 
   return (
     <Pressable
-      onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel="View recent messages"
+      onPress={onPress}
       style={({ pressed }) => [
-        styles.container,
-        pressed && styles.pressed,
+        styles.card,
+        pressed && styles.cardPressed,
       ]}
     >
-      <View style={styles.iconCircle}>
-        <Text style={styles.icon}>•••</Text>
+      <View style={styles.iconContainer}>
+        <Text style={styles.icon}>💬</Text>
 
         {unreadCount > 0 && (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {unreadCount}
-            </Text>
+            <Text style={styles.badgeText}>{unreadCount}</Text>
           </View>
         )}
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>New Messages</Text>
+      <Text style={styles.cardTitle}>Recent Messages</Text>
 
-        <Text style={styles.subtitle}>
-          {unreadCount > 0
-            ? `${unreadCount} unread message${
-                unreadCount === 1 ? "" : "s"
-              }`
-            : "No new messages"}
-        </Text>
-      </View>
+      <Text style={styles.cardSubtitle}>
+        {unreadCount} unread{" "}
+        {unreadCount === 1 ? "message" : "messages"}
+      </Text>
 
-      <Text style={styles.arrow}>›</Text>
+      <Text style={styles.chevron}>›</Text>
     </Pressable>
   );
 }
 
+/* Recent messages pop-up */
+export function RecentMessagesModal({
+  visible,
+  messages,
+  onClose,
+}: ModalProps) {
+  const recentMessages = [...messages]
+    .filter(
+  (message) =>
+    message.senderType === "client" &&
+    message.unreadFor === "coach"
+)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    )
+    .slice(0, 20);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.modalCard} accessibilityViewIsModal>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>Recent Messages</Text>
+              <Text style={styles.modalSubtitle}>
+                Latest messages from your clients
+              </Text>
+            </View>
+
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close recent messages"
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeText}>×</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.messageList}>
+            {recentMessages.length === 0 ? (
+              <Text style={styles.emptyText}>
+                No recent messages.
+              </Text>
+            ) : (
+              recentMessages.map((message, index) => (
+                <View
+                  key={message.id}
+                  style={[
+                    styles.messageRow,
+                    index === 0 && styles.latestRow,
+                  ]}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {message.clientName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.messageContent}>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.clientName}>
+                        {message.clientName}
+                      </Text>
+
+                      {message.unreadFor === "coach" && (
+                        <View style={styles.unreadDot} />
+                      )}
+                    </View>
+
+                    <Text
+                      style={styles.messageText}
+                      numberOfLines={2}
+                    >
+                      {message.message}
+                    </Text>
+
+                    <Text style={styles.messageTime}>
+                      {formatMessageTime(message.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+
+          <Pressable
+            onPress={onClose}
+            style={styles.closeFullButton}
+          >
+            <Text style={styles.closeFullButtonText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
+  card: {
+    position: "relative",
+    minHeight: 116,
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radii.card,
-    flex: 1,
-    marginTop: 0,
-    padding: spacing.md,
-    position: "relative",
   },
-  pressed: {
-    opacity: 0.8,
+
+  cardPressed: {
+    opacity: 0.75,
   },
-  iconCircle: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 40,
-    height: 64,
-    justifyContent: "center",
-    marginRight: spacing.md,
-    width: 64,
-  },
+
+iconContainer: {
+  width: 52,
+  height: 52,
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: spacing.xs,
+  borderRadius: 26,
+  backgroundColor: colors.surfaceMuted,
+},
   icon: {
-    color: colors.primary,
-    fontSize: 22,
-    fontWeight: "700",
-    letterSpacing: 2,
+    fontSize: 26,
   },
+
   badge: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    height: 30,
-    justifyContent: "center",
     position: "absolute",
-    right: -5,
     top: -5,
-    width: 30,
+    right: -7,
+    minWidth: 26,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    borderRadius: 13,
+    backgroundColor:colors.primary,
+    
   },
+
   badgeText: {
-    color: colors.surface,
+    color: "#FFFFFF",
+    fontSize: typography.label,
     fontWeight: "700",
   },
-  content: {
-    flex: 1,
-    minWidth: 0,
+
+  cardTitle: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "700",
+    marginTop: spacing.xs,
   },
-  title: {
+
+  cardSubtitle: {
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  chevron: {
+    position: "absolute",
+    right: spacing.lg,
+    top: 48,
+    color: "#1976B5",
+    fontSize: 28,
+  },
+
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.lg,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+
+  modalCard: {
+    width: "100%",
+    maxWidth: layout.maxContentWidth,
+    maxHeight: "80%",
+    alignSelf: "center",
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+
+  modalTitle: {
     color: colors.text,
     fontSize: typography.body,
     fontWeight: "700",
   },
-  subtitle: {
+
+  modalSubtitle: {
+    marginTop: spacing.xs,
     color: colors.textMuted,
     fontSize: typography.label,
-    marginTop: spacing.xs,
   },
-  arrow: {
-  color: colors.primaryDark,
-  fontSize: 28,
-  position: "absolute",
-  right: spacing.md,
-  top: "50%",
-  transform: [{ translateY: -14 }],
-},
+
+  closeButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  closeText: {
+    color: colors.text,
+    fontSize: 30,
+  },
+
+  messageList: {
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+
+  messageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.button,
+  },
+
+  latestRow: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.primary,
+  },
+
+  avatar: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 21,
+    backgroundColor: "#DCECF8",
+  },
+
+  avatarText: {
+    color: "#1976B5",
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  messageContent: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+
+  clientName: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  unreadDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#5AA5E5",
+  },
+
+  messageText: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+  },
+
+  messageTime: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  emptyText: {
+    padding: spacing.lg,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+
+  closeFullButton: {
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+    borderRadius: radii.button,
+    backgroundColor: colors.primaryDark,
+  },
+
+  closeFullButtonText: {
+    color: colors.surface,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
 });

@@ -1,149 +1,269 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
+import { ClientAvatar } from "@/components/ClientAvatar";
 import type { ClientsLoadStatus } from "@/clients/clientStore";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import type { CoachClient } from "@/clients/mockClients";
+import { colors, radii, spacing, typography } from "@/theme";
 
 type ActiveClientsCardProps = {
   loadStatus: ClientsLoadStatus;
-  // Only meaningful when `loadStatus` is "ready".
   count: number;
+  clients: readonly CoachClient[];
   onRetry: () => void;
-  onOpenClientList: () => void;
+  onOpenClient: (clientId: string) => void;
 };
 
-// K2F-53: Coach dashboard card showing how many active clients the coach has.
-// A number is only shown once the client data has loaded, so it is never a guess.
-export function ActiveClientsCard({ loadStatus, count, onRetry, onOpenClientList }: ActiveClientsCardProps) {
-  return (
-    <View style={styles.card}>
-      {loadStatus === "loading" ? (
-        <View
-          style={styles.statusRow}
-          accessible
-          accessibilityRole="progressbar"
-          accessibilityLabel="Loading active client count"
-        >
-          <ActivityIndicator color={colors.primaryDark} />
-          <View style={styles.statusText}>
-            <Text style={styles.label}>Active clients</Text>
-            <Text style={styles.helperText}>Loading active clients…</Text>
-          </View>
-        </View>
-      ) : loadStatus === "error" ? (
-        <View accessible accessibilityRole="alert" accessibilityLabel="Active client count unavailable. Try again.">
-          {/* A dash, not 0, so a failed load never looks like "no clients". */}
-          <Text style={[styles.count, styles.countUnavailable]}>—</Text>
-          <Text style={styles.label}>Active clients</Text>
-          <Text style={styles.helperText}>
-            We couldn&apos;t load your client count. Check your connection and try again.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onRetry}
-            style={({ pressed }) => [styles.retryButton, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.retryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <ReadyCount count={count} />
-      )}
+export function ActiveClientsCard({
+  loadStatus,
+  count,
+  clients,
+  onRetry,
+  onOpenClient,
+}: ActiveClientsCardProps) {
+  const [showClients, setShowClients] = useState(false);
 
+  if (loadStatus === "loading") {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color={colors.primaryDark} />
+        <Text style={styles.subtitle}>Loading active clients…</Text>
+      </View>
+    );
+  }
+
+  if (loadStatus === "error") {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Current Clients</Text>
+        <Text style={styles.subtitle}>Could not load clients.</Text>
+
+        <Pressable onPress={onRetry} style={styles.retryButton}>
+          <Text style={styles.retryText}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const clientLabel = count === 1 ? "active client" : "active clients";
+
+  return (
+    <>
       <Pressable
         accessibilityRole="button"
-        onPress={onOpenClientList}
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        accessibilityLabel="Open active client list"
+        onPress={() => setShowClients(true)}
+        style={({ pressed }) => [
+          styles.container,
+          pressed && styles.pressed,
+        ]}
       >
-        <Text style={styles.buttonText}>Open Client List</Text>
-      </Pressable>
-    </View>
-  );
-}
+        <View style={styles.iconCircle}>
+          <Text style={styles.icon}>👥</Text>
 
-function ReadyCount({ count }: { count: number }) {
-  const hasClients = count > 0;
-  const label = count === 1 ? "Active client" : "Active clients";
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{count}</Text>
+          </View>
+        </View>
 
-  return (
-    <View
-      accessible
-      accessibilityRole="summary"
-      accessibilityLabel={hasClients ? `${count} ${label.toLowerCase()}` : "No active clients yet"}
-    >
-      <Text style={styles.count}>{count}</Text>
-      <Text style={styles.label}>{label}</Text>
-      {!hasClients && (
-        <Text style={styles.helperText}>
-          No active clients yet. Clients assigned to you will be counted here.
+        <Text style={styles.title}>Active Clients</Text>
+
+        <Text style={styles.subtitle}>
+          {count} {clientLabel}
         </Text>
-      )}
-    </View>
+
+        <Text style={styles.arrow}>›</Text>
+      </Pressable>
+
+      <Modal
+        visible={showClients}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowClients(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Active Clients</Text>
+
+              <Pressable onPress={() => setShowClients(false)}>
+                <Text style={styles.closeText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.clientList}>
+              {clients.length === 0 ? (
+                <Text style={styles.subtitle}>
+                  No active clients yet.
+                </Text>
+              ) : (
+                clients.map((client) => (
+                  <Pressable
+                    key={client.id}
+                    style={styles.clientRow}
+                    onPress={() => {
+                      setShowClients(false);
+                      onOpenClient(client.id);
+                    }}
+                  >
+                    <ClientAvatar name={client.name} size={40} />
+
+                    <View style={styles.clientInfo}>
+                      <Text style={styles.clientName}>
+                        {client.name}
+                      </Text>
+                      <Text style={styles.clientGoal}>
+                        {client.goal}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.clientArrow}>›</Text>
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: radii.card,
-    gap: spacing.md,
-    padding: spacing.lg,
+    justifyContent: "center",
+    minHeight: 116,
+    padding: spacing.md,
+    position: "relative",
   },
-  count: {
+  pressed: {
+    opacity: 0.8,
+  },
+  iconCircle: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 28,
+    height: 52,
+    justifyContent: "center",
+    position: "relative",
+    width: 52,
+  },
+  icon: {
+    fontSize: 23,
+  },
+  badge: {
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    position: "absolute",
+    right: -7,
+    top: -7,
+    width: 28,
+  },
+  badgeText: {
+    color: colors.surface,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  title: {
     color: colors.text,
-    fontSize: typography.title,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "300",
+    fontSize: typography.body,
+    fontWeight: "700",
+    marginTop: spacing.xs,
   },
-  countUnavailable: {
-    color: colors.textMuted,
-  },
-  label: {
+  subtitle: {
     color: colors.textMuted,
     fontSize: typography.label,
-    fontWeight: "600",
+    marginTop: spacing.xs,
   },
-  helperText: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-    marginTop: spacing.sm,
-  },
-  statusRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-    minHeight: 72,
-  },
-  statusText: {
-    flex: 1,
+  arrow: {
+    color: colors.primaryDark,
+    fontSize: 28,
+    position: "absolute",
+    right: spacing.md,
+    top: "50%",
+    transform: [{ translateY: -14 }],
   },
   retryButton: {
-    alignItems: "center",
-    alignSelf: "flex-start",
     backgroundColor: colors.surfaceMuted,
     borderRadius: radii.button,
-    justifyContent: "center",
-    marginTop: spacing.md,
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
-  retryButtonText: {
+  retryText: {
     color: colors.primaryDark,
     fontSize: typography.label,
     fontWeight: "700",
   },
-  button: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
+  modalOverlay: {
+    backgroundColor: colors.overlay,
+    flex: 1,
     justifyContent: "center",
-    minHeight: layout.minTouchTarget + spacing.sm,
+    padding: spacing.lg,
   },
-  buttonPressed: {
-    opacity: 0.8,
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    maxHeight: "80%",
+    padding: spacing.lg,
   },
-  buttonText: {
-    color: colors.surface,
+  modalHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: typography.heading,
+    fontWeight: "700",
+  },
+  closeText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  clientList: {
+    gap: spacing.sm,
+  },
+  clientRow: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  clientInfo: {
+    flex: 1,
+  },
+  clientName: {
+    color: colors.text,
     fontSize: typography.body,
     fontWeight: "700",
+  },
+  clientGoal: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+    marginTop: spacing.xs,
+  },
+  clientArrow: {
+    color: colors.primaryDark,
+    fontSize: 28,
   },
 });
