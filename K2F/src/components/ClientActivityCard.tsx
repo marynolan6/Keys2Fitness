@@ -34,10 +34,16 @@ export function ClientActivityCard({
 }: ClientActivityCardProps) {
   const [showAll, setShowAll] = useState(false);
 
-  const showActivityButton =
-    status === "ready" &&
-    (allActivities.length === 0 ||
-      allActivities.length > activities.length);
+  const summaryText =
+    status === "loading"
+      ? "Loading client activity…"
+      : status === "error"
+        ? "Client activity could not be loaded."
+        : activities.length === 0
+          ? "No completed workouts yet."
+          : `${activities.length} recent ${
+              activities.length === 1 ? "activity" : "activities"
+            }`;
 
   return (
     <View style={styles.card}>
@@ -45,57 +51,18 @@ export function ClientActivityCard({
         <Text style={styles.activityIconText}>📊</Text>
       </View>
 
-      <View style={styles.header}>
-        <Text style={styles.title}>Client Activity</Text>
-      </View>
+      <Text style={styles.title}>Client Activity</Text>
+
       <Pressable
-  accessibilityRole="button"
-  accessibilityLabel="View recent activity"
-  onPress={() => setShowAll(true)}
-  style={styles.arrowButton}
->
-  <Text style={styles.arrow}>›</Text>
-</Pressable>
+        accessibilityRole="button"
+        accessibilityLabel="View recent activity"
+        onPress={() => setShowAll(true)}
+        style={styles.arrowButton}
+      >
+        <Text style={styles.arrow}>›</Text>
+      </Pressable>
 
-      {status === "loading" ? (
-        <Text style={styles.muted}>Loading client activity…</Text>
-      ) : status === "error" ? (
-        <Text style={styles.muted}>
-          Client activity could not be loaded.
-        </Text>
-      ) : activities.length === 0 ? (
-        <Text style={styles.muted}>No completed workouts yet.</Text>
-      ) : (
-        activities.map((activity) => (
-          <Pressable
-            key={activity.id}
-            onPress={() => onOpenClient(activity.clientId)}
-            style={({ pressed }) => [
-              styles.row,
-              pressed && styles.pressed,
-            ]}
-          >
-            <ClientAvatar name={activity.clientName} size={40} />
-
-            <View style={styles.info}>
-              <Text style={styles.clientName}>
-                {activity.clientName}
-              </Text>
-
-              <Text style={styles.workoutName}>
-                {activity.workoutName}{" "}
-                {activity.workoutStatus === "ended-early"
-                  ? "ended early"
-                  : "completed"}
-              </Text>
-            </View>
-
-            <Text style={styles.time}>
-              {formatTime(activity.completedAt)}
-            </Text>
-          </Pressable>
-        ))
-      )}
+      <Text style={styles.muted}>{summaryText}</Text>
 
       <Modal
         visible={showAll}
@@ -107,7 +74,7 @@ export function ClientActivityCard({
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                All Client Activity
+                Client Activity
               </Text>
 
               <Pressable
@@ -155,7 +122,10 @@ export function ClientActivityCard({
                       </Text>
 
                       <Text style={styles.workoutName}>
-                        {activity.workoutName} completed
+                        {activity.workoutName}{" "}
+                        {activity.workoutStatus === "ended-early"
+                          ? "ended early"
+                          : "completed"}
                       </Text>
                     </View>
 
@@ -175,16 +145,16 @@ export function ClientActivityCard({
 
 const styles = StyleSheet.create({
   card: {
-  width: "100%",
-  minHeight: 116,
-  position: "relative",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: spacing.md,
-  gap: spacing.xs,
-  backgroundColor: colors.surface,
-  borderRadius: radii.card,
-},
+    width: "100%",
+    minHeight: 116,
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.md,
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+  },
 
   activityIcon: {
     width: 52,
@@ -197,11 +167,6 @@ const styles = StyleSheet.create({
 
   activityIconText: {
     fontSize: 26,
-  },
-
-  header: {
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   title: {
@@ -217,38 +182,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  row: {
-    width: "100%",
-    alignSelf: "stretch",
+  arrowButton: {
+    position: "absolute",
+    right: spacing.md,
+    top: "50%",
+    width: 44,
+    height: 44,
     alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
+    justifyContent: "center",
+    transform: [{ translateY: -22 }],
   },
 
-  pressed: {
-    opacity: 0.7,
-  },
-
-  info: {
-    flex: 1,
-  },
-
-  clientName: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
-
-  workoutName: {
-    color: colors.textMuted,
-    fontSize: typography.label,
-  },
-
-  time: {
-    color: colors.text,
-    fontSize: typography.label,
-    fontWeight: "600",
+  arrow: {
+    color: colors.primaryDark,
+    fontSize: 28,
   },
 
   modalOverlay: {
@@ -297,19 +244,38 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     textAlign: "center",
   },
-  arrowButton: {
-  position: "absolute",
-  right: spacing.md,
-  top: "50%",
-  width: 44,
-  height: 44,
-  alignItems: "center",
-  justifyContent: "center",
-  transform: [{ translateY: -22 }],
-},
 
-arrow: {
-  color: colors.primaryDark,
-  fontSize: 28,
-},
+  row: {
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+
+  pressed: {
+    opacity: 0.7,
+  },
+
+  info: {
+    flex: 1,
+  },
+
+  clientName: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+
+  workoutName: {
+    color: colors.textMuted,
+    fontSize: typography.label,
+  },
+
+  time: {
+    color: colors.text,
+    fontSize: typography.label,
+    fontWeight: "600",
+  },
 });
