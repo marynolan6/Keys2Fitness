@@ -15,11 +15,11 @@ import {
 } from "@/clients/clientStore";
 import { getActiveClients } from "@/clients/mockClients";
 import { ActiveClientsCard } from "@/components/ActiveClientsCard";
+import { ClientActivityCard } from "@/components/ClientActivityCard";
 import {
   NewCoachMessagesWidget,
   RecentMessagesModal,
 } from "@/components/RecentMessageWidgetCoach";
-import { ClientActivityCard } from "@/components/ClientActivityCard";
 import { PendingVideosWidget } from "@/components/PendingVideoWidget";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { useRecentClientActivity } from "@/hooks/useRecentClientActivity";
@@ -51,56 +51,40 @@ export default function CoachHome() {
     <ThemedBackground>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Coach Dashboard</Text>
-        <View style={styles.quickActionsRow}>
-          <PendingVideosWidget
-            onPress={() => router.push("/coach/client_list")}
-          />
 
-          <NewCoachMessagesWidget
-            messages={mockMessages}
-            onPress={() => router.push("/coach/messages")}
-          />
+        <View style={styles.widgetGrid}>
+          <View style={styles.widgetCell}>
+            <PendingVideosWidget
+              onPress={() => router.push("/coach/client_list")}
+            />
+          </View>
+
+          <View style={styles.widgetCell}>
+            <NewCoachMessagesWidget
+              messages={mockMessages}
+              onPress={() => setShowRecentMessages(true)}
+            />
+          </View>
+
+          <View style={styles.widgetCell}>
+            <ActiveClientsCard
+              loadStatus={loadStatus}
+              count={activeClients.length}
+              clients={activeClients}
+              onRetry={reloadCoachClients}
+              onOpenClient={openClientProfile}
+            />
+          </View>
+
+          <View style={styles.widgetCell}>
+            <ClientActivityCard
+              activities={workoutActivities}
+              allActivities={allActivities}
+              status={workoutActivityStatus}
+              onOpenClient={openClientProfile}
+            />
+          </View>
         </View>
-        <ClientActivityCard
-          activities={workoutActivities}
-          allActivities={allActivities}
-          status={workoutActivityStatus}
-          onOpenClient={openClientProfile}
-        />
-
-       <View style={styles.widgetGrid}>
-  <View style={styles.widgetCell}>
-    <PendingVideosWidget
-      onPress={() => router.push("/coach/client_list")}
-    />
-  </View>
-
-  <View style={styles.widgetCell}>
-    <NewCoachMessagesWidget
-      messages={mockMessages}
-      onPress={() => setShowRecentMessages(true)}
-    />
-  </View>
-
-  <View style={styles.widgetCell}>
-    <ActiveClientsCard
-      loadStatus={loadStatus}
-      count={activeClients.length}
-      clients={activeClients}
-      onRetry={reloadCoachClients}
-      onOpenClient={openClientProfile}
-    />
-  </View>
-
-  <View style={styles.widgetCell}>
-    <ClientActivityCard
-      activities={workoutActivities}
-      allActivities={allActivities}
-      status={workoutActivityStatus}
-      onOpenClient={openClientProfile}
-    />
-  </View>
-</View>
 
         <TouchableOpacity
           style={styles.checkInButton}
@@ -137,6 +121,16 @@ const styles = StyleSheet.create({
     marginTop: Platform.OS === "web" ? 48 : 0,
   },
 
+  widgetGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacing.md,
+  },
+
+  widgetCell: {
+    width: "48%",
+  },
 
   checkInButton: {
     minHeight: 48,
@@ -152,14 +146,4 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: "700",
   },
-  widgetGrid: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  rowGap: spacing.md,
-},
-
-widgetCell: {
-  width: "48%",
-},
 });
