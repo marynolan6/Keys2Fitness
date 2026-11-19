@@ -1,696 +1,137 @@
-
-import React, { useMemo, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import NutritionProgress from "./NutritionProgress";
-import { getTotalsForDate } from "../../utils/nutrition";
+import { getTotalsForDate, nutritionDate, nutrients, nutrientLabels, type FoodEntry, type NutritionTargets } from "@/utils/nutrition";
+import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
-import type {
-  FoodEntry,
-  NutritionTotals,
-} from "../../utils/nutrition";
+type FoodForm = { id: string | null; name: string; serving: string; calories: string; protein: string; carbs: string; fats: string; error: string };
+const emptyForm = (): FoodForm => ({ id: null, name: "", serving: "", calories: "", protein: "", carbs: "", fats: "", error: "" });
+const displayDate = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
-// Shared Keys2Fitness theme.
-import { colors, radii, spacing } from "@/theme";
-
-/*
- * K2F-126 and K2F-127
- *
- * This component:
- * - Displays daily nutrition totals.
- * - Shows progress toward nutrition goals.
- * - Allows previous-day navigation.
- * - Adds new food entries.
- * - Edits and deletes existing entries.
- * - Validates nutrition input.
- */
-
-// Data passed down from the main Nutrition screen.
 type Props = {
   entries: FoodEntry[];
-  setEntries: React.Dispatch<React.SetStateAction<FoodEntry[]>>;
-  goals: NutritionTotals;
+  setEntries: Dispatch<SetStateAction<FoodEntry[]>>;
+  goals: NutritionTargets;
+  tip: string;
+  clientName: string;
 };
 
-// Values entered in the food form.
-// Strings are used because TextInput returns text.
-type FoodForm = {
-  name: string;
-  serving: string;
-  calories: string;
-  protein: string;
-  carbs: string;
-  fats: string;
-};
+export default function DailyNutritionSummary({ entries, setEntries, goals, tip, clientName }: Props) {
+  const [selectedDate, setSelectedDate] = useState(nutritionDate);
+  const [form, setForm] = useState<FoodForm | null>(null);
+  const { width, fontScale } = useWindowDimensions();
+  const compact = isCompactLayout(width, fontScale);
+  const totals = useMemo(() => getTotalsForDate(entries, selectedDate), [entries, selectedDate]);
+  const dailyEntries = entries.filter((entry) => entry.date === selectedDate);
+  const today = nutritionDate();
 
-// Empty form used when adding a new food.
-const EMPTY_FORM: FoodForm = {
-  name: "",
-  serving: "",
-  calories: "",
-  protein: "",
-  carbs: "",
-  fats: "",
-};
-
-// Convert a date to YYYY-MM-DD using local time.
-function dateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-// Move forward or backward by a calendar day.
-function moveDate(key: string, amount: number): string {
-  const [year, month, day] = key.split("-").map(Number);
-
-  return dateKey(new Date(year, month - 1, day + amount));
-}
-
-export default function DailyNutritionSummary({
-  entries,
-  setEntries,
-  goals,
-}: Props) {
-  // Track which day's food entries are visible.
-  const [selectedDate, setSelectedDate] = useState(
-    () => dateKey(new Date())
-  );
-
-  // Controls whether the add/edit form is visible.
-  const [showForm, setShowForm] = useState(false);
-
-  // Holds the text entered by the client.
-  const [form, setForm] = useState<FoodForm>(EMPTY_FORM);
-
-  // Holds the ID of the entry being edited.
-  // Null means the client is adding new food.
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  // Displays validation messages under the form.
-  const [error, setError] = useState("");
-
-  const today = dateKey(new Date());
-
-  /*
-   * K2F-177: Show only entries for the selected date.
-   *
-   * When entries or the date change, useMemo
-   * updates the visible food list.
-   */
-  const dailyEntries = useMemo(
-    () => entries.filter((entry) => entry.date === selectedDate),
-    [entries, selectedDate]
-  );
-
-  /*
-   * K2F-175: Calculate the selected day's totals.
-   *
-   * When entries are added, edited, or deleted,
-   * totals are automatically recalculated.
-   */
-  const totals = useMemo(
-    () => getTotalsForDate(entries, selectedDate),
-    [entries, selectedDate]
-  );
-
-  // Convert selected date into readable text.
-  const [year, month, day] = selectedDate.split("-").map(Number);
-
-  const displayDate = new Date(
-    year,
-    month - 1,
-    day
-  ).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  // Update one input field without changing the others.
-  function updateField(field: keyof FoodForm, value: string) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-
-    // Clear the old error while the client corrects an input.
-    setError("");
+  function moveDay(days: number) {
+    setSelectedDate(nutritionDate(-days, new Date(`${selectedDate}T12:00:00`)));
+    setForm(null);
   }
-
-  // Close the form and remove its temporary values.
-  function resetForm() {
-    setForm(EMPTY_FORM);
-    setEditingId(null);
-    setError("");
-    setShowForm(false);
+  function editField(field: keyof Omit<FoodForm, "id" | "error">, value: string) {
+    setForm((current) => current ? { ...current, [field]: value, error: "" } : null);
   }
-
-  // Start adding a new food entry.
-  function openAddForm() {
-    setForm(EMPTY_FORM);
-    setEditingId(null);
-    setError("");
-    setShowForm(true);
-  }
-
-  /*
-   * K2F-159: Edit an existing food entry.
-   *
-   * Copy the selected entry into the form
-   * so the client can change its values.
-   */
-  function startEditing(entry: FoodEntry) {
-    setEditingId(entry.id);
-
-    setForm({
-      name: entry.name,
-      serving: entry.serving ?? "",
-      calories: String(entry.calories),
-      protein: String(entry.protein),
-      carbs: String(entry.carbs),
-      fats: String(entry.fats),
-    });
-
-    setError("");
-    setShowForm(true);
-  }
-
-  /*
-   * K2F-158: Validate the food entry.
-   *
-   * Required fields cannot be empty.
-   * Nutrition values must be numeric and nonnegative.
-   */
   function saveFood() {
-    const name = form.name.trim();
-    const serving = form.serving.trim();
-
-    if (!name || !serving) {
-      setError("Enter a food name and serving size.");
-      return;
-    }
-
-    // Validate all four nutrition values before saving.
-    const fields = [
-      form.calories,
-      form.protein,
-      form.carbs,
-      form.fats,
-    ];
-
-    const valid = fields.every((value) => {
-      const trimmed = value.trim();
-
-      return (
-        trimmed.length > 0 &&
-        Number.isFinite(Number(trimmed)) &&
-        Number(trimmed) >= 0
-      );
-    });
-
-    if (!valid) {
-      setError(
-        "Enter valid numbers greater than or equal to zero."
-      );
-      return;
-    }
-
-    // Convert the validated text into numbers.
-    const nutrition = {
-      calories: Number(form.calories),
-      protein: Number(form.protein),
-      carbs: Number(form.carbs),
-      fats: Number(form.fats),
-    };
-
-    if (editingId !== null) {
-      /*
-       * EDIT: Replace the matching food entry.
-       *
-       * React receives a new array, which causes
-       * the nutrition totals to recalculate.
-       */
-      setEntries((previous) =>
-        previous.map((entry) =>
-          entry.id === editingId
-            ? {
-                ...entry,
-                name,
-                serving,
-                ...nutrition,
-              }
-            : entry
-        )
-      );
-    } else {
-      /*
-       * ADD: Create a new food entry.
-       *
-       * Date = the day the client is currently viewing.
-       */
-      const newEntry: FoodEntry = {
-        id: `${Date.now()}-${Math.random()}`,
-        name,
-        serving,
-        date: selectedDate,
-        ...nutrition,
-      };
-
-      // Add the new entry without removing existing meals.
-      setEntries((previous) => [...previous, newEntry]);
-    }
-
-    // Close and clear the form after saving.
-    resetForm();
+    if (!form) return;
+    const valid = form.name.trim() && form.serving.trim() && nutrients.every((key) =>
+      form[key].trim() !== "" && Number.isFinite(Number(form[key])) && Number(form[key]) >= 0 && Number(form[key]) <= Number.MAX_SAFE_INTEGER);
+    if (!valid) { setForm({ ...form, error: "Enter a food name, serving and nonnegative nutrition values." }); return; }
+    const entry: FoodEntry = { id: form.id ?? `food-${Date.now()}-${Math.random()}`, name: form.name.trim(), serving: form.serving.trim(),
+      date: selectedDate, calories: Number(form.calories), protein: Number(form.protein), carbs: Number(form.carbs), fats: Number(form.fats) };
+    setEntries((current) => form.id ? current.map((item) => item.id === form.id ? entry : item) : [...current, entry]);
+    setForm(null);
   }
 
-  /*
-   * K2F-159: Delete food.
-   *
-   * Filter removes the entry matching the given ID.
-   * Totals then update automatically.
-   */
-  function deleteFood(id: string) {
-    setEntries((previous) =>
-      previous.filter((entry) => entry.id !== id)
-    );
-
-    // Close any form editing the deleted entry.
-    if (editingId === id) {
-      resetForm();
-    }
-  }
-
-  // Move to another day and close an unfinished form.
-  function changeSelectedDay(amount: number) {
-    setSelectedDate((previous) => moveDate(previous, amount));
-    resetForm();
-  }
-
-  return (
-    <View style={styles.container}>
-
-      {/* K2F-177: Previous-day navigation. */}
-      <View style={styles.dateRow}>
-        <Pressable
-          onPress={() => changeSelectedDay(-1)}
-          accessibilityRole="button"
-          accessibilityLabel="Previous day"
-          style={styles.dateButton}
-        >
-          <Text style={styles.arrow}>‹</Text>
-        </Pressable>
-
-        <View style={styles.dateCenter}>
-          <Text style={styles.dateText}>
-            {selectedDate === today ? "Today" : displayDate}
-          </Text>
-
-          {selectedDate !== today && (
-            <Pressable
-              onPress={() => {
-                setSelectedDate(today);
-                resetForm();
-              }}
-            >
-              <Text style={styles.todayLink}>
-                Back to Today
-              </Text>
-            </Pressable>
-          )}
-        </View>
-
-        <Pressable
-          onPress={() => changeSelectedDay(1)}
-          disabled={selectedDate >= today}
-          accessibilityRole="button"
-          accessibilityLabel="Next day"
-          style={styles.dateButton}
-        >
-          <Text
-            style={[
-              styles.arrow,
-              selectedDate >= today && styles.disabled,
-            ]}
-          >
-            ›
-          </Text>
-        </Pressable>
+  return <View style={styles.content}>
+    <View style={styles.dateRow}>
+      <Button label="‹" accessibilityLabel="Previous day" onPress={() => moveDay(-1)} />
+      <View style={styles.dateText}>
+        <Text accessibilityLiveRegion="polite" style={styles.label}>{selectedDate === today ? "Today" : displayDate(selectedDate)}</Text>
+        {selectedDate !== today && <Button label="Back to Today" onPress={() => { setSelectedDate(today); setForm(null); }} />}
       </View>
-
-      {/* K2F-175 and K2F-176: Reuse existing progress cards. */}
-      <NutritionProgress totals={totals} goals={goals} />
-
-      {/* K2F-159: Daily food log. */}
-      <View style={styles.card}>
-        <View style={styles.headerRow}>
-          <Text style={styles.cardTitle}>Food log</Text>
-
-          <Text style={styles.entryCount}>
-            {dailyEntries.length} entries
-          </Text>
-        </View>
-
-        {/* Display an empty message when no food is logged. */}
-        {dailyEntries.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No food logged for this day.
-          </Text>
-        ) : (
-          dailyEntries.map((entry) => (
-            <View key={entry.id} style={styles.foodRow}>
-              <Text style={styles.foodIcon}>🍴</Text>
-
-              <View style={styles.foodDetails}>
-                <Text style={styles.foodName}>{entry.name}</Text>
-
-                <Text style={styles.foodDescription}>
-                  {entry.serving || "Serving not specified"}
-                </Text>
-
-                <Text style={styles.foodDescription}>
-                  P: {entry.protein}g · C: {entry.carbs}g · F: {entry.fats}g
-                </Text>
-
-                <Text style={styles.calories}>
-                  {entry.calories} kcal
-                </Text>
-              </View>
-
-              {/* Edit the selected entry. */}
-              <Pressable
-                onPress={() => startEditing(entry)}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit ${entry.name}`}
-                style={styles.smallButton}
-              >
-                <Text style={styles.editText}>Edit</Text>
-              </Pressable>
-
-              {/* Delete the selected entry. */}
-              <Pressable
-                onPress={() => {
-                  // Confirm deletion before removing the food.
-                  // On web, use an inline delete action because
-                  // Alert.alert is not consistently supported.
-                  deleteFood(entry.id);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${entry.name}`}
-                style={styles.smallButton}
-              >
-                <Text style={styles.deleteText}>Delete</Text>
-              </Pressable>
-            </View>
-          ))
-        )}
-
-        {/* K2F-157: Open the food-entry form. */}
-        {!showForm && (
-          <Pressable
-            style={styles.addButton}
-            onPress={openAddForm}
-            accessibilityRole="button"
-          >
-            <Text style={styles.addText}>+ Add Food</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* K2F-157 and K2F-158: Food-entry form. */}
-      {showForm && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {editingId ? "Edit Food" : "Add Food"}
-          </Text>
-
-          <Text style={styles.formSubtitle}>
-            Logging for {displayDate}
-          </Text>
-
-          {/* Food name. */}
-          <Text style={styles.label}>Food name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Example: Chicken and Rice"
-            value={form.name}
-            onChangeText={(value) => updateField("name", value)}
-          />
-
-          {/* Serving size. */}
-          <Text style={styles.label}>Serving</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Example: 1 plate"
-            value={form.serving}
-            onChangeText={(value) => updateField("serving", value)}
-          />
-
-          {/* Numeric nutrition inputs. */}
-          {(
-            [
-              ["calories", "Calories (kcal)"],
-              ["protein", "Protein (g)"],
-              ["carbs", "Carbs (g)"],
-              ["fats", "Fats (g)"],
-            ] as const
-          ).map(([field, label]) => (
-            <View key={field}>
-              <Text style={styles.label}>{label}</Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="decimal-pad"
-                value={form[field]}
-                onChangeText={(value) =>
-                  updateField(field, value)
-                }
-              />
-            </View>
-          ))}
-
-          {/* Explain invalid input without adding the entry. */}
-          {error !== "" && (
-            <Text style={styles.errorText}>{error}</Text>
-          )}
-
-          <Pressable
-            style={styles.addButton}
-            onPress={saveFood}
-            accessibilityRole="button"
-          >
-            <Text style={styles.addText}>
-              {editingId ? "Save Changes" : "Save Food"}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={resetForm}
-            style={styles.cancelButton}
-            accessibilityRole="button"
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        </View>
-      )}
+      <Button label="›" accessibilityLabel="Next day" disabled={selectedDate >= today} onPress={() => moveDay(1)} />
     </View>
-  );
+
+    <NutritionProgress totals={totals} goals={goals} />
+    <View style={styles.card}>
+      <Text accessibilityRole="header" style={styles.title}>Coach nutrition tips</Text>
+      <Text style={styles.caption}>Current plan for {clientName}</Text>
+      <Text style={styles.body}>{tip.trim() || "No coach tips for this plan yet."}</Text>
+    </View>
+
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text accessibilityRole="header" style={styles.title}>Food log</Text>
+        <Text style={styles.caption}>{dailyEntries.length} {dailyEntries.length === 1 ? "entry" : "entries"}</Text>
+      </View>
+      {!dailyEntries.length && <Text style={styles.caption}>No food logged for this day.</Text>}
+      {dailyEntries.map((entry) => <View key={entry.id} style={[styles.food, compact && styles.stacked]}>
+        <View style={styles.foodText}>
+          <Text style={styles.label}>{entry.name}</Text>
+          <Text style={styles.caption}>{entry.serving || "Serving not specified"} · {entry.calories} kcal</Text>
+          <Text style={styles.caption}>Protein {entry.protein} g · Carbs {entry.carbs} g · Fat {entry.fats} g</Text>
+        </View>
+        <View style={styles.actions}>
+          <Button label="Edit" accessibilityLabel={`Edit ${entry.name}`} onPress={() => setForm({ id: entry.id, name: entry.name, serving: entry.serving ?? "",
+            calories: String(entry.calories), protein: String(entry.protein), carbs: String(entry.carbs), fats: String(entry.fats), error: "" })} />
+          <Button label="Delete" accessibilityLabel={`Delete ${entry.name}`} onPress={() => {
+            setEntries((current) => current.filter((item) => item.id !== entry.id));
+            if (form?.id === entry.id) setForm(null);
+          }} />
+        </View>
+      </View>)}
+      {!form && <Button label="Add food" primary onPress={() => setForm(emptyForm())} />}
+    </View>
+
+    {form && <View style={styles.card}>
+      <Text accessibilityRole="header" style={styles.title}>{form.id ? "Edit food" : "Add food"}</Text>
+      <Text style={styles.caption}>Logging for {displayDate(selectedDate)}</Text>
+      {([ ["name", "Food name"], ["serving", "Serving"], ...nutrients.map((key) => [key, `${nutrientLabels[key].label} (${nutrientLabels[key].unit})`] as const) ] as const).map(([field, label]) =>
+        <View key={field} style={styles.field}>
+          <Text style={styles.label}>{label}</Text>
+          <TextInput accessibilityLabel={label} value={form[field]} placeholderTextColor={colors.textMuted}
+            keyboardType={field === "name" || field === "serving" ? "default" : "decimal-pad"}
+            onChangeText={(value) => editField(field, value)} style={styles.input} />
+        </View>)}
+      {!!form.error && <Text accessibilityRole="alert" style={styles.error}>{form.error}</Text>}
+      <Button label={form.id ? "Save changes" : "Save food"} primary onPress={saveFood} />
+      <Button label="Cancel" onPress={() => setForm(null)} />
+    </View>}
+  </View>;
 }
 
-/*
- * STYLING
- *
- * Uses the Keys2Fitness theme and rounded Figma cards.
- */
+function Button({ label, accessibilityLabel = label, onPress, disabled, primary }: {
+  label: string; accessibilityLabel?: string; onPress: () => void; disabled?: boolean; primary?: boolean;
+}) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled: !!disabled }}
+    disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, primary && styles.primary, disabled && styles.disabled, pressed && styles.pressed]}>
+    <Text style={[styles.buttonText, primary && styles.primaryText]}>{label}</Text>
+  </Pressable>;
+}
+
 const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
-
-  dateRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-  },
-
-  dateButton: {
-    minWidth: 48,
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dateCenter: {
-    alignItems: "center",
-  },
-
-  arrow: {
-    fontSize: 32,
-    color: colors.primaryDark,
-  },
-
-  disabled: {
-    color: "#AABBC7",
-  },
-
-  dateText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
-  },
-
-  todayLink: {
-    marginTop: 5,
-    color: colors.primaryDark,
-    fontWeight: "600",
-  },
-
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: 20,
-    gap: 12,
-  },
-
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  cardTitle: {
-    fontSize: 23,
-    color: colors.text,
-    fontWeight: "500",
-  },
-
-  entryCount: {
-    color: colors.primaryDark,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-  foodRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-
-  foodIcon: {
-    fontSize: 20,
-  },
-
-  foodDetails: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  foodName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.text,
-  },
-
-  foodDescription: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 3,
-  },
-
-  calories: {
-    fontSize: 13,
-    color: colors.text,
-    marginTop: 4,
-  },
-
-  smallButton: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 5,
-  },
-
-  editText: {
-    color: colors.primaryDark,
-    fontWeight: "700",
-    fontSize: 12,
-  },
-
-  deleteText: {
-    color: colors.danger,
-    fontWeight: "700",
-    fontSize: 12,
-  },
-
-  emptyText: {
-    color: colors.textMuted,
-    marginVertical: 12,
-  },
-
-  addButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 8,
-  },
-
-  addText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-
-  formSubtitle: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.text,
-    marginTop: 8,
-  },
-
-  input: {
-    backgroundColor: "#F7FAFC",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-
-  errorText: {
-    color: colors.danger,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  cancelButton: {
-    padding: 12,
-    alignItems: "center",
-  },
-
-  cancelText: {
-    color: colors.textMuted,
-    fontWeight: "600",
-  },
+  content: { gap: spacing.md },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md, gap: spacing.sm },
+  title: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
+  label: { color: colors.text, fontSize: typography.body, fontWeight: "600" },
+  caption: { color: colors.textMuted, fontSize: typography.label },
+  body: { color: colors.text, fontSize: typography.body, lineHeight: typography.bodyLineHeight },
+  header: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  dateText: { flex: 1, alignItems: "center" },
+  food: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  foodText: { flex: 1, gap: spacing.xs, minWidth: 0 },
+  stacked: { flexDirection: "column", alignItems: "stretch" },
+  actions: { flexDirection: "row", gap: spacing.sm },
+  field: { gap: spacing.xs },
+  input: { color: colors.text, backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: radii.control,
+    fontSize: typography.body, padding: spacing.sm, minHeight: layout.minTouchTarget },
+  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", alignItems: "center", padding: spacing.sm, borderRadius: radii.control },
+  buttonText: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "600", textAlign: "center" },
+  primary: { backgroundColor: colors.primaryDark },
+  primaryText: { color: colors.surface },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.7 },
+  error: { color: colors.danger, fontSize: typography.label },
 });

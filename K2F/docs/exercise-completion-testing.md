@@ -1,5 +1,7 @@
 # K2F-31 — Exercise completion (K2F-163–165)
 
+For the current pinned indicator, set-derived progress and completion boundary rules, see [K2F-47 acceptance verification](nutrition-and-workout-progress.md#k2f-47--workout-completion-progress). The observed results below describe the earlier implementation at its original verification time.
+
 Exercise checkboxes update local workout state immediately. Completed cards have
 an explicit Completed label and themed accent; other cards say Not complete.
 The progress summary reports completed and remaining counts. All exercises

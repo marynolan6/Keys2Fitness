@@ -47,7 +47,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:workouts": "node --test tests/workout-*.test.mjs tests/set-performance.test.mjs",
-    "test:progress": "node --test tests/weight-chart.test.mjs"
+    "test:progress": "node --test tests/weight-chart.test.mjs",
+    "test:nutrition": "node --test tests/nutrition.test.mjs"
   },
   "private": true
 }

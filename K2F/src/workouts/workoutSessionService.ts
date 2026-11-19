@@ -10,7 +10,7 @@ export type WorkoutTimerAction = "start" | "pause" | "resume" | "end" | "finish"
 export type WorkoutSessionService = ReturnType<typeof createWorkoutSessionService>;
 
 export function createNewWorkoutSession(workout: AssignedWorkout): WorkoutSession {
-  return { workoutId: workout.id, exercises: workout.exercises.map(initializeSetPerformance), timer: { ...initialWorkoutTimer } };
+  return { workoutId: workout.id, exercises: workout.exercises.map(resetSetPerformance), timer: { ...initialWorkoutTimer } };
 }
 
 export function createWorkoutSessionService(repository: WorkoutSessionRepository, now = Date.now, context: {
