@@ -3,6 +3,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExerciseSetEntries } from "@/components/ExerciseSetEntries";
 import { RecordedSets } from "@/components/RecordedSets";
+import { WorkoutProgressIndicator } from "@/components/WorkoutProgressIndicator";
+import type { getWorkoutProgress } from "@/workouts/workoutProgress";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import type { WorkoutExercise } from "@/workouts/workout";
 import type { PerformanceField } from "@/workouts/setPerformance";
@@ -13,6 +15,7 @@ type Props = {
   exercise: WorkoutExercise | null;
   disabled: boolean;
   status: WorkoutTimer["status"];
+  progress: ReturnType<typeof getWorkoutProgress>;
   onClose: () => void;
   onChange: (setId: string, field: PerformanceField, value: string) => void;
   onAdd: () => void;
@@ -21,7 +24,7 @@ type Props = {
   onFillTargets: (setId: string) => void;
 };
 
-export function ExerciseSetsModal({ exercise, disabled, status, onClose, ...actions }: Props) {
+export function ExerciseSetsModal({ exercise, disabled, status, progress, onClose, ...actions }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <Modal transparent visible={exercise !== null} animationType="slide" onRequestClose={onClose}>
@@ -35,6 +38,7 @@ export function ExerciseSetsModal({ exercise, disabled, status, onClose, ...acti
               <Text style={styles.closeText}>Close</Text>
             </Pressable>
           </View>
+          <WorkoutProgressIndicator progress={progress} />
           {exercise && <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={styles.title}>{exercise.name}</Text>
             <View style={styles.prescription}>

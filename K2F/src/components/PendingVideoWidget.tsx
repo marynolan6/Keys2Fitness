@@ -65,6 +65,8 @@ iconCircle: {
   backgroundColor: colors.surfaceMuted,
 },
 
+icon: { color: colors.primaryDark, fontSize: typography.heading },
+
 title: {
   color: colors.text,
   fontSize: typography.body,

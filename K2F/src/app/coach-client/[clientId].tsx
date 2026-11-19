@@ -23,6 +23,7 @@ import { K2FBrand } from "@/components/K2FBrand";
 // K2F-153: Get the selected client's information
 import { getClientById } from "@/clients/mockClients";
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { BuilderButton } from "@/components/WorkoutBuilderControls";
 
 // K2F-238: Create an individual client profile screen for the coach
 export default function ClientProfile() {
@@ -167,6 +168,10 @@ export default function ClientProfile() {
         {/* K2F-240: Navigation to related client information */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Client Details</Text>
+
+          <BuilderButton label="Nutrition targets and tips" secondary onPress={() => router.push({
+            pathname: "/coach-client/[clientId]/nutrition", params: { clientId: String(clientId) },
+          })} />
 
           {/* Button for viewing the selected client's workouts */}
           <TouchableOpacity

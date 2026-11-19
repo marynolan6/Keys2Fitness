@@ -7,26 +7,26 @@ import { spacing } from "@/theme";
 import { useWorkoutLibraryState } from "@/workouts/workoutLibraryStore";
 import { useWorkoutPreview } from "@/hooks/useWorkoutPreview";
 
-export function DemoWorkoutClientPicker() {
+export function DemoWorkoutClientPicker({ context = "workout" }: { context?: "workout" | "nutrition" }) {
   const state = useWorkoutLibraryState();
   const { clients, loadStatus } = useCoachClientsState();
   const insets = useSafeAreaInsets();
   const preview = useWorkoutPreview();
   const { busy } = preview;
-  if (state.status !== "ready" || !state.data.assignments.length) return null;
+  if (state.status !== "ready" || (context === "workout" && !state.data.assignments.length)) return null;
   const selected = clients.find((client) => client.id === state.data.previewClientId);
   return <View style={styles.card}>
-    <Text style={styles.muted}>Demo workout client: {selected?.name ?? state.data.previewClientId}</Text>
-    <BuilderButton label="Change demo workout client" secondary onPress={() => preview.dispatch({ type: "open" })} />
+    <Text style={styles.muted}>Demo {context} client: {selected?.name ?? state.data.previewClientId}</Text>
+    <BuilderButton label={`Change demo ${context} client`} secondary onPress={() => preview.dispatch({ type: "open" })} />
     <Modal visible={preview.visible} transparent animationType="fade" onRequestClose={() => preview.dispatch({ type: "close" })}>
       <View style={[styles.overlay, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
         <View accessibilityViewIsModal style={styles.modal}>
-          <Text style={styles.heading}>Demo workout preview</Text>
-          <Text style={styles.muted}>This previews the client&apos;s greeting and workout assignments. It does not switch your signed-in account.</Text>
+          <Text style={styles.heading}>Demo {context} preview</Text>
+          <Text style={styles.muted}>Preview this client&apos;s {context === "nutrition" ? "nutrition plan and food log" : "greeting and workout assignments"}. This does not switch your signed-in account.</Text>
           <ScrollView contentContainerStyle={styles.field}>
             {loadStatus !== "ready" && <Text style={styles.error}>Demo clients are not available right now.</Text>}
             {loadStatus === "ready" && clients.map((client) => <Pressable key={client.id} accessibilityRole="radio"
-              accessibilityLabel={`Preview workouts for ${client.name}`} accessibilityState={{ selected: client.id === state.data.previewClientId, disabled: busy }}
+              accessibilityLabel={`Preview ${context === "nutrition" ? "nutrition" : "workouts"} for ${client.name}`} accessibilityState={{ selected: client.id === state.data.previewClientId, disabled: busy }}
               disabled={busy} onPress={() => { void preview.choose(client.id); }} style={({ pressed }) => [styles.catalogRow, pressed && styles.pressed]}>
               <Text style={styles.label}>{client.name}</Text>
             </Pressable>)}

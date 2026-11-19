@@ -6,6 +6,7 @@ import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
 import { RecordedSets } from "@/components/RecordedSets";
 import { CoachNoteButton, CoachNoteSheet } from "@/components/CoachNoteSheet";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
+import { WorkoutProgressIndicator } from "@/components/WorkoutProgressIndicator";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -88,7 +89,6 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
       timer.status === "ready" ? undefined : formatWorkoutTime(elapsedWorkoutTime(timer, now)),
       `${summary.completed} of ${countLabel(summary.total, "exercise")} complete`,
     ].filter(Boolean).join(" · ");
-    const progress = summary.percentage;
     const workoutStatus = getWorkoutCardLabels(workout, { workoutId: workout.id, exercises, timer, outcome }).status;
 
 if (isLoadingSession) {
@@ -118,6 +118,7 @@ if (sessionLoadFailed) {
 
 return (
     <ThemedBackground>
+      <View style={styles.pinnedProgress}><WorkoutProgressIndicator progress={summary} /></View>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         contentContainerStyle={[styles.content, coachNote && styles.contentWithNoteButton]}
@@ -137,28 +138,6 @@ return (
           <Text style={[styles.subtitle, styles.subtitleText]}>
             {[workoutStatus, workout.scheduleLabel].filter(Boolean).join(" · ")}
           </Text>
-        </View>
-
-        <View style={styles.headerProgress}>
-          <View style={styles.rowBetween}>
-            <Text accessibilityLiveRegion="polite" style={styles.headerProgressSummary}>
-              {summary.total === 0
-                ? "No exercises assigned"
-                : `${summary.completed} of ${countLabel(summary.total, "exercise")} complete · ${summary.remaining} remaining`}
-            </Text>
-            <Text style={styles.progressText}>{progress}%</Text>
-          </View>
-          {summary.isComplete && (
-            <Text style={styles.headerProgressSummary}>All exercises complete</Text>
-          )}
-          <View
-            accessibilityRole="progressbar"
-            accessibilityLabel="Workout progress"
-            accessibilityValue={{ min: 0, max: 100, now: progress }}
-            style={styles.progressTrack}
-          >
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
         </View>
 
         {coachNote && (
@@ -296,6 +275,7 @@ return (
       <ExerciseSetsModal
         exercise={overlay?.kind === "sets" ? selectedExercise : null}
         status={timer.status}
+        progress={summary}
         disabled={sessionDisabled}
         onClose={() => setOverlay(null)}
         onChange={(setId, field, value) => {
@@ -346,6 +326,7 @@ return (
 }
 
 const styles = StyleSheet.create({
+  pinnedProgress: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   screen: { flex: 1 },
   timerRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   timerRowCompact: { flexDirection: "column", alignItems: "stretch", gap: spacing.sm },
@@ -432,28 +413,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 0,
   },
-  headerProgress: { gap: spacing.sm, marginBottom: spacing.md },
-  headerProgressSummary: { color: colors.textMuted, fontSize: typography.caption, flex: 1, marginRight: spacing.sm },
   rowBetween: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  progressText: {
-    color: colors.primaryDark,
-    fontSize: typography.caption,
-    fontWeight: "700",
-  },
-  progressTrack: {
-    backgroundColor: colors.progressTrack,
-    borderRadius: radii.control,
-    height: spacing.sm,
-    overflow: "hidden",
-  },
-  progressFill: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
-    height: "100%",
   },
   exerciseCard: {
     backgroundColor: colors.surface,

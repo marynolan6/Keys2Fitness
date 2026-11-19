@@ -14,6 +14,8 @@ These PNGs are captures of the running Android app in Expo Go, using the project
 | `client-home.png` | Compact brand header and a single dated assignment list |
 | `weight-progress-chart.png` | K2F-129: six sample check-ins on Client Progress with All time selected (390 × 844 dp) |
 | `workout-history-empty.png`, `workout-history-list.png` | Empty and populated workout history cards, cropped from the 390 dp Android view using temporary demo records |
+| `nutrition-targets.png` | K2F-125: Alex's assigned daily targets and same-day intake (390 dp) |
+| `workout-progress.png` | K2F-47: progress remains pinned while scrolling through a two-exercise demo session (390 dp) |
 
 The original six captures are from `e97c283` at 1080 × 2400 and normal font scale. The login and Home previews are from the K2F-34 branch at 390 × 844 dp and normal font scale. On Home, the two entries with the same plan name have different assignment dates. Workout data is local, and messages are sample/local UI data.
 

@@ -26,6 +26,29 @@ export type NutritionTotals = {
   fats: number;
 };
 
+export const nutrients = ["calories", "protein", "carbs", "fats"] as const;
+export type Nutrient = (typeof nutrients)[number];
+// Missing is different from an explicit zero target.
+export type NutritionTargets = Record<Nutrient, number | null>;
+export const nutrientLabels: Record<Nutrient, { label: string; unit: string }> = {
+  calories: { label: "Calories", unit: "kcal" },
+  protein: { label: "Protein", unit: "g" },
+  carbs: { label: "Carbohydrates", unit: "g" },
+  fats: { label: "Fat", unit: "g" },
+};
+
+export function compareNutrition(current: number, target: number | null) {
+  if (target === null) return { status: "unassigned" as const, percent: null, remaining: null };
+  if (target === 0) return { status: "zero-target" as const, percent: null, remaining: -current };
+  return { status: "assigned" as const, percent: Math.min(100, Math.max(0, current / target * 100)), remaining: target - current };
+}
+
+export function nutritionDate(daysAgo = 0, now = new Date()): string {
+  const date = new Date(now);
+  date.setDate(date.getDate() - daysAgo);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 // Starts every total at zero.
 export const EMPTY_TOTALS: NutritionTotals = {
   calories: 0,
