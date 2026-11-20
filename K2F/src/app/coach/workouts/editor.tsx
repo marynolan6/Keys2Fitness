@@ -30,7 +30,8 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
   const compact = isCompactLayout(width, fontScale);
   const wideControls = !compact && width >= layout.maxContentWidth;
   const editor = useWorkoutEditor({ template, initialClientId, availableClientIds: clients.map((client) => client.id),
-    onSaved: (result) => router.replace({ pathname: "/coach/workouts", params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? "" } }) });
+    onSaved: (result) => router.dismissTo({ pathname: "/coach/workouts",
+      params: { saved: String(Date.now()), clientId: result.assignments[0]?.clientId ?? initialClientId ?? "" } }) });
   const { draft, selectedClients, reusable, picker, errors, feedback, saving: savingNow, editExercise, setSelectedClients } = editor;
   const saving = savingNow || editor.reviewClients !== null;
 

@@ -60,7 +60,7 @@ def main(base_url):
     scroll_to("Assign workout · 1 selected")
     tap("Assign workout · 1 selected")
     tap("Confirm assignment")
-    wait_for("Workout Template Library")
+    wait_for("Workout Library")
     scroll_to("Assigned to Alex Morgan")
     route("coach-client/2/workouts")
     scroll_to(title)
@@ -81,8 +81,12 @@ def main(base_url):
     print("PASS: assignment appears for Alex and not Spencer", flush=True)
 
     route("coach/workouts?clientId=2")
-    fill("Search workout templates", title)
-    tap("Select " + title)
+    fill("Search workouts and templates", title)
+    tap("View template details for " + title)
+    wait_for("Edit template")
+    adb("shell", "input", "keyevent", "4")
+    assert scroll_to("Search workouts and templates", editable=True).get("text") == title
+    tap("Select " + title + " for assignment")
     tap("Assign workout · 1 selected")
     wait_for("Workout: " + title)
     tap("Cancel assignment")
