@@ -12,7 +12,7 @@ def run(args):
     exercise_note = "Architecture smoke exercise note. Keep feet planted."
     route = lambda path: open_route(path, args.base_url)
     route("coach/workouts")
-    fill("Search workout templates", args.source)
+    fill("Search workouts and templates", args.source)
     tap("Duplicate " + args.source)
     tap("Edit " + args.source[:93] + " (copy)")
     wait_for("Edit Workout")
@@ -24,8 +24,8 @@ def run(args):
         tap_node(client)
     tap("Assign workout · 1 selected")
     tap("Confirm assignment")
-    wait_for("Workout Template Library")
-    fill("Search workout templates", title)
+    wait_for("Workout Library")
+    fill("Search workouts and templates", title)
     tap("Preview assigned client workout")
     wait_for("Demo workout client: Alex Morgan")
     tap("View workout →")
@@ -80,7 +80,7 @@ def run(args):
     print("PASS: reducer transitions preserve completion across pause/resume/end", flush=True)
 
     route("coach/workouts")
-    fill("Search workout templates", title)
+    fill("Search workouts and templates", title)
     tap("Delete " + title)
     wait_for("Delete Workout Template?")
     tap("Delete template")

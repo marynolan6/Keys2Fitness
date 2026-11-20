@@ -6,5 +6,6 @@ export default function CoachWorkoutsLayout() {
     headerTintColor: colors.primaryDark, headerShadowVisible: false }}>
     <Stack.Screen name="index" options={{ headerShown: false }} />
     <Stack.Screen name="editor" options={{ title: "Workout builder" }} />
+    <Stack.Screen name="details/[kind]/[itemId]" options={{ headerShown: false }} />
   </Stack>;
 }

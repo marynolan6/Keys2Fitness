@@ -48,8 +48,8 @@ def create(title):
     fill("Weight (lb) for Plank", "")
     fill("Instructions for Plank", "")
     tap("Save template")
-    wait_for("Workout Template Library")
-    fill("Search workout templates", title)
+    wait_for("Workout Library")
+    fill("Search workouts and templates", title)
     tap("Edit " + title)
     for label, expected in [("Sets for Bench Press", "4"), ("Reps for Bench Press", "12"),
                             ("Weight (lb) for Bench Press", "142.5"), ("Rest (seconds) for Bench Press", "120"),
@@ -59,7 +59,7 @@ def create(title):
     tap("Assign to Spencer")
     tap("Assign workout · 2 selected")
     tap("Confirm assignment")
-    wait_for("Workout Template Library")
+    wait_for("Workout Library")
     print("PASS: inline rest validation, all prescription fields reload, optional fields save, two-client assignment", flush=True)
 
 
