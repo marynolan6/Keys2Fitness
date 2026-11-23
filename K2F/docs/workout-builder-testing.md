@@ -1,5 +1,7 @@
 # Coach workout library and builder — local prototype
 
+For the combined template/assigned-workout library and current acceptance checks, see [K2F-35 workout library verification](workout-library-testing.md).
+
 ## Entry points and workflow
 
 - Coach **+ → Workout Library** replaces the menu's Client List shortcut. Client List remains one of the four main tabs.

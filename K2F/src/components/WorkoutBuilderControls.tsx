@@ -8,11 +8,12 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import { exerciseCatalog } from "@/workouts/exerciseCatalog";
 
-export function BuilderButton({ label, onPress, secondary = false, danger = false, disabled = false, accessibilityLabel }: {
-  label: string; onPress: () => void; secondary?: boolean; danger?: boolean; disabled?: boolean; accessibilityLabel?: string;
+export function BuilderButton({ label, onPress, secondary = false, danger = false, disabled = false, accessibilityLabel, selected }: {
+  label: string; onPress: () => void; secondary?: boolean; danger?: boolean; disabled?: boolean;
+  accessibilityLabel?: string; selected?: boolean;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} disabled={disabled}
-    accessibilityState={{ disabled }} onPress={onPress}
+    accessibilityState={{ disabled, selected }} onPress={onPress}
     style={({ pressed }) => [builderStyles.button, secondary && builderStyles.secondary,
       danger && builderStyles.danger, pressed && builderStyles.pressed, disabled && builderStyles.disabled]}>
     <Text style={[builderStyles.buttonText, secondary && builderStyles.secondaryText]}>{label}</Text>

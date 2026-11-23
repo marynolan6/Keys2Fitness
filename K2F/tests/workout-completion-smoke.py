@@ -41,7 +41,7 @@ def main(base_url):
     if client.get("checked") != "true": tap_node(client)
     tap("Assign workout · 1 selected")
     tap("Confirm assignment")
-    wait_for("Workout Template Library")
+    wait_for("Workout Library")
     tap("Preview assigned client workout")
     route("client/progress")
     baseline = completed_count()
