@@ -23,6 +23,19 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+## Required workflow for every code change
+
+Whenever you write or modify code (including one-line fixes, tests, scripts, and executable config), use **all three** without waiting for the developer to ask. Invoke each native skill when available; otherwise **read and apply its linked local file** at the indicated step. Paths below are relative to this file. If neither route works, report the blocker instead of silently skipping a skill.
+
+- **Before editing — [Ponytail](.clinerules/02-ponytail.md):** trace the affected flow and identify the smallest complete change using existing code. An active Ponytail plugin or workspace rule supplies this rubric.
+- **Before adding code — [pstack: Subtract Before You Add](docs/agent-skills/principle-subtract-before-you-add/SKILL.md):** check whether removing duplication, a redundant branch, or unused indirection in scope solves the problem first. No deletion is required when nothing can safely be removed.
+- **After editing — [Thermo-Nuclear Code Quality Review](docs/agent-skills/thermo-nuclear-code-quality-review/SKILL.md):** apply the following two passes to the task’s full diff, including new files, affected callers and tests. Keep each pass brief for small changes.
+
+1. **Simplify the implementation.** Look for duplicated decisions, wrappers with no useful contract, and state that can be derived instead of synchronized. Fix concrete, in-scope findings. Preserve validation, accessibility, persistence guarantees, and coverage; fewer lines alone are not a reason to change working code.
+2. **Review the final diff again.** Trace the changed behavior, including failure paths. Check that each simplification removed complexity rather than moving it elsewhere. Run the required checks against the final version.
+
+If pass two leads to more code changes, do one focused follow-up on those edits and rerun affected checks. Stop when there are no material findings; report unresolved issues rather than cycling through cosmetic edits. In the handoff, identify each skill used (native or file), the concrete simplification or reason for retaining the code, and actual verification results. Respect review-only requests. Prose-only changes need a diff check; small code changes still use all three skills.
+
 ## Theme & Design
 
 - **Required for every new or modified screen/component:** use tokens from `src/theme.ts` (`@/theme`) for color, gradient, spacing, radii, typography, touch targets, and layout breakpoints. Do not hardcode colors or duplicate theme values in UI styles. Add genuinely reusable tokens to the shared theme; review impact on all consumers when changing existing tokens.

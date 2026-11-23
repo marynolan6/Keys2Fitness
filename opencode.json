@@ -1,0 +1,6 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@dietrichgebert/ponytail@5.3.3"],
+  "skills": { "paths": ["K2F/docs/agent-skills"] },
+  "instructions": ["K2F/AGENTS.md"]
+}
