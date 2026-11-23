@@ -11,10 +11,12 @@ import {
 // Use the existing Keys2Fitness theme for consistent styling
 import { colors, radii, spacing, typography, layout } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // K2F-240: Coach can view progress information for a selected client
 export default function ClientProgress() {
+  const insets = useSafeAreaInsets();
 
   // Read the client ID passed through the navigation route
     // Read the client ID and where the coach came from
@@ -28,8 +30,9 @@ export default function ClientProgress() {
     {/* Allows the coach to scroll on smaller mobile screens */}
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
     >
+      <K2FBrand coach />
 
       {/* Back button returns to the individual client profile or the previous screen */}
       <TouchableOpacity
@@ -56,8 +59,7 @@ export default function ClientProgress() {
       </TouchableOpacity>
 
       {/* Main heading of the progress screen */}
-      <K2FBrand coach />
-      <Text style={styles.heading}>Client Progress</Text>
+      <PageTitle style={styles.heading}>Client Progress</PageTitle>
 
       {/* Displays the ID of the selected client */}
       <Text style={styles.subtitle}>Client ID: {clientId}</Text>

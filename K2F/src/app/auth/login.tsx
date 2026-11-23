@@ -1,16 +1,15 @@
-// Login screen for Keys2Fitness app
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useRef, useState, type ComponentRef } from "react";
 import {
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { AuthFormScreen, authFormStyles as styles } from "@/components/AuthFormScreen";
+import { PageTitle } from "@/components/K2FBrand";
 
 import DoorOpeningIntro from "../../components/DoorOpeningIntro";
 import { colors } from "@/theme";
@@ -35,7 +34,6 @@ export default function LoginScreen() {
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Controls the opening door animation
   const [showIntro, setShowIntro] = useState(true);
 
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -64,7 +62,6 @@ export default function LoginScreen() {
       [field]: true,
     }));
 
-  // Firebase login
   const handleSubmit = async () => {
     setSubmitAttempted(true);
     setAuthError("");
@@ -80,23 +77,8 @@ export default function LoginScreen() {
         fields.password
       );
 
-      const userId = credential.user.uid;
-
-      const profileSnapshot = await getDoc(
-        doc(db, "users", userId)
-      );
-
-      const role = profileSnapshot.data()?.role;
-
-      console.log("Logged-in Firebase user:", userId);
-      console.log("User role:", role);
-
-      // Navigate based on user role
-      if (role === "coach") {
-        router.replace("/coach");
-      } else {
-        router.replace("/client/home");
-      }
+      const profile = await getDoc(doc(db, "users", credential.user.uid));
+      router.replace(profile.data()?.role === "coach" ? "/coach" : "/client/home");
     } catch (loginError: unknown) {
       if (
         loginError &&
@@ -129,11 +111,9 @@ export default function LoginScreen() {
   };
 
   return (
-    <AuthFormScreen overlay={showIntro && <View style={StyleSheet.absoluteFill}>
-      <DoorOpeningIntro onComplete={() => setShowIntro(false)} />
-    </View>}>
-      <Text accessibilityRole="header" style={styles.title}>Log in</Text>
-      <Text style={styles.subtitle}>Pick up where you left off.</Text>
+    <AuthFormScreen overlay={showIntro && <DoorOpeningIntro onComplete={() => setShowIntro(false)} />}>
+      <PageTitle style={styles.title}>Log in</PageTitle>
+      <Text style={styles.subtitle}>Use your Keys2Fitness email and password.</Text>
 
       {submitAttempted && hasErrors && <View style={styles.formError} accessibilityRole="alert">
         <Text style={styles.formErrorText}>Please fix the highlighted fields to log in.</Text>

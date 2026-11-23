@@ -9,6 +9,11 @@ import { getClientWorkoutHistory } from "./workoutHistory";
 export type WorkoutTimerAction = "start" | "pause" | "resume" | "end" | "finish";
 export type WorkoutSessionService = ReturnType<typeof createWorkoutSessionService>;
 
+export type WorkoutActivity = {
+  id: string; clientId: string; clientName: string; workoutName: string; completedAt: number;
+  workoutStatus: "completed" | "ended-early";
+};
+
 export function createNewWorkoutSession(workout: AssignedWorkout): WorkoutSession {
   return { workoutId: workout.id, exercises: workout.exercises.map(resetSetPerformance), timer: { ...initialWorkoutTimer } };
 }
@@ -61,7 +66,21 @@ export function createWorkoutSessionService(repository: WorkoutSessionRepository
     return next;
   }
 
-  return { openWorkout, changeSession,
+  async function listRecentClientActivity(clients: readonly { id: string; name: string }[]): Promise<WorkoutActivity[]> {
+    if (!clients.length) return [];
+    const names = new Map(clients.map(({ id, name }) => [id, name]));
+    const entries = await repository.listWorkoutHistory([...names.keys()]);
+    const through = now();
+    const since = through - 7 * 24 * 60 * 60 * 1000;
+    return entries.flatMap(({ id, clientId, title, session }) => {
+      const clientName = names.get(clientId);
+      if (clientName === undefined || session.timer.status !== "ended" || session.finishedAt < since || session.finishedAt > through) return [];
+      return [{ id: JSON.stringify([clientId, session.workoutId, id]), clientId, clientName,
+        workoutName: title.trim() || "Workout", completedAt: session.finishedAt, workoutStatus: session.outcome }];
+    }).sort((a, b) => b.completedAt - a.completedAt || a.id.localeCompare(b.id));
+  }
+
+  return { openWorkout, changeSession, listRecentClientActivity,
     checkpoint: (session: WorkoutSession) => repository.saveWorkoutSession(session),
     findActiveWorkout: (isAvailable?: (id: string) => boolean) => repository.loadActiveWorkoutSession(isAvailable),
     listHistory: async (clientId: string) => getClientWorkoutHistory(await repository.listWorkoutHistory(clientId), clientId),

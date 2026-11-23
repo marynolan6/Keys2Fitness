@@ -1,12 +1,4 @@
-import { registerHooks } from "node:module";
-
-// Match Metro's extensionless TypeScript resolution in Node's strip-types runner.
-export function registerWorkoutTypes() {
-  return registerHooks({ resolve(specifier, context, next) {
-    return next(context.parentURL?.includes("/src/workouts/") && specifier.startsWith(".") && !/\.[a-z]+$/.test(specifier)
-      ? specifier + ".ts" : specifier, context);
-  } });
-}
+export { registerSourceTypes as registerWorkoutTypes } from "./source-types.mjs";
 
 export function memoryStorage() {
   const entries = new Map();

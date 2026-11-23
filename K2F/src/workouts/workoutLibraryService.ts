@@ -58,7 +58,7 @@ export function createWorkoutLibraryService(repository: WorkoutLibraryRepository
     // Assignment accepts finished, valid plans, never incomplete drafts.
     templateFromDraft(draftFromTemplate(template), template.id, template.updatedAt);
     const assignments = selected.map((id) => assignmentFromTemplate(template, id, makeId("assigned"), now(), author));
-    await repository.saveWorkoutPlan({ assignments, existingTemplateId: template.id });
+    await repository.saveWorkoutPlan({ assignments, existingTemplateId: template.id, expectedTemplateUpdatedAt: template.updatedAt });
     return assignments;
   }
 

@@ -169,6 +169,38 @@ test("application history rules hold even when a domain-only repository returns 
   assert.deepEqual(await service.listHistory("1"), [newest, old]);
 });
 
+test("coach activity scans each archive once and lists only the directory's workouts in the past seven days", async () => {
+  const through = 8 * 86_400_000;
+  const since = through - 7 * 86_400_000;
+  const memory = memoryStorage();
+  const clients = [{ id: "1", name: "Spencer" }, { id: "2", name: "Alex" }];
+  const save = (workoutId, history) => memory.entries.set(workoutSessionPrefix + workoutId,
+    JSON.stringify({ schemaVersion: 3, data: null, history }));
+  save("plan", [entry("old", { time: since - 1 }), entry("same-id", { time: since })]);
+  save("other", [entry("same-id", { clientId: "2", workoutId: "other", time: through, outcome: "ended-early" })]);
+  save("future", [entry("future", { workoutId: "future", time: through + 1 })]);
+  save("private", [entry("outside", { clientId: "3", workoutId: "private", time: through })]);
+  memory.entries.set("unrelated-key", "not a workout");
+  const reads = [];
+  let scans = 0;
+  const service = createWorkoutSessionService(createWorkoutSessionStore({ ...memory.storage,
+    getAllKeys: async () => { scans++; return memory.storage.getAllKeys(); },
+    getItem: async (key) => { reads.push(key); return memory.storage.getItem(key); },
+  }), () => through);
+
+  assert.deepEqual(await service.listRecentClientActivity([]), []);
+  const activity = await service.listRecentClientActivity(clients);
+  assert.equal(scans, 1);
+  assert.equal(reads.length, 4);
+  assert.equal(new Set(reads).size, 4);
+  assert.deepEqual(activity.map((a) => [a.clientName, a.completedAt, a.workoutStatus]),
+    [["Alex", through, "ended-early"], ["Spencer", since, "completed"]]);
+  assert.notEqual(activity[0].id, activity[1].id);
+  assert.equal(memory.writes.length, 0);
+  memory.entries.set(workoutSessionPrefix + "plan", "corrupt");
+  await assert.rejects(service.listRecentClientActivity(clients));
+});
+
 test("browsing repeated completed attempts preserves actual sets and the independent active workout without writes", async () => {
   const memory = memoryStorage();
   let time = 1000; let sequence = 0;

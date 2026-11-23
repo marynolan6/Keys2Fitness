@@ -1,7 +1,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import NutritionProgress from "./NutritionProgress";
-import { getTotalsForDate, nutritionDate, nutrients, nutrientLabels, type FoodEntry, type NutritionTargets } from "@/utils/nutrition";
+import { getDailyNutrition, nutritionDate, nutrients, nutrientLabels, type FoodEntry, type NutritionTargets } from "@/utils/nutrition";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 type FoodForm = { id: string | null; name: string; serving: string; calories: string; protein: string; carbs: string; fats: string; error: string };
@@ -21,8 +21,7 @@ export default function DailyNutritionSummary({ entries, setEntries, goals, tip,
   const [form, setForm] = useState<FoodForm | null>(null);
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
-  const totals = useMemo(() => getTotalsForDate(entries, selectedDate), [entries, selectedDate]);
-  const dailyEntries = entries.filter((entry) => entry.date === selectedDate);
+  const { dailyEntries, totals } = useMemo(() => getDailyNutrition(entries, selectedDate), [entries, selectedDate]);
   const today = nutritionDate();
 
   function moveDay(days: number) {

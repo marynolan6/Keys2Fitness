@@ -1,6 +1,7 @@
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { BrandedPage } from "@/components/BrandedPage";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 import { ExerciseSetsModal } from "@/components/ExerciseSetsModal";
 import { RecordedSets } from "@/components/RecordedSets";
@@ -33,18 +34,16 @@ export default function WorkoutDetails() {
     const workout = useMemo(() => assignment ? assignmentForDisplay(assignment, library.data.templates) : savedWorkout,
       [assignment, library.data.templates, savedWorkout]);
 
-    if (library.status !== "ready") return <ThemedBackground><View style={styles.content}>
-      <Text style={styles.subtitle}>{library.status === "loading" ? "Loading workout…" : library.error}</Text>
-      {library.status === "error" && <Pressable accessibilityRole="button" onPress={() => { void workoutLibrary.load(); }} style={styles.sessionButton}>
+    if (library.status !== "ready") return <BrandedPage underNativeHeader title={library.status === "loading" ? "Loading workout…" : "Workout unavailable"}>
+      {library.status === "error" && <><Text accessibilityRole="alert" style={styles.subtitle}>{library.error}</Text>
+        <Pressable accessibilityRole="button" onPress={() => { void workoutLibrary.load(); }} style={styles.sessionButton}>
         <Text style={styles.sessionButtonText}>Retry workout library</Text>
-      </Pressable>}
-    </View></ThemedBackground>;
+      </Pressable></>}
+    </BrandedPage>;
 
     if (!workout) {
       return (
-        <ThemedBackground>
-        <View style={styles.content}>
-          <Text style={styles.title}>Workout unavailable</Text>
+        <BrandedPage underNativeHeader title="Workout unavailable">
           <Text style={styles.subtitle}>This workout could not be found.</Text>
           <Pressable
             accessibilityRole="button"
@@ -53,8 +52,7 @@ export default function WorkoutDetails() {
           >
             <Text style={styles.finishButtonText}>Back to dashboard</Text>
           </Pressable>
-        </View>
-        </ThemedBackground>
+        </BrandedPage>
       );
     }
 
@@ -93,32 +91,27 @@ function WorkoutContent({ workout, resumeRequest }: { workout: AssignedWorkout; 
 
 if (isLoadingSession) {
   return (
-    <ThemedBackground>
-      <View style={styles.sessionLoading}>
+    <BrandedPage underNativeHeader title="Loading workout…">
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.subtitle}>Loading workout...</Text>
-      </View>
-    </ThemedBackground>
+    </BrandedPage>
   );
 }
 
 if (sessionLoadFailed) {
   return (
-    <ThemedBackground>
-      <View style={styles.content}>
+    <BrandedPage underNativeHeader title="Workout unavailable">
         <Text accessibilityRole="alert" style={styles.subtitle}>{session.loadError}</Text>
         <Pressable accessibilityRole="button" onPress={session.retryLoad}
           style={({ pressed }) => [styles.sessionButton, pressed && styles.buttonPressed]}>
           <Text style={styles.sessionButtonText}>Try again</Text>
         </Pressable>
-      </View>
-    </ThemedBackground>
+    </BrandedPage>
   );
 }
 
 return (
     <ThemedBackground>
-      <View style={styles.pinnedProgress}><WorkoutProgressIndicator progress={summary} /></View>
+      <View style={styles.pinnedProgress}><K2FBrand /><WorkoutProgressIndicator progress={summary} /></View>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         contentContainerStyle={[styles.content, coachNote && styles.contentWithNoteButton]}
@@ -132,8 +125,7 @@ return (
           if (scrolledAway !== noteScrolledAway) setNoteScrolledAway(scrolledAway);
         }}
       >
-        <K2FBrand />
-        <Text style={styles.title}>{workout.title}</Text>
+        <PageTitle style={styles.title}>{workout.title}</PageTitle>
         <View style={[styles.subtitleRow, compact && styles.subtitleRowCompact]}>
           <Text style={[styles.subtitle, styles.subtitleText]}>
             {[workoutStatus, workout.scheduleLabel].filter(Boolean).join(" · ")}
@@ -326,7 +318,7 @@ return (
 }
 
 const styles = StyleSheet.create({
-  pinnedProgress: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  pinnedProgress: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
   screen: { flex: 1 },
   timerRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   timerRowCompact: { flexDirection: "column", alignItems: "stretch", gap: spacing.sm },
@@ -345,7 +337,6 @@ const styles = StyleSheet.create({
   confirmActions: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   reviewHeading: { color: colors.text, fontSize: typography.body, fontWeight: "700" },
   reviewExercise: { backgroundColor: colors.surfaceMuted, borderRadius: radii.control, padding: spacing.md, gap: spacing.sm },
-  sessionLoading: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md },
   sessionCard: {
     backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1,
     borderRadius: radii.card, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.md,

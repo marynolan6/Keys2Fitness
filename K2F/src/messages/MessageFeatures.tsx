@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { K2FBrand } from "@/components/K2FBrand";
+import { PageTitle } from "@/components/K2FBrand";
 import { SearchIcon } from "@/messages/ConversationSearchBar";
 import { colors, layout, spacing, typography } from "@/theme";
 
@@ -22,8 +22,6 @@ export function ConversationHeader({
   isSearchActive = false,
 }: ConversationHeaderProps) {
   return (
-    <View style={styles.headerGroup}>
-      <K2FBrand />
       <View style={styles.header}>
         {onBack && <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations"
           onPress={onBack} style={styles.backButton}>
@@ -31,7 +29,7 @@ export function ConversationHeader({
         </Pressable>}
         <ClientAvatar name={name} imageUrl={imageUrl} size={layout.minTouchTarget} />
         <View style={styles.profileInfo}>
-          <Text style={styles.name}>{name}</Text>
+          <PageTitle style={styles.name}>{name}</PageTitle>
         </View>
         {onSearchPress && (
           <Pressable accessibilityRole="button" accessibilityLabel="Search conversation"
@@ -42,7 +40,6 @@ export function ConversationHeader({
           </Pressable>
         )}
       </View>
-    </View>
   );
 }
 
@@ -101,8 +98,8 @@ export function TypingIndicator({
 }
 
 const styles = StyleSheet.create({
-  headerGroup: { gap: spacing.xs, paddingBottom: spacing.sm },
   header: {
+    paddingBottom: spacing.sm,
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,

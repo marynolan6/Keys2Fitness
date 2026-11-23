@@ -1,91 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-    isUnreadFor,
-    type MessageViewer,
-    type MockMessage,
-} from "@/messages/mockMessageCoachClient";
+import { isUnreadFor, type MessageViewer, type MockMessage } from "./mockMessageCoachClient";
+import { createReadMarkerStore } from "./readMarkers";
 
+const markers = createReadMarkerStore(AsyncStorage);
 
-type UseReadMessagesProps = {
-    messages: MockMessage[];
-    viewer: MessageViewer;
-    storageKey: string;
-};
+export function useFirstUnreadIndex(messages: MockMessage[], viewer: MessageViewer, storageKey: string) {
+  const [read, setRead] = useState<Set<string> | null>(null);
+  const messagesRef = useRef(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-export function useReadState({
-    messages,
-    viewer,
-    storageKey,
-}: UseReadMessagesProps) {
-    const [readMessageIds, setReadMessageIds] = useState<string[]>([]);
-    const [readStateLoaded, setReadStateLoaded] = useState(false);
-
-
-
-    const messagesRef = useRef<MockMessage[]>(messages);
-    const readIdsRef = useRef<string[]>([]);
-
-    useEffect(() => {
-        messagesRef.current = messages;
-    }, [messages]);
-
-    useEffect(() => {
-        readIdsRef.current = readMessageIds;
-    }, [readMessageIds]);
-
-    useFocusEffect(
-        useCallback(() => {
-            let active = true;
-
-            AsyncStorage.getItem(storageKey)
-                .then((saved) => {
-                    if (!active) return;
-
-                    const savedIds: string[] = saved ? JSON.parse(saved) : [];
-
-                    readIdsRef.current = savedIds;
-                    setReadMessageIds(savedIds);
-                    setReadStateLoaded(true);
-                })
-                .catch(() => {
-                    if (active) setReadStateLoaded(true);
-                });
-
-            return () => {
-                active = false;
-
-                const viewedMessageIds = messagesRef.current
-                    .filter((message) => isUnreadFor(message, viewer))
-                    .map((message) => message.id);
-
-                const allReadIds = [
-                    ...new Set([
-                        ...readIdsRef.current,
-                        ...viewedMessageIds,
-                    ]),
-                ];
-
-                void AsyncStorage.setItem(
-                    storageKey,
-                    JSON.stringify(allReadIds),
-                );
-            };
-        }, [storageKey, viewer]),
+  useFocusEffect(useCallback(() => {
+    let focused = true;
+    setRead(null);
+    markers.load(storageKey).then(
+      (ids) => { if (focused) setRead(ids); },
+      () => { if (focused) setRead(null); },
     );
-
-    const isUnread = useCallback(
-        (message: MockMessage) =>
-            readStateLoaded &&
-            isUnreadFor(message, viewer) &&
-            !readMessageIds.includes(message.id),
-        [readMessageIds, readStateLoaded, viewer],
-    );
-
-    return {
-        isUnread,
-        readStateLoaded,
+    return () => {
+      focused = false;
+      const viewed = messagesRef.current.filter((message) => isUnreadFor(message, viewer)).map((message) => message.id);
+      markers.markViewed(storageKey, viewed).catch(() => console.warn("Message read markers could not be saved."));
     };
+  }, [storageKey, viewer]));
+
+  return read ? messages.findIndex((message) => isUnreadFor(message, viewer) && !read.has(message.id)) : -1;
 }

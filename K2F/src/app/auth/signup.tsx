@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { AuthFormScreen, authFormStyles as styles } from "@/components/AuthFormScreen";
+import { PageTitle } from "@/components/K2FBrand";
 import { colors } from "@/theme";
 
 import { auth, db } from "@/lib/firebase";
@@ -94,7 +95,7 @@ export default function SignupScreen() {
 
   return (
     <AuthFormScreen>
-      <Text accessibilityRole="header" style={styles.title}>Create account</Text>
+      <PageTitle style={styles.title}>Create account</PageTitle>
       <Text style={styles.subtitle}>Sign up to get started</Text>
       {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
       {success ? <Text style={styles.successText}>{success}</Text> : null}

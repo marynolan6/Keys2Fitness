@@ -29,7 +29,7 @@ function HistoryRow({ entry, onPress }: { entry: WorkoutHistoryEntry; onPress: (
   </Pressable>;
 }
 
-export function WorkoutHistorySection() {
+export function WorkoutHistorySection({ title = "Workout history" }: { title?: string }) {
   const library = useWorkoutLibraryState();
   const clientId = library.data.previewClientId;
   const clients = useCoachClients();
@@ -60,7 +60,7 @@ export function WorkoutHistorySection() {
   return <View style={[styles.card, !compact && styles.roomy]}>
     <View style={styles.content} importantForAccessibility={history.detailOpen ? "no-hide-descendants" : "auto"}>
       <View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.heading}>Workout history</Text>
+        <Text accessibilityRole="header" style={styles.heading}>{title}</Text>
         {library.status === "ready" && <Text style={styles.context}
           accessibilityLabel={`Demo client: ${clientName}. Saved on this device.`}>Demo · {clientName}</Text>}
       </View>

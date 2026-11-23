@@ -1,7 +1,7 @@
 import { decodeWorkoutSessionRecord, encodeWorkoutSession, normalizeWorkoutSession, type WorkoutSessionRecord } from "./workoutMigrations";
 import { isWorkoutInProgress, type WorkoutHistoryEntry, type WorkoutSession } from "./workoutSessionModel";
 import type { WorkoutSessionRepository } from "./workoutRepositories";
-import { createStorageQueue, type SessionKeyValueStorage } from "./workoutStorage";
+import { createStorageQueue, type EnumerableKeyValueStorage } from "../lib/queuedStorage";
 
 export type { WorkoutSession } from "./workoutSessionModel";
 export { getWorkoutCardLabels, isWorkoutInProgress } from "./workoutSessionModel";
@@ -9,7 +9,7 @@ export { parseWorkoutSession } from "./workoutMigrations";
 
 export const workoutSessionPrefix = "keys2fitness:workout-session:";
 
-export function createWorkoutSessionStore(storage: SessionKeyValueStorage, now = Date.now): WorkoutSessionRepository {
+export function createWorkoutSessionStore(storage: EnumerableKeyValueStorage, now = Date.now): WorkoutSessionRepository {
   const queue = createStorageQueue();
   let lastUpdatedAt = 0;
 
@@ -54,13 +54,18 @@ export function createWorkoutSessionStore(storage: SessionKeyValueStorage, now =
     });
   }
 
-  async function listWorkoutHistory(clientId: string) {
+  async function listWorkoutHistory(clients: string | readonly string[]) {
+    const scope = new Set(typeof clients === "string" ? [clients] : clients);
+    if (!scope.size) return [];
     return queue.run(async () => {
       const keys = (await storage.getAllKeys()).filter((key) => key.startsWith(workoutSessionPrefix));
       const history: WorkoutHistoryEntry[] = [];
       // Unlike active scanning, history fails explicitly rather than reporting
       // incomplete counts when one archive cannot be read.
-      for (const key of keys) history.push(...(await readRecord(key.slice(workoutSessionPrefix.length))).history.filter((entry) => entry.clientId === clientId));
+      for (const key of keys) {
+        const record = await readRecord(key.slice(workoutSessionPrefix.length));
+        for (const entry of record.history) if (scope.has(entry.clientId)) history.push(entry);
+      }
       return history.sort((a, b) => b.session.finishedAt - a.session.finishedAt || a.id.localeCompare(b.id));
     });
   }

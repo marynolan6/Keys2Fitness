@@ -1,7 +1,7 @@
 import type { WorkoutLibraryData } from "./workoutLibraryModel";
 import { decodeWorkoutLibrary, encodeWorkoutLibrary } from "./workoutMigrations";
 import type { ObservableWorkoutLibraryRepository, SaveExerciseRecommendation, SaveWorkoutPlan, WorkoutLibraryState } from "./workoutRepositories";
-import { createStorageQueue, type KeyValueStorage } from "./workoutStorage";
+import { createStorageQueue, type KeyValueStorage } from "../lib/queuedStorage";
 
 // Retain the original key. The envelope carries its own schema version.
 export const workoutLibraryKey = "keys2fitness:workout-library:v1";
@@ -53,8 +53,12 @@ export function createWorkoutLibraryRepository(storage: KeyValueStorage, initial
     // Snapshot the command before queued I/O; callers can keep editing their drafts.
     const snapshot: SaveWorkoutPlan = JSON.parse(JSON.stringify(plan));
     await persist((data) => {
-      if (snapshot.existingTemplateId && !data.templates.some((template) => template.id === snapshot.existingTemplateId)) {
-        throw new Error("This template is no longer available.");
+      if (snapshot.existingTemplateId) {
+        const source = data.templates.find((template) => template.id === snapshot.existingTemplateId);
+        if (!source) throw new Error("This template is no longer available.");
+        if (snapshot.expectedTemplateUpdatedAt !== undefined && source.updatedAt !== snapshot.expectedTemplateUpdatedAt) {
+          throw new Error("This workout changed during review. Cancel and select it again before assigning.");
+        }
       }
       return { ...data,
         templates: snapshot.template ? [snapshot.template, ...data.templates.filter((template) => template.id !== snapshot.template!.id)] : data.templates,

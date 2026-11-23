@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCoachClientsState } from "@/clients/clientStore";
 import { BuilderButton } from "@/components/WorkoutBuilderControls";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { NutritionPlanEditor } from "@/components/nutrition/NutritionPlanEditor";
 import { useClientNutrition } from "@/nutrition/nutritionStore";
@@ -40,9 +40,9 @@ function ClientNutritionContent({ clientId }: { clientId: string }) {
   }
   return <ThemedBackground>
     <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]} keyboardShouldPersistTaps="handled">
-      <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
       <K2FBrand coach />
-      <Text accessibilityRole="header" style={styles.title}>{client ? `Nutrition for ${client.name}` : "Client unavailable"}</Text>
+      <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
+      <PageTitle style={styles.title}>{client ? `Nutrition for ${client.name}` : "Client unavailable"}</PageTitle>
       <Text style={styles.muted}>Shared demo plan · changes stay in this app session.</Text>
       {loadStatus !== "ready" || !client || !data ? <Text style={styles.body}>Nutrition is unavailable for this demo client.</Text>
         : editing ? <NutritionPlanEditor clientId={clientId} plan={data.plan} onClose={() => setEditing(false)}

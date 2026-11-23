@@ -67,7 +67,8 @@ export function isCompactLayout(width: number, fontScale: number): boolean {
 }
 
 export const branding = {
-  headerMark: 32,
+  headerMark: 40,
+  headerWordmark: 18,
   welcomeMark: 80,
   compactWelcomeMark: 64,
   wordmarkTracking: 1,

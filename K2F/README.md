@@ -4,7 +4,7 @@ This directory contains the Expo/React Native application. The main project over
 
 ## Quick start
 
-Run from this directory using Node.js 22.23+ (or a newer compatible LTS release):
+Run from this directory. Use [the Node version recommended for this checkout](../README.md#prerequisites).
 
 ```bash
 npm ci
@@ -16,12 +16,11 @@ Use an Expo Go version compatible with **Expo SDK 58**, or an appropriate develo
 ## Checks
 
 ```bash
-npm run test:workouts
-npm run test:progress
-npm run test:nutrition
-node --test tests/coach-tips.test.mjs tests/profile.test.mjs
+npm test
+python3 -B tests/workout-sandbox-test.py
 npx tsc --noEmit
 npm run lint
+npm run check:branding
 ```
 
 ## Development references
@@ -29,6 +28,7 @@ npm run lint
 - [Android and WSL setup](docs/android-setup.md)
 - [Workout architecture](docs/workout-architecture.md)
 - [UI/theme standards](docs/theme-standards.md)
+- [Required brand and title checks for every change](docs/theme-standards.md#check-on-every-code-change)
 - [Feature verification notes](docs)
 - [Development instructions](AGENTS.md)
 

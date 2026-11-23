@@ -3,13 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { CurrentGoalCard } from "@/components/CurrentGoalCard";
+import { DashboardGreeting } from "@/components/DashboardGreeting";
 import { AssignedWorkoutCard } from "@/components/AssignedWorkoutCard";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand } from "@/components/K2FBrand";
 import { getClientAssignedWorkout, getClientHomeWorkouts, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
-import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { useCoachClients } from "@/clients/clientStore";
 import { loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
@@ -17,6 +17,7 @@ import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
 import { colors, layout, radii, spacing, typography } from "@/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type HomeSessions = { clientId: string } & (
   | { status: "loading" | "error" }
@@ -25,6 +26,7 @@ type HomeSessions = { clientId: string } & (
 
 export default function ClientHome() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const library = useWorkoutLibraryState();
   const previewClientId = library.data.previewClientId;
@@ -80,11 +82,10 @@ export default function ClientHome() {
   });
   return (
     <ThemedBackground>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.content}>
           <K2FBrand />
-          <Text style={styles.title}>Good morning, {greetingName}</Text>
-          <Text style={styles.subtitle}>Let&apos;s build strength!</Text>
+          <View style={styles.greeting}><DashboardGreeting name={greetingName} /></View>
 
           <View style={[styles.goalSection, styles.workoutList]}>
             <DemoWorkoutClientPicker />
@@ -119,8 +120,6 @@ export default function ClientHome() {
           </View>
 
           <RecentMessagesWidget />
-          <View style={styles.goalSection}><WorkoutHistorySection /></View>
-
         </View>
       </ScrollView>
     </ThemedBackground>
@@ -149,12 +148,7 @@ const styles = StyleSheet.create({
   goalSection: {
     marginTop: spacing.lg,
   },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-    marginTop: spacing.sm,
-  },
+  greeting: { marginTop: spacing.md },
   subtitle: {
     color: colors.textMuted,
     fontSize: typography.body,

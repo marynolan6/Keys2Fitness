@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db } from "@/lib/firebase";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { WeightProgressChart } from "@/components/WeightProgressChart";
 import { mockCheckIns, sampleCheckInAsOf } from "@/checkins/mockCheckIns";
@@ -81,7 +81,7 @@ export default function Progress() {
           ]}
         >
           <K2FBrand />
-          <Text style={styles.title}>Your Progress</Text>
+          <PageTitle style={styles.title}>Your Progress</PageTitle>
           <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
           <WeightProgressChart checkIns={mockCheckIns} through={sampleCheckInAsOf} />
           <WorkoutHistorySection />

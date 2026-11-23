@@ -18,11 +18,12 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 
 export default function CoachProfile() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
 
@@ -71,8 +72,7 @@ export default function CoachProfile() {
   return (
     <ThemedBackground>
       <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent,
-        { paddingTop: Math.max(useSafeAreaInsets().top + spacing.sm, spacing.xl), 
-        paddingBottom: useSafeAreaInsets().bottom + 32 },]}>
+        { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={styles.content}>
           <K2FBrand coach />
 
@@ -80,9 +80,7 @@ export default function CoachProfile() {
             <View accessibilityLabel="Coach profile photo placeholder" style={styles.avatar}>
               <Text style={styles.avatarText}>C</Text>
             </View>
-            <Text adjustsFontSizeToFit minimumFontScale={0.65} numberOfLines={1} style={styles.title}>
-              Coach profile
-            </Text>
+            <PageTitle style={styles.title}>Coach profile</PageTitle>
           </View>
           <Text style={styles.subtitle}>Manage how your profile appears to clients</Text>
 
@@ -217,9 +215,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, paddingBottom: spacing.xl },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
-  titleRow: { alignItems: "center", justifyContent: "center", marginTop: spacing.xl, minHeight: avatarSize, position: "relative" },
-  title: { color: colors.text, fontSize: typography.title, fontWeight: "300", paddingHorizontal: avatarSize + spacing.md, textAlign: "center" },
-  avatar: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: avatarSize / 2, height: avatarSize, justifyContent: "center", left: 0, position: "absolute", width: avatarSize },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
+  title: { flex: 1, color: colors.text, fontSize: typography.title, fontWeight: "300" },
+  avatar: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: avatarSize / 2, height: avatarSize, justifyContent: "center", width: avatarSize },
   avatarText: { color: colors.surface, fontSize: typography.body, fontWeight: "700" },
   subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginBottom: spacing.lg, marginTop: spacing.xs },
   profileCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.card, borderWidth: 1, padding: spacing.lg },

@@ -21,7 +21,7 @@ import { CheckInHistory } from "@/components/CheckInHistory";
 import { ProgressEmptyState } from "@/components/ProgressEmptyState";
 import { ProgressStatsSection } from "@/components/ProgressStatsSection";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { mockCheckIns } from "@/checkins/mockCheckIns";
 import { mockClientStats } from "@/profile/mockStats";
 import { ClientStats, hasRecordedProgress } from "@/profile/stats";
@@ -39,6 +39,7 @@ function describeProfileDetails(stats: ClientStats): string | undefined {
 
 export default function Profile() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
   const [profile, setProfile] = useState<EditableProfile>(defaultProfile);
@@ -159,17 +160,14 @@ export default function Profile() {
   return (
     <ThemedBackground>
       <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent,
-        { paddingTop: Math.max(useSafeAreaInsets().top + spacing.sm, spacing.xl), 
-        paddingBottom: useSafeAreaInsets().bottom + 32 },]}>
+        { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={styles.content}>
           <K2FBrand />
           <View style={styles.titleRow}>
             <View accessible accessibilityLabel="Profile photo placeholder" style={styles.avatar}>
               <Image accessibilityLabel="Piplup profile photo" source={require("../../../assets/images/piplup-profile.jpg")} style={styles.avatarImage} />
             </View>
-            <Text adjustsFontSizeToFit minimumFontScale={0.65} numberOfLines={1} style={styles.title}>
-              {profile.fullName}
-            </Text>
+            <PageTitle style={styles.title}>{profile.fullName}</PageTitle>
           </View>
           <Text style={styles.subtitle}>View your information here</Text>
 
@@ -319,9 +317,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, paddingBottom: spacing.xl },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
-  titleRow: { alignItems: "center", justifyContent: "center", marginTop: spacing.xl, minHeight: avatarSize, position: "relative" },
-  title: { color: colors.text, fontSize: typography.title, fontWeight: "300", paddingHorizontal: avatarSize + spacing.md, textAlign: "center" },
-  avatar: { alignItems: "center", backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderRadius: avatarSize / 2, borderWidth: 1, height: avatarSize, justifyContent: "center", left: 0, position: "absolute", width: avatarSize },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
+  title: { flex: 1, color: colors.text, fontSize: typography.title, fontWeight: "300" },
+  avatar: { alignItems: "center", backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderRadius: avatarSize / 2, borderWidth: 1, height: avatarSize, justifyContent: "center", width: avatarSize },
   avatarImage: { borderRadius: avatarSize / 2, height: "100%", width: "100%" },
   subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginBottom: spacing.lg, marginTop: spacing.xs },
   profileCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.card, borderWidth: 1, padding: spacing.lg },

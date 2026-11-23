@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClients } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { BuilderButton, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { WorkoutCoachNoteCard } from "@/components/WorkoutCoachNoteCard";
 import { ExerciseRecommendationEditor } from "@/components/ExerciseRecommendationEditor";
@@ -35,9 +35,9 @@ function ClientWorkoutsContent({ clientId }: { clientId: string }) {
 
   return <ThemedBackground><ScrollView style={styles.screen} contentContainerStyle={[styles.content,
     { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]}>
-    <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
     <K2FBrand coach />
-    <Text style={styles.title}>{client ? `Workouts for ${client.name}` : "Client unavailable"}</Text>
+    <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
+    <PageTitle style={styles.title}>{client ? `Workouts for ${client.name}` : "Client unavailable"}</PageTitle>
     <Text style={styles.muted}>Local prototype · assigned workout copies and coach notes on this device.</Text>
     {client && <>
       <View style={styles.actions}>

@@ -9,9 +9,12 @@ import { getClientById } from "@/clients/mockClients";
 import { colors, radii, spacing, typography } from "@/theme";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { PageTitle } from "@/components/K2FBrand";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CoachConversation() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
 
   // K2F-282: Retrieve the client selected from the Messages list.
@@ -30,7 +33,7 @@ export default function CoachConversation() {
 
   return (
     <ThemedBackground>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.md }]}>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back to Messages</Text>
         </Pressable>
@@ -45,9 +48,7 @@ export default function CoachConversation() {
 
           <View style={styles.profileText}>
             {/* Display the selected client's name. */}
-            <Text style={styles.title}>
-              {selectedClient?.name ?? "Client unavailable"}
-            </Text>
+            <PageTitle style={styles.title}>{selectedClient?.name ?? "Client unavailable"}</PageTitle>
 
             {/* Display their fitness goal when available. */}
             {selectedClient?.goal ? (

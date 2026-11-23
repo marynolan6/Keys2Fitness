@@ -122,3 +122,19 @@ test("editor review freezes the draft and selection; cancellation and failure pr
   assert.deepEqual(failed.selectedClients, ["2"]);
   assert.equal(failed.workflow.message, "Disk full");
 });
+
+test("a template edit between confirmation lookup and commit cannot assign the stale copy", async () => {
+  const app = application(memoryStorage().storage);
+  const state = await review(app);
+  const lookup = app.repository.findTemplate;
+  app.repository.findTemplate = async (id) => {
+    const original = await lookup(id);
+    app.advance();
+    await app.service.saveWorkout({ draft: { ...workoutDraft(), title: "Changed during confirmation" },
+      reusable: true, clientIds: [], existingTemplateId: id });
+    return original;
+  };
+  await assert.rejects(confirm(app, state), /changed during review/);
+  assert.deepEqual(await app.repository.listAssignments(), []);
+  assert.equal((await lookup(state.review.template.id)).title, "Changed during confirmation");
+});

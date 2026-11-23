@@ -1,152 +1,24 @@
-import { useIsFocused } from "expo-router";
-import { useEffect, useReducer } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
+import type { CoachClient } from "@/clients/mockClients";
 import { workoutSessionService } from "@/workouts/workoutSession";
+import type { WorkoutActivity } from "@/workouts/workoutSessionService";
 
-type Client = {
-    id: string;
-    name: string;
-};
+type ActivityState = { status: "loading" | "ready" | "error"; activities: WorkoutActivity[] };
 
-export type WorkoutActivity = {
-    id: string;
-    clientId: string;
-    clientName: string;
-    workoutName: string;
-    completedAt: number;
-    workoutStatus: "completed" | "ended-early";
-};
+export function useRecentClientActivity(clients: readonly CoachClient[]) {
+  const [state, setState] = useState<ActivityState>({ status: "loading", activities: [] });
 
-type ActivityState = {
-    activities: WorkoutActivity[];
-    allActivities: WorkoutActivity[];
-    status: "loading" | "ready" | "error";
-};
+  useFocusEffect(useCallback(() => {
+    let focused = true;
+    setState({ status: "loading", activities: [] });
+    workoutSessionService.listRecentClientActivity(clients).then(
+      (activities) => { if (focused) setState({ status: "ready", activities }); },
+      () => { if (focused) setState({ status: "error", activities: [] }); },
+    );
+    return () => { focused = false; };
+  }, [clients]));
 
-type ActivityAction =
-    | { type: "clear" }
-    | { type: "loading" }
-    | {
-        type: "loaded";
-        activities: WorkoutActivity[];
-        allActivities: WorkoutActivity[];
-    }
-    | { type: "error" };
-
-const initialState: ActivityState = {
-    activities: [],
-    allActivities: [],
-    status: "loading",
-};
-
-function activityReducer(
-    state: ActivityState,
-    action: ActivityAction,
-): ActivityState {
-    switch (action.type) {
-        case "clear":
-            return {
-                activities: [],
-                allActivities: [],
-                status: "ready",
-            };
-
-        case "loading":
-            return {
-                ...state,
-                status: "loading",
-            };
-
-        case "loaded":
-            return {
-                activities: action.activities,
-                allActivities: action.allActivities,
-                status: "ready",
-            };
-
-        case "error":
-            return {
-                ...state,
-                status: "error",
-            };
-
-        default:
-            return state;
-    }
-}
-
-export function useRecentClientActivity(
-  clients: readonly Client[],
-) {
-    const isFocused = useIsFocused();
-    const [state, dispatch] = useReducer(activityReducer, initialState);
-
-    const clientSignature = clients
-        .map((client) => `${client.id}:${client.name}`)
-        .join(",");
-
-    useEffect(() => {
-        if (!isFocused) return;
-
-        let cancelled = false;
-
-        if (!clients.length) {
-            dispatch({ type: "clear" });
-            return;
-        }
-
-        dispatch({ type: "loading" });
-
-        Promise.all(
-            clients.map(async (client) => {
-                const history = await workoutSessionService.listHistory(client.id);
-
-                return history
-                    .filter(
-                        (entry) =>
-                            entry.session.outcome === "completed" ||
-                            entry.session.outcome === "ended-early",
-                    )
-                    .map((entry) => ({
-                        id: `workout-${entry.id}`,
-                        clientId: client.id,
-                        clientName: client.name,
-                        workoutName: entry.title.trim() || "Workout",
-                        completedAt: Number(entry.session.finishedAt),
-                        workoutStatus: entry.session.outcome,
-                    }));
-            }),
-        )
-            .then((results) => {
-                if (cancelled) return;
-
-                const allActivities = results
-                    .flat()
-                    .sort((a, b) => b.completedAt - a.completedAt);
-                
-                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-                
-                const recentActivities = allActivities.filter(
-                    (activity) => activity.completedAt >= sevenDaysAgo,
-                );
-
-                dispatch({
-                    type: "loaded",
-                    allActivities:recentActivities,
-                    activities: allActivities.slice(0, 3),
-                });
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    dispatch({ type: "error" });
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [clientSignature, isFocused]);
-
-    return state;
+  return state;
 }
