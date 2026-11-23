@@ -336,6 +336,16 @@ Official references: [Expo pricing](https://expo.dev/pricing) · [Firebase prici
 
 ## Project documentation
 
+### Ponytail coding and review
+
+Start OpenCode from the repository root (restart existing sessions). The project config loads the official Ponytail **5.3.3** plugin and the app’s engineering instructions. Use `/ponytail-help` to see commands, `/ponytail-review` before a PR, or `/ponytail-audit` for a repository-wide review. Verify findings against the code and run the checks required by [the project instructions](K2F/AGENTS.md).
+
+For Cline, open `K2F/` in VS Code and enable `02-ponytail.md` as described in [Cline setup](K2F/docs/cline-setup.md). Cline uses the rules-only integration; the slash commands above are for OpenCode. When upgrading, update both the plugin pin in `opencode.json` and the [upstream Cline rule](https://github.com/DietrichGebert/ponytail/blob/7801d061243d7b753bad0e0b3c057cd250b11755/.clinerules/ponytail.md) together ([MIT license](K2F/docs/third-party/ponytail-LICENSE.txt)).
+
+### Reference guides
+
+For **every code change**, follow the [shared workflow](K2F/AGENTS.md#required-workflow-for-every-code-change). Use Ponytail and pstack’s [Subtract Before You Add](https://github.com/cursor/plugins/blob/7a583913eb1b8d1a0ee76753d1a2cf072e7b54f9/pstack/skills/principle-subtract-before-you-add/SKILL.md) during implementation. Run two passes of [Thermo-Nuclear Code Quality Review](https://github.com/cursor/plugins/blob/7a583913eb1b8d1a0ee76753d1a2cf072e7b54f9/cursor-team-kit/skills/thermo-nuclear-code-quality-review/SKILL.md) on the code, then use pstack’s [Unslop](https://github.com/cursor/plugins/blob/7a583913eb1b8d1a0ee76753d1a2cf072e7b54f9/pstack/skills/unslop/SKILL.md) on the writing. All rubrics are available inside `K2F/`. If your agent does not discover repository instructions, set `K2F/AGENTS.md` as its always-on project instruction file before starting a coding session.
+
 - [Workout architecture and persistence](K2F/docs/workout-architecture.md)
 - [Workout builder verification](K2F/docs/workout-builder-testing.md)
 - [Assignment flow verification](K2F/docs/workout-assignment-testing.md)
