@@ -40,6 +40,9 @@ yarn-error.*
 __pycache__/
 *.pyc
 
+# Image editor recovery files
+*.png~*.TMP
+
 example
 
 # generated native folders

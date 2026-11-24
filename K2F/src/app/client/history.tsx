@@ -2,23 +2,26 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export default function WorkoutHistoryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   return <ThemedBackground>
-    <ScrollView contentContainerStyle={styles.screen}>
+    <ScrollView contentContainerStyle={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.content}>
+        <K2FBrand />
+        <PageTitle>Workout history</PageTitle>
         <Pressable accessibilityRole="button" accessibilityLabel="Back from workout history"
           onPress={() => router.canGoBack() ? router.back() : router.replace("/client/home")}
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
           <Text style={styles.link}>Back</Text>
         </Pressable>
-        <K2FBrand />
         <DemoWorkoutClientPicker />
-        <WorkoutHistorySection />
+        <WorkoutHistorySection title="Recorded workouts" />
       </View>
     </ScrollView>
   </ThemedBackground>;

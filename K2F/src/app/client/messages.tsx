@@ -1,25 +1,21 @@
 import { useRef, useState } from "react";
-import { useReadState } from "@/messages/MessageReadState";
-import { KeyboardAvoidingView, Platform, ScrollView,StyleSheet, View, type ScrollViewInstance,} from "react-native";
-import { ConversationHeader, NewMessagesDivider,TypingIndicator,} from "@/messages/MessageFeatures";
-import { mockCoachTyping, mockMessages,type MockMessage,} from "@/messages/mockMessageCoachClient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFirstUnreadIndex } from "@/messages/MessageReadState";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from "react-native";
+import { ConversationHeader, NewMessagesDivider, TypingIndicator } from "@/messages/MessageFeatures";
+import { mockCoachTyping, mockMessages, type MockMessage } from "@/messages/mockMessageCoachClient";
 import { MessageBubble } from "@/messages/MessageBubble";
 import { ConversationSearchBar } from "@/messages/ConversationSearchBar";
 import { searchMessages } from "@/messages/messageSearch";
 import { MessageSearchResults } from "@/messages/MessageSearchResults";
 import { MessageComposer } from "@/messages/MessageComposer";
-import { MessageState } from "@/messages/MessageState";
 import { MessageTimestamp } from "@/messages/MessageTimestamp";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { spacing } from "@/theme";
-
-type MessageStatus = "loading" | "ready" | "error";
+import { colors, spacing, typography } from "@/theme";
 
 export default function Messages() {
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollViewInstance>(null);
-
-  const [messageStatus, setMessageStatus] =
-    useState<MessageStatus>("ready");
 
   const [messages, setMessages] = useState<MockMessage[]>(() =>
     mockMessages
@@ -45,11 +41,7 @@ export default function Messages() {
   }
   const isTyping = message.trim().length > 0;
 
-  const { isUnread } = useReadState({
-    messages,
-    viewer: "client",
-    storageKey: "client-1-read-messages-test-2",
-  });
+  const firstUnreadIndex = useFirstUnreadIndex(messages, "client", "client-1-read-messages-test-2");
 
   function sendMessage() {
     const trimmedMessage = message.trim();
@@ -83,7 +75,7 @@ export default function Messages() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {/* Pinned above the conversation so search stays reachable however far the client has scrolled. */}
-        <View style={styles.headerArea}>
+        <View style={[styles.headerArea, { paddingTop: insets.top + spacing.md }]}>
           <ConversationHeader
             name="COACH KEYS"
             onSearchPress={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
@@ -113,48 +105,18 @@ export default function Messages() {
         >
           {isShowingResults ? (
             <MessageSearchResults query={searchQuery} results={searchResults} onClearQuery={() => setSearchQuery("")} />
-          ) : messageStatus === "loading" ? (
-            <MessageState state="loading" />
-          ) : messageStatus === "error" ? (
-            <MessageState
-              state="error"
-              onRetry={() => setMessageStatus("ready")}
-            />
           ) : messages.length === 0 ? (
-            <MessageState state="empty" />
+            <Text style={styles.empty}>No messages yet.</Text>
           ) : (
             <>
               {messages.map((item, index) => {
                 const previousMessage = messages[index - 1];
 
-                const currentTime = new Date(
-                  item.createdAt,
-                ).getTime();
-
-                const previousTime = previousMessage
-                  ? new Date(
-                    previousMessage.createdAt,
-                  ).getTime()
-                  : 0;
-
-                const showTimestamp =
-                  !previousMessage ||
-                  currentTime - previousTime >
-                  30 * 60 * 1000;
-
-                const currentUnread = isUnread(item);
-
-                const firstUnreadIndex = messages.findIndex((message) =>
-                  isUnread(message),
-                );
-
-                const showNewMessages =
-                  currentUnread &&
-                  index === firstUnreadIndex;
+                const showTimestamp = !previousMessage || Date.parse(item.createdAt) - Date.parse(previousMessage.createdAt) > 30 * 60 * 1000;
 
                 return (
                   <View key={item.id}>
-                    {showNewMessages && (
+                    {index === firstUnreadIndex && (
                       <NewMessagesDivider />
                     )}
 
@@ -215,12 +177,12 @@ export default function Messages() {
 }
 
 const styles = StyleSheet.create({
+  empty: { padding: spacing.xl, textAlign: "center", color: colors.textMuted, fontSize: typography.body },
   screen: {
     flex: 1,
   },
   headerArea: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
   },
   messageList: {
     paddingBottom: spacing.md,

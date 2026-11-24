@@ -3,7 +3,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, useWindowD
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { BrandedPage } from "@/components/BrandedPage";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, ExercisePicker, PrescriptionStepper, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { useWorkoutEditor } from "@/hooks/useWorkoutEditor";
@@ -15,11 +16,11 @@ export default function WorkoutEditorScreen() {
   const { templateId, clientId } = useLocalSearchParams<{ templateId?: string; clientId?: string }>();
   const state = useWorkoutLibraryState();
   const template = state.data.templates.find((item) => item.id === templateId);
-  if (state.status !== "ready" || (templateId && !template)) return <ThemedBackground><View style={styles.content}>
-    <Text style={styles.heading}>{state.status === "loading" ? "Loading workout…" : templateId && !template && state.status === "ready" ? "Template unavailable" : "Library unavailable"}</Text>
+  if (state.status !== "ready" || (templateId && !template)) return <BrandedPage coach underNativeHeader
+    title={state.status === "loading" ? "Loading workout…" : state.status === "ready" ? "Template unavailable" : "Library unavailable"}>
     {state.status === "error" && <><Text style={styles.error}>{state.error}</Text>
       <BuilderButton label="Retry library" onPress={() => { void workoutLibrary.load(); }} /></>}
-  </View></ThemedBackground>;
+  </BrandedPage>;
   return <WorkoutEditorForm key={`${templateId || "new"}:${clientId ?? ""}`} template={template} initialClientId={clientId} />;
 }
 
@@ -38,7 +39,7 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
   return <ThemedBackground><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <K2FBrand coach />
-      <Text style={styles.title}>{template ? "Edit Workout" : "Build Workout"}</Text>
+      <PageTitle style={styles.title}>{template ? "Edit Workout" : "Build Workout"}</PageTitle>
       <Text style={styles.muted}>Build a reusable plan or assign a fresh copy to selected demo clients. All weights are in pounds.</Text>
       <BuilderField label="Workout name" value={draft.title} disabled={saving} error={errors.title}
         onChange={(title) => editor.editField("title", title)} />

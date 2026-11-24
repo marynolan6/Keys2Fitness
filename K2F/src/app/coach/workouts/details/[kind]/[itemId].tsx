@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ExerciseRecommendationEditor } from "@/components/ExerciseRecommendationEditor";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { BuilderButton, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { WorkoutLibraryLoadStatus } from "@/components/WorkoutLibraryControls";
@@ -25,12 +25,13 @@ export default function WorkoutLibraryDetailsScreen() {
 
   return <ThemedBackground><ScrollView key={`${kind}:${itemId}`} style={styles.screen} keyboardShouldPersistTaps="handled"
     contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
+    <K2FBrand coach />
     <BuilderButton label="Back to workout library" secondary
       onPress={() => router.dismissTo({ pathname: "/coach/workouts", params: clientId ? { clientId } : {} })} />
-    <K2FBrand coach />
-    {state.status !== "ready" ? <WorkoutLibraryLoadStatus state={state} retry={() => { void workoutLibrary.load(); }} /> :
+    {state.status !== "ready" ? <><PageTitle>Workout details</PageTitle>
+      <WorkoutLibraryLoadStatus state={state} retry={() => { void workoutLibrary.load(); }} /></> :
       item ? <WorkoutLibraryDetails item={item} clientId={clientId} /> : <View style={styles.card}>
-        <Text accessibilityRole="header" style={styles.heading}>Library item unavailable</Text>
+        <PageTitle style={styles.heading}>Library item unavailable</PageTitle>
         <Text style={styles.muted}>This workout or template could not be found on this device.</Text>
       </View>}
   </ScrollView></ThemedBackground>;
@@ -49,7 +50,7 @@ function WorkoutLibraryDetails({ item, clientId }: { item: WorkoutLibraryItem; c
   return <>
     <View style={styles.card}>
       <Text style={styles.feedback}>{libraryItemLabels[item.kind]}</Text>
-      <Text accessibilityRole="header" style={styles.title}>{plan.title}</Text>
+      <PageTitle style={styles.title}>{plan.title}</PageTitle>
       {assignment && <>
         <Text style={styles.label}>Assigned to {clientName}</Text>
         <Text style={styles.muted}>{new Date(assignment.assignedAt).toLocaleString()}</Text>

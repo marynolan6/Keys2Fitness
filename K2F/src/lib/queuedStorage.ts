@@ -1,16 +1,15 @@
-// Infrastructure-only port, implemented by AsyncStorage in the composition roots.
+// AsyncStorage in the app, in-memory storage in tests.
 export type KeyValueStorage = {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<unknown>;
 };
 
-export type SessionKeyValueStorage = KeyValueStorage & {
+export type EnumerableKeyValueStorage = KeyValueStorage & {
   removeItem(key: string): Promise<unknown>;
   getAllKeys(): Promise<readonly string[]>;
 };
 
-// Serialize reads as well as writes: a read-time migration must not overwrite a
-// checkpoint saved while the old record was being fetched.
+// Reads, migrations, and read-modify-writes on the same store must stay in order.
 export function createStorageQueue() {
   let pending: Promise<unknown> = Promise.resolve();
   return {

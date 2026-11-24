@@ -5,7 +5,6 @@
 import { router } from "expo-router";
 import {
   Pressable,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,10 +15,12 @@ import { demoClients } from "@/clients/mockClients";
 import { getPendingVideos } from "@/videos/mockVideos";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export default function Client_List() {
+  const insets = useSafeAreaInsets();
   const clientCount = demoClients.length;
   const pendingVideos = getPendingVideos();
 
@@ -27,10 +28,10 @@ export default function Client_List() {
     <ThemedBackground>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
       >
         <K2FBrand coach />
-        <Text style={styles.title}>My Clients</Text>
+        <PageTitle>My Clients</PageTitle>
 
         {/* Number of clients */}
         <View style={styles.metaRow}>
@@ -107,15 +108,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-
-    // Add space above the title on Expo Web only.
-    // Keep the original spacing on native mobile.
-    marginTop: Platform.OS === "web" ? 48 : 0,
-  },
 
   metaRow: {
     flexDirection: "row",

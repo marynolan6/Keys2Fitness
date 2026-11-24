@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ThemedBackground } from "@/components/ThemedBackground";
+import { StyleSheet, Text, View } from "react-native";
+import { BrandedPage } from "@/components/BrandedPage";
+import { BuilderButton } from "@/components/WorkoutBuilderControls";
 import { colors, radii, spacing, typography } from "@/theme";
 
 
@@ -15,13 +16,8 @@ export default function ExerciseDetails() {
   }>();
 
   return (
-    <ThemedBackground>
-    <ScrollView contentContainerStyle={styles.container}>
-      <Pressable accessibilityRole="button" onPress={() => router.back()}>
-        <Text style={styles.backButton}>← Back</Text>
-      </Pressable>
-
-      <Text style={styles.title}>{name ?? "Exercise Details"}</Text>
+    <BrandedPage underNativeHeader title={name || "Exercise Details"}>
+      <BuilderButton label="Back" secondary onPress={() => router.canGoBack() ? router.back() : router.replace("/client/home")} />
 
       <View style={styles.card}>
       <Text style={styles.label}>Sets</Text>
@@ -38,16 +34,11 @@ export default function ExerciseDetails() {
         Follow the exercise instructions provided by your coach.
       </Text>
       </View>
-    </ScrollView>
-    </ThemedBackground>
+    </BrandedPage>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
   card: {
     padding: spacing.lg,
     borderRadius: radii.card,
@@ -55,17 +46,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: spacing.sm,
-  },
-  backButton: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    paddingVertical: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "300",
-    marginBottom: spacing.sm,
   },
   label: {
     color: colors.text,

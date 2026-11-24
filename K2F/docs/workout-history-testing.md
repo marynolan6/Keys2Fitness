@@ -12,7 +12,7 @@ K2F-33 already supplied immutable attempt records, chronological repository read
 
 | Story/subtask | Implementation |
 | --- | --- |
-| K2F-296 — history list | Quick-access **Workout history** opens `/client/history`; Home and Progress use the same card. Completed workouts appear newest first, with title, date and outcome. **Show early finishes** appears only when there are ended-early records; they do not count toward completed workouts or active minutes. |
+| K2F-296 — history list | Quick-access **Workout history** opens `/client/history`; Progress also shows the history card. Completed workouts appear newest first, with title, date and outcome. **Show early finishes** appears only when there are ended-early records; they do not count toward completed workouts or active minutes. |
 | K2F-297 — recorded results | Each record opens a read-only detail modal with title, finish date, active time, exercise completion and individual actual sets/reps/pounds. Targets are labeled separately. Zero, blank, decimal and missing actual-set values remain distinct. |
 | K2F-298 — empty/missing/responsive | Clear no-history, unavailable-record, missing-exercise, missing-set and load-error/retry feedback. Client/workout/attempt lookup has no fallback to another client's record or a live workout. On narrow screens labels and actions wrap; long detail content scrolls above the Back action. |
 

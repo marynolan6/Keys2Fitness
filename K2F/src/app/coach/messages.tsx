@@ -1,5 +1,6 @@
 // K2F-97: Coach-facing message list
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Pressable,
   ScrollView,
@@ -9,8 +10,8 @@ import {
 } from "react-native";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
 
 // K2F-97: Import all clients so the coach can see everyone,
 // including clients who haven't sent messages yet.
@@ -23,6 +24,7 @@ import { colors, radii, spacing, typography } from "@/theme";
 
 export default function CoachMessages() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // K2F-97: Build the conversation list from all clients,
   // instead of only clients who already have messages.
@@ -54,15 +56,14 @@ export default function CoachMessages() {
 
   return (
     <ThemedBackground>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.md }]}>
 
         {/* Returns the coach to the dashboard. */}
         <Pressable onPress={() => router.replace("/coach")}>
           <Text style={styles.backButton}>← Back</Text>
         </Pressable>
 
-        <K2FBrand coach />
-        <Text style={styles.title}>Messages</Text>
+        <PageTitle style={styles.title}>Messages</PageTitle>
 
         {/* K2F-98: Display every client in the list. */}
         {conversations.map(

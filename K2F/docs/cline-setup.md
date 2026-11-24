@@ -2,31 +2,22 @@
 
 ## Workspace and installation
 
-Open the application folder, not just its parent repository, as the VS Code workspace:
+From the repository root, open the app folder as the VS Code workspace:
 
 ```bash
-cd /root/workspace/github.com/DorkWitAFork/Keys2Fitness/K2F
-code .
+code K2F
 ```
 
-This is the path in the inspected environment; on another machine, use the equivalent absolute checkout path ending in `Keys2Fitness/K2F` and record it. The package manifest, project instructions, workspace rules, and VS Code recommendations are all in this folder. Opening only the parent folder is not the setup verified by the procedure below.
+Record the absolute path to this folder for the demonstration. It contains the app manifest, project instructions, workspace rules, and extension recommendations.
 
-In VS Code Extensions, open workspace recommendations and install **Cline**, identifier `saoudrizwan.claude-dev`. Keep the existing Expo Tools recommendation (`expo.vscode-expo-tools`). A recommendation does not install or enable an extension automatically. In WSL/remote VS Code, confirm Cline is enabled in the window where this workspace is open; record the extension host actually used.
+Install Cline (`saoudrizwan.claude-dev`) from the workspace recommendations. In a WSL or remote window, confirm the extension is enabled on that host.
 
-Use the app's documented Node.js 22.23+ or newer compatible LTS setup. For a fresh dependency installation and app launch:
-
-```bash
-cd /root/workspace/github.com/DorkWitAFork/Keys2Fitness/K2F
-npm ci
-npm start
-```
-
-For an existing installation, do not reinstall dependencies merely to demonstrate Cline. The package also provides `npm run android`, `npm run ios`, and `npm run web`. Follow the project README for Firebase access and compatible Expo Go requirements. The manifest currently specifies Expo SDK 58; the SDK 57 passages in the older Android setup guide are stale. Installing Cline does not configure Firebase or an emulator.
+For a new checkout, follow the [app setup](../README.md#quick-start) and [Android guide](android-setup.md). An existing app installation needs no dependency changes for Cline.
 
 ## Active project instructions
 
-- **Engineering source of truth:** `/root/workspace/github.com/DorkWitAFork/Keys2Fitness/K2F/AGENTS.md` (unchanged by this setup).
-- **Review workflow:** `/root/workspace/github.com/DorkWitAFork/Keys2Fitness/K2F/.clinerules/01-review-workflow.md`.
+- [Engineering standards and required skills](../AGENTS.md)
+- [Review workflow](../.clinerules/01-review-workflow.md)
 - **Ponytail:** [the workspace rule](../.clinerules/02-ponytail.md) favors the smallest complete change. Check that it is enabled in Cline's Rules panel. The project engineering and verification requirements still apply.
 - **Supporting context:** the project/app READMEs and relevant existing architecture, theme, and feature-verification documents. These are references, not additional copies of the engineering rules.
 

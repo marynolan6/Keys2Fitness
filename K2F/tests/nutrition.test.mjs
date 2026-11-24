@@ -1,15 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { registerHooks } from "node:module";
+import { registerSourceTypes } from "./helpers/source-types.mjs";
 
-const hooks = registerHooks({ resolve(specifier, context, next) {
-  return next(context.parentURL?.includes("/src/nutrition/") && specifier.startsWith(".") && !/\.[a-z]+$/.test(specifier)
-    ? specifier + ".ts" : specifier, context);
-} });
+const hooks = registerSourceTypes();
 const { createNutritionRepository } = await import("../src/nutrition/nutritionRepository.ts");
 const { draftNutritionPlan, targetsFromDraft, unassignedNutritionTargets, validateNutritionPlan } = await import("../src/nutrition/nutritionPlan.ts");
 const { createNutritionEditorState, nutritionEditorReducer: reduce } = await import("../src/nutrition/nutritionEditorReducer.ts");
-const { compareNutrition, getTotalsForDate, nutritionDate } = await import("../src/utils/nutrition.ts");
+const { compareNutrition, getDailyNutrition, nutritionDate } = await import("../src/utils/nutrition.ts");
 hooks.deregister();
 
 const lunch = { id: "lunch", name: "Lunch", serving: "1 plate", date: "2026-11-20", calories: 650, protein: 52, carbs: 61, fats: 18 };
@@ -36,8 +33,9 @@ test("nutrition plans are client-specific and unknown clients have no default pl
 test("a coach update publishes the new scoped plan and leaves all logged foods and other clients intact", () => {
   const repo = createNutritionRepository(initial());
   const before = repo.getState();
-  const today = getTotalsForDate(before.alex.entries, "2026-11-20");
-  const yesterday = getTotalsForDate(before.alex.entries, "2026-11-19");
+  const today = getDailyNutrition(before.alex.entries, "2026-11-20");
+  const yesterday = getDailyNutrition(before.alex.entries, "2026-11-19");
+  assert.deepEqual(today.dailyEntries, [lunch]);
   let published = 0;
   const unsubscribe = repo.subscribe(() => published++);
   const draft = draftNutritionPlan(before.alex.plan);
@@ -53,10 +51,10 @@ test("a coach update publishes the new scoped plan and leaves all logged foods a
   assert.equal(after.alex.entries, before.alex.entries);
   assert.equal(after.spencer, before.spencer);
   assert.equal(after.jordan, before.jordan);
-  assert.deepEqual(getTotalsForDate(after.alex.entries, "2026-11-20"), today);
-  assert.deepEqual(getTotalsForDate(after.alex.entries, "2026-11-19"), yesterday);
-  assert.notEqual(compareNutrition(today.calories, after.alex.plan.targets.calories).percent,
-    compareNutrition(today.calories, before.alex.plan.targets.calories).percent);
+  assert.deepEqual(getDailyNutrition(after.alex.entries, "2026-11-20"), today);
+  assert.deepEqual(getDailyNutrition(after.alex.entries, "2026-11-19"), yesterday);
+  assert.notEqual(compareNutrition(today.totals.calories, after.alex.plan.targets.calories).percent,
+    compareNutrition(today.totals.calories, before.alex.plan.targets.calories).percent);
   unsubscribe();
 });
 
@@ -88,8 +86,8 @@ test("food edits remain client-scoped and cannot change assigned goals or the ot
   repo.updateFood("alex", (entries) => [...entries, { ...lunch, id: "extra", calories: 150 }]);
   assert.equal(repo.getState().alex.plan, before.alex.plan);
   assert.equal(repo.getState().spencer, before.spencer);
-  assert.equal(getTotalsForDate(repo.getState().alex.entries, "2026-11-20").calories, 800);
-  assert.equal(getTotalsForDate(repo.getState().alex.entries, "2026-11-19").calories, 500);
+  assert.equal(getDailyNutrition(repo.getState().alex.entries, "2026-11-20").totals.calories, 800);
+  assert.equal(getDailyNutrition(repo.getState().alex.entries, "2026-11-19").totals.calories, 500);
 });
 
 test("invalid goals fail without publishing, preserving the editable draft and existing food log", () => {

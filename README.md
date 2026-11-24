@@ -3,12 +3,9 @@
 </p>
 
 <h1 align="center">Keys2Fitness</h1>
-<p align="center"><strong>Personalized coaching, nutrition tracking, and organized workouts, all in one place!</strong></p>
 <p align="center">Team 404 · Senior Project</p>
 
-Keys2Fitness is a mobile application for a personal fitness coaching business. It gives coaches a place to organize clients, build workout plans, and provide exercise guidance, while clients can follow their workouts, record performed sets, and track their progress.
-
-Built with **React Native, Expo, TypeScript, and Firebase**, the project targets Android and iOS from a shared codebase, with a web preview available through Expo.
+Keys2Fitness is a React Native app for a personal fitness coaching business. Coaches prescribe workouts and nutrition targets. Clients record sets, meals, and weight measurements. Expo targets Android and iOS and provides a web preview.
 
 ## Contents
 
@@ -26,23 +23,9 @@ Built with **React Native, Expo, TypeScript, and Firebase**, the project targets
 
 ## About the project
 
-### The problem
+A coach can save a reusable plan, select clients, and confirm an assignment. Each client receives a copy that survives edits to the template. Clients can pause a workout, resume it, and review the reps and weight they recorded.
 
-Workout plans, progress updates, and coaching conversations can become scattered across messages, spreadsheets, and separate apps. This makes it harder for a coach to manage clients and for clients to understand what to do next.
-
-### Our solution
-
-Keys2Fitness brings the coaching workflow into a role-based application:
-
-- **Coaches** can view their client list, create reusable workout templates, edit exercise prescriptions, assign workout copies, and update recommendations for a specific client's assigned exercise.
-- **Clients** can open assigned workouts, record reps and weight, pause and resume a session, confirm completion, and review their workout history.
-- **Progress and communication** screens bring weight goals, measurements, profiles, and coaching conversations into the same experience. Backend integration is being developed incrementally.
-
-### Core workout flow
-
-**Coach creates or edits a plan → selects clients → confirms assignment → client opens the assigned copy → records performed sets → confirms completion → reviews history.**
-
-The current workout implementation uses on-device storage and demo-client selection. Connecting that workflow to authenticated clients across devices is a planned backend milestone.
+To try both roles on one device, assign a workout from the coach's library and open the demo client preview. Cross-device assignment is on the [roadmap](#next-semester-roadmap).
 
 ## Team
 
@@ -67,12 +50,12 @@ The project is a working UI prototype with selected Firebase-backed features. **
 | --- | --- |
 | Accounts and login | Firebase email/password signup and login; a Firestore user role determines the destination dashboard. Persistent native login sessions and centralized authorization still need integration work. |
 | Coach dashboard and client list | Client summaries, activity, profiles, and navigation using clearly labeled demo data. |
-| Workout template library | Create, edit, duplicate, search, and delete reusable plans; saved locally. |
+| Workout library | Search reusable templates and assigned workouts by name or exercise. Open an item for its prescription and notes, edit a template, or change a recommendation on a client's copy. |
 | Exercise prescriptions | Sets, repetitions, optional weight in pounds, optional rest duration, instructions, alternatives, and validation. |
 | Workout assignment | Review the workout and named recipients, confirm or cancel, and see saved assignment status. Independent copies are available to the selected demo clients on the same device. |
 | Client-specific recommendations | Edit an existing assigned exercise's recommendation independently of reusable instructions and prescriptions, scoped to the client, workout, and exercise. |
 | Workout tracking | Log reps and pounds per set, review the entries before finishing, and see those same values in history. A pinned indicator shows completed/remaining exercises and restored progress; 100% is reserved for all exercises complete. |
-| Workout history | Quick-access history screen plus Home/Progress sections, newest-first completed records, client-scoped read-only actual-set details, completed totals, and active time persisted on-device. |
+| Workout history | Open Progress or choose Workout history from the + menu to review completed workouts, recorded sets, and active time saved on this device. |
 | Profiles and preferences | Client profile/preferences persist locally. Coach profile editing is currently a local UI prototype. |
 | Goals and weight measurements | Authenticated Firestore reads/writes for the current weight goal and weight entries, including entry editing/deletion. Dashboard goal summaries also include mock data. |
 | Weight progress chart | Client Progress plots sample check-in weights in pounds over 30 days, 90 days, or all time. [Chart preview](K2F/docs/images/weight-progress-chart.png) |
@@ -83,7 +66,7 @@ The project is a working UI prototype with selected Firebase-backed features. **
 
 ## App screenshots
 
-These are **actual Android app captures from Expo Go**, using demo data—not Figma renders. They show the current UI; they do not imply cross-device synchronization. Screenshots are clickable for a larger view.
+The team captured these screens in Expo Go on Android with demo data. Select an image to enlarge it.
 
 <table>
   <tr>
@@ -156,7 +139,7 @@ Keys2Fitness/
     │   ├── goals/            Goal calculations and sample data
     │   ├── profile/          Profile validation and local persistence
     │   ├── checkins/         Check-in models and sample data
-    │   └── lib/              Firebase initialization
+    │   └── lib/              Firebase initialization and local storage queue
     └── tests/                Logic/integration tests and Android smoke drivers
 ```
 
@@ -254,7 +237,7 @@ Coach/client linking, conversations, notifications, nutrition, and media storage
 
 ### Prerequisites
 
-- **Node.js 22.23+** on the Node 22 line, or a newer compatible LTS release. Expo SDK 58 requires at least Node 22.13; the repository's Node-based test helpers also use modern module hooks.
+- Use Node.js 24.12 or newer on the Node 24 LTS line. The tests and Expo export also run on Node 22.23.2, but several locked Firebase packages require Node 24.12 or newer.
 - npm and Git.
 - An Android emulator or a phone with an Expo Go version compatible with SDK 58. An iOS simulator requires macOS and Xcode.
 - Access to an authorized Firebase project for account and Firestore-backed features.
@@ -293,23 +276,18 @@ Firebase initialization currently lives in [`K2F/src/lib/firebase.ts`](K2F/src/l
 Run these commands from `K2F/`:
 
 ```bash
-npm run test:workouts
-npm run test:progress
-npm run test:nutrition
-node --test tests/coach-tips.test.mjs tests/profile.test.mjs
+npm test
+python3 -B tests/workout-sandbox-test.py
 npx tsc --noEmit
 npm run lint
+npm run check:branding
 ```
 
-The workout suite covers validation, reducers, assignment isolation, local persistence/migrations, performed sets, pause/resume, completion/history, and client-specific recommendation edits. Android smoke drivers and feature verification notes supplement the logic tests.
-
-Current verification records **105 passing workout tests**, **8 nutrition tests**, **7 chart tests**, **7 coach-tip tests**, **4 profile tests**, **4 exercise-video tests**, and passing TypeScript. The Android smoke drivers automatically restore their pre-test workout data; see [smoke cleanup and recovery](K2F/docs/smoke-test-cleanup.md). Full-project lint still reports **30 existing errors and 3 warnings** in the root index, DoorOpeningIntro, and useRecentClientActivity.
-
-Android is the primary manually verified platform so far, including compact phones, large text, and tablet layouts. iOS stability and broader platform verification remain on the roadmap.
+`npm test` runs every Node test in `K2F/tests`. For a workout-only run, use `npm run test:workouts`. The Python command checks fixture cleanup without a device. The [Android smoke drivers](K2F/docs/smoke-test-cleanup.md) exercise the UI and restore workout data after each run. See the [repository audit](K2F/docs/codebase-audit.md) for the checks run on this branch.
 
 ## Next-semester roadmap
 
-The presentation identified backend linking, messaging, workout tracking integration, notifications, and iOS stability as the next major goals. The following **proposed CSC 191 roadmap** turns those goals into sprint-sized outcomes; it needs team/client approval and reconciliation with Jira's next-semester sprint numbering. It is not a record of already completed stories.
+These are proposed CSC 191 milestones. The team and client still need to confirm scope and sprint numbers against the Jira backlog.
 
 | Sprint | Proposed focus | Expected outcome |
 | --- | --- | --- |
@@ -358,6 +336,7 @@ For **every code change**, follow the [shared workflow](K2F/AGENTS.md#required-w
 - [Automatic smoke-test cleanup and recovery](K2F/docs/smoke-test-cleanup.md)
 - [Application state-machine audit](K2F/docs/implicit-state-machines.md)
 - [Theme and UI standards](K2F/docs/theme-standards.md)
+- [Required screen branding and review checks](K2F/docs/theme-standards.md#required-screen-branding)
 - [Android environment setup](K2F/docs/android-setup.md)
 - [Original UI design references](K2F/design-references)
 - [Contributor/agent development instructions](K2F/AGENTS.md)

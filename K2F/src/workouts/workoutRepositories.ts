@@ -6,6 +6,8 @@ export type SaveWorkoutPlan = {
   assignments: ClientWorkoutAssignment[];
   // Checked atomically with the write, so a deleted source cannot be resurrected.
   existingTemplateId?: string;
+  // Assignment must still match the revision used to build its snapshots.
+  expectedTemplateUpdatedAt?: string;
 };
 
 export type SaveExerciseRecommendation = {
@@ -46,7 +48,7 @@ export interface WorkoutSessionRepository {
   clearWorkoutSession(workoutId: string): Promise<void>;
   // Checkpoint and immutable history entry are committed together, once per attempt.
   finalizeWorkoutSession(entry: WorkoutHistoryEntry): Promise<WorkoutSession>;
-  listWorkoutHistory(clientId: string): Promise<WorkoutHistoryEntry[]>;
+  listWorkoutHistory(clients: string | readonly string[]): Promise<WorkoutHistoryEntry[]>;
 }
 
 export interface WorkoutClientDirectory {

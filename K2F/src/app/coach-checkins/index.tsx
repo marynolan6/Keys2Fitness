@@ -18,61 +18,28 @@ import {
 
 // Reuse the existing Keys2Fitness gradient
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
-
-
-// K2F-262 / K2F-263: Sample check-in data
-// Each record identifies the client and includes progress information
-// Optional fields may be missing if the client did not submit them
-const recentCheckIns = [
-  {
-    id: "1",
-    clientId: "1",
-    clientName: "Spencer",
-    date: "October 27, 2026",
-    weight: 175,
-    workoutsCompleted: 4,
-    workoutsScheduled: 4,
-    notes: "Feeling stronger and completing all my workouts.",
-  },
-  {
-    id: "2",
-    clientId: "2",
-    clientName: "Alex",
-    date: "October 25, 2026",
-    weight: 160,
-    workoutsCompleted: 3,
-    workoutsScheduled: 4,
-    notes: null,
-  },
-  {
-    id: "3",
-    clientId: "1",
-    clientName: "Spencer",
-    date: "October 20, 2026",
-    weight: 177,
-    workoutsCompleted: 3,
-    workoutsScheduled: 4,
-    notes: "Working on staying consistent.",
-  },
-];
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { coachCheckIns } from "@/checkins/coachCheckIns";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 // K2F-262: Coach-facing recent check-in list
 export default function RecentCheckIns() {
+  const insets = useSafeAreaInsets();
   return (
     <ThemedBackground>
       <FlatList
         // Show the newest check-ins first
-        data={recentCheckIns}
+        data={coachCheckIns}
         keyExtractor={(item) => item.id}
 
         // Keep the list centered on larger screens
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
 
         // Header displayed above the list
         ListHeaderComponent={
           <View style={styles.header}>
+            <K2FBrand coach />
             {/* Return to the coach dashboard */}
             <TouchableOpacity
               style={styles.backButton}
@@ -81,8 +48,7 @@ export default function RecentCheckIns() {
               <Text style={styles.backText}>← Back to Coach Home</Text>
             </TouchableOpacity>
 
-            <K2FBrand coach />
-            <Text style={styles.heading}>Recent Check-ins</Text>
+            <PageTitle>Recent Check-ins</PageTitle>
             <Text style={styles.subtitle}>
              Review your clients&apos; latest updates
             </Text>
@@ -180,11 +146,6 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
   },
 
-  heading: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-  },
 
   subtitle: {
     color: colors.textMuted,

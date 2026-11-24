@@ -1,30 +1,19 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { colors } from '@/theme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const DOOR_WIDTH = Math.min(SCREEN_WIDTH * 0.76, 355);
-const DOOR_HEIGHT = Math.min(SCREEN_HEIGHT * 0.74, 660);
-
-// Keys2Fitness palette — change DOOR_BLUE if you want a different shade.
 const DOOR_BLUE = '#438EF2';
-const DOOR_DARK = '#176E96';
-const DOOR_LIGHT = '#BDD3DC';
-const SILVER = '#F7FAFB';
 
 type Props = { onComplete: () => void };
 
-/**
- * Mount this OVER the actual next screen (e.g. Choose Dashboard).
- * Its backdrop becomes transparent during the swing, exposing the real screen.
- */
 export default function DoorOpeningIntro({ onComplete }: Props) {
-  const keyIn = useRef(new Animated.Value(0)).current;
-  const keyTurn = useRef(new Animated.Value(0)).current;
-  const keyOut = useRef(new Animated.Value(1)).current;
-  const handleDown = useRef(new Animated.Value(0)).current;
-  const open = useRef(new Animated.Value(0)).current;
-  const backdrop = useRef(new Animated.Value(1)).current;
-  const endFade = useRef(new Animated.Value(1)).current;
+  const { width, height } = useWindowDimensions();
+  const doorWidth = Math.min(width * 0.76, 355);
+  const doorHeight = Math.min(height * 0.74, 660);
+  const [{ keyIn, keyTurn, keyOut, handleDown, open, backdrop, endFade }] = useState(() => ({
+    keyIn: new Animated.Value(0), keyTurn: new Animated.Value(0), keyOut: new Animated.Value(1),
+    handleDown: new Animated.Value(0), open: new Animated.Value(0), backdrop: new Animated.Value(1), endFade: new Animated.Value(1),
+  }));
   const completeRef = useRef(onComplete);
 
   useEffect(() => { completeRef.current = onComplete; }, [onComplete]);
@@ -49,7 +38,6 @@ export default function DoorOpeningIntro({ onComplete }: Props) {
           toValue: 1, duration: 1800,
           easing: Easing.bezier(0.25, 0.1, 0.12, 1), useNativeDriver: true,
         }),
-        // This is what exposes the REAL screen behind the door.
         Animated.timing(backdrop, {
           toValue: 0, duration: 1400, easing: Easing.in(Easing.cubic), useNativeDriver: true,
         }),
@@ -69,11 +57,10 @@ export default function DoorOpeningIntro({ onComplete }: Props) {
 
   return (
     <Animated.View pointerEvents="auto" style={[styles.overlay, { opacity: endFade }]}>
-      {/* The screen below is already mounted; this background fades as the door opens. */}
       <Animated.View style={[styles.backdrop, { opacity: backdrop }]} />
       <Animated.Text style={[styles.wordmark, { opacity: backdrop }]}>KEYS2FITNESS</Animated.Text>
 
-      <View style={styles.doorArea}>
+      <View style={{ width: doorWidth, height: doorHeight }}>
         <Animated.View style={[styles.frame, { opacity: frameFade }]} pointerEvents="none" />
         <Animated.View
           style={[
@@ -81,20 +68,18 @@ export default function DoorOpeningIntro({ onComplete }: Props) {
             {
               transform: [
                 { perspective: 1100 },
-                { translateX: -DOOR_WIDTH / 2 },
+                { translateX: -doorWidth / 2 },
                 { rotateY: doorY },
-                { translateX: DOOR_WIDTH / 2 },
+                { translateX: doorWidth / 2 },
               ],
             },
           ]}
         >
-          {/* Slim raised edge, two recessed rectangular panels like your example */}
           <View style={styles.leftSheen} />
           <View style={styles.rightShadow} />
           <View style={styles.topPanel}><View style={styles.panelInset} /></View>
           <View style={styles.bottomPanel}><View style={styles.panelInset} /></View>
 
-          {/* Modern brushed-silver door lever */}
           <Animated.View style={[styles.handleAssembly, { transform: [{ rotate: handleRotation }] }]}>
             <View style={styles.handlePlate} />
             <View style={styles.handleStem} />
@@ -107,7 +92,6 @@ export default function DoorOpeningIntro({ onComplete }: Props) {
             <View style={styles.keyholeBase} />
           </View>
 
-          {/* Black key: approaches from the right, inserts, then twists. */}
           <Animated.View
             style={[
               styles.key,
@@ -146,7 +130,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 2, height: 3 },
     textShadowRadius: 4,
   },
-  doorArea: { width: DOOR_WIDTH, height: DOOR_HEIGHT },
   frame: {
     position: 'absolute', top: -12, left: -12, right: -12, bottom: -12,
     borderWidth: 12, borderColor: '#C6D9EF',
@@ -154,8 +137,8 @@ const styles = StyleSheet.create({
     borderRightColor: '#87ADD7', borderBottomColor: '#92B3D8',
   },
   door: {
-    position: 'absolute', top: 0, left: 0, width: DOOR_WIDTH, height: DOOR_HEIGHT,
-    backgroundColor: DOOR_BLUE, borderWidth: 3, borderColor: DOOR_DARK,
+    ...StyleSheet.absoluteFill,
+    backgroundColor: DOOR_BLUE, borderWidth: 3, borderColor: colors.primaryDark,
     backfaceVisibility: 'hidden',
     shadowColor: '#092D61', shadowOpacity: 0.5, shadowRadius: 16, elevation: 16,
   },
@@ -182,7 +165,7 @@ const styles = StyleSheet.create({
   panelInset: {
     flex: 1, backgroundColor: '#579BF1',
     borderWidth: 2, borderTopColor: '#357AD4', borderLeftColor: '#357AD4',
-    borderRightColor: DOOR_LIGHT, borderBottomColor: DOOR_LIGHT,
+    borderRightColor: colors.backgroundMiddle, borderBottomColor: colors.backgroundMiddle,
   },
   handleAssembly: {
     position: 'absolute', top: '55%', right: 4, width: 88, height: 40,
@@ -190,7 +173,7 @@ const styles = StyleSheet.create({
   },
   handlePlate: {
     position: 'absolute', right: 11, top: 5, width: 29, height: 30,
-    borderRadius: 5, borderWidth: 2, borderColor: '#8897A8', backgroundColor: SILVER,
+    borderRadius: 5, borderWidth: 2, borderColor: '#8897A8', backgroundColor: colors.background,
   },
   handleStem: {
     position: 'absolute', right: 33, top: 16, width: 17, height: 9,

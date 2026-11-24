@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useCoachClientsState } from "@/clients/clientStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { BuilderButton } from "@/components/WorkoutBuilderControls";
 import DailyNutritionSummary from "@/components/nutrition/DailyNutritionSummary";
@@ -20,7 +20,7 @@ export default function NutritionScreen() {
     <Stack.Screen options={{ title: "Nutrition" }} />
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <K2FBrand />
-      <Text accessibilityRole="header" style={styles.title}>Nutrition</Text>
+      <PageTitle style={styles.title}>Nutrition</PageTitle>
       <Text style={styles.subtitle}>Fuel your progress, one meal at a time.</Text>
       {library.status === "loading" ? <Text style={styles.body}>Loading demo client…</Text>
         : library.status === "error" ? <>

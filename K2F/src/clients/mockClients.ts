@@ -1,10 +1,4 @@
-// K2F-151 / K2F-236: Temporary client data for the coach screens
-// Used by the client list, dashboard, and client profile
-// IDs match the messages and check-ins mock data (1 = Spencer, 2 = Alex)
-// Will be replaced with Firebase data later
-
-// K2F-53: Whether the client is currently being coached. Inactive clients (paused or finished)
-// stay in the client list but are not counted as active.
+// Demo IDs are shared with workout assignments, messages, and check-ins.
 export type ClientStatus = "active" | "inactive";
 
 export type CoachClient = {
@@ -48,20 +42,10 @@ const sampleClients: CoachClient[] = [
 
 export const demoClients: CoachClient[] = PREVIEW_NO_CLIENTS ? [] : sampleClients;
 
-// K2F-53: The single rule for "active". Used everywhere the dashboard counts or lists active clients.
-export function isActiveClient(client: CoachClient): boolean {
-  return (client.status ?? "active") === "active";
-}
-
 export function getActiveClients(clients: readonly CoachClient[]): CoachClient[] {
-  return clients.filter(isActiveClient);
+  return clients.filter((client) => (client.status ?? "active") === "active");
 }
 
-export function countActiveClients(clients: readonly CoachClient[]): number {
-  return getActiveClients(clients).length;
-}
-
-// Finds a client by ID (returns undefined if no match)
 export function getClientById(clientId: string | undefined): CoachClient | undefined {
   if (!clientId) return undefined;
   return demoClients.find((client) => client.id === clientId);

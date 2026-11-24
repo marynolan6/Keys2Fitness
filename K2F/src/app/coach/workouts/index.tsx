@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
 import { useWorkoutAssignment } from "@/hooks/useWorkoutAssignment";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, builderStyles as styles } from "@/components/WorkoutBuilderControls";
@@ -74,7 +74,7 @@ function WorkoutLibraryContent({ clientId, saved }: { clientId?: string; saved?:
     contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
     <K2FBrand coach />
     <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.title}>Workout Library</Text>
+      <PageTitle style={styles.title}>Workout Library</PageTitle>
       <Text style={styles.muted}>Browse reusable templates and demo client workouts saved on this device.</Text>
       {state.status === "ready" && <>
         <BuilderButton label="Create workout" onPress={() => router.push({ pathname: "/coach/workouts/editor", params: { clientId: clientId ?? "" } })} disabled={busy} />
