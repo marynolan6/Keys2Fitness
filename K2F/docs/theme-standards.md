@@ -31,6 +31,6 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 | Role | Visible tabs | Quick-access items |
 | --- | --- | --- |
 | Client | Home, Progress, Messages, Profile | Home, Workout, Workout history, Nutrition, Messages, Progress, Profile |
-| Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Messages, Profile, Preferences, Account settings |
+| Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Video reviews, Messages, Profile, Preferences, Account settings |
 
-Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins is an existing root-stack destination; Android Back returns to the coach screen. Coach identity uses Firebase's display name when available, otherwise “Coach”; it must not reuse the locally saved client profile.
+Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews (K2F-58) are root-stack destinations; Android Back returns to the coach screen. Coach identity uses Firebase's display name when available, otherwise “Coach”; it must not reuse the locally saved client profile.

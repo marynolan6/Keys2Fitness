@@ -31,6 +31,8 @@ const coachItems = [
   { label: "Home", path: "/coach", icon: { ios: "house", android: "home", web: "home" } },
   { label: "Workout Library", path: "/coach/workouts", icon: { ios: "dumbbell", android: "fitness_center", web: "fitness_center" } },
   { label: "Check-ins", path: "/coach-checkins", icon: { ios: "checkmark.circle", android: "task_alt", web: "task_alt" } },
+  // K2F-265: client videos waiting for the coach's feedback
+  { label: "Video reviews", path: "/coach-videos", icon: { ios: "video", android: "videocam", web: "videocam" } },
   { label: "Messages", path: "/coach/messages", icon: { ios: "message", android: "chat", web: "chat" } },
   { label: "Profile", path: "/coach/profile", icon: { ios: "person", android: "person", web: "person" } },
   { label: "Preferences", path: "/coach/subscreens/preferences", icon: { ios: "slider.horizontal.3", android: "tune", web: "tune" } },
