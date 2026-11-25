@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, useWindowD
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, ExercisePicker, PrescriptionStepper, builderStyles as styles } from "@/components/WorkoutBuilderControls";
 import { useWorkoutEditor } from "@/hooks/useWorkoutEditor";
@@ -35,7 +36,7 @@ function WorkoutEditorForm({ template, initialClientId }: { template?: WorkoutTe
 
   return <ThemedBackground><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.brand}>KEYS2FITNESS / COACH</Text>
+      <K2FBrand coach />
       <Text style={styles.title}>{template ? "Edit Workout" : "Build Workout"}</Text>
       <Text style={styles.muted}>Build a reusable plan or assign a fresh copy to selected demo clients. All weights are in pounds.</Text>
       <BuilderField label="Workout name" value={draft.title} disabled={saving} error={errors.title}

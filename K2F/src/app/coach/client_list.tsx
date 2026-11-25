@@ -15,6 +15,7 @@ import {
 import { demoClients } from "@/clients/mockClients";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { colors, layout, radii, spacing, typography } from "@/theme";
 
 export default function Client_List() {
@@ -26,6 +27,7 @@ export default function Client_List() {
         style={styles.screen}
         contentContainerStyle={styles.content}
       >
+        <K2FBrand coach />
         <Text style={styles.title}>My Clients</Text>
 
         {/* Number of clients */}

@@ -25,9 +25,12 @@ import {
 // Allows us to customize the navigation header.
 import { Stack } from "expo-router";
 
-// Reuse the Keys2Fitness gradient background.
-// This is also used by other screens in the app.
+// Reuse the shared Keys2Fitness gradient background.
 import { ThemedBackground } from "@/components/ThemedBackground";
+
+// Keep the K2FBrand component imported from main.
+// Only keep this import if the component is used in the screen.
+import { K2FBrand } from "@/components/K2FBrand";
 
 // Import the shared Keys2Fitness theme settings.
 // These control the colors, spacing, and screen width.
@@ -156,25 +159,18 @@ export default function NutritionScreen() {
       {/* Set the navigation header title to Nutrition. */}
       <Stack.Screen options={{ title: "Nutrition" }} />
 
-      {/*
-        ScrollView lets clients scroll through the
-        Nutrition page on smaller screens.
-      */}
-      <ScrollView
+        {/* Keep keyboard taps working while clients use the food-entry form. */}
+        <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-
-        // Keep the keyboard from dismissing when clients
-        // interact with the food-entry form.
         keyboardShouldPersistTaps="handled"
-      >
+        >
+            
         {/* Center the screen content on desktop and mobile. */}
         <View style={styles.content}>
 
-          {/* Keys2Fitness branding above the title. */}
-          <Text style={styles.brand}>
-            KEYS2FITNESS
-          </Text>
+        {/* Display the shared Keys2Fitness branding component from main. */}
+        <K2FBrand />
 
           {/* Main Nutrition page heading. */}
           <Text style={styles.title}>
@@ -256,21 +252,13 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
   },
 
-  // Small Keys2Fitness branding above the heading.
-  brand: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: colors.primaryDark,
-    letterSpacing: 1.5,
-    marginBottom: spacing.sm,
-  },
-
-  // Large Nutrition heading matching the Figma design.
-  title: {
+    // Large Nutrition heading matching the Figma design.
+    title: {
+    marginTop: spacing.sm,
     fontSize: typography.title,
     fontWeight: "400",
     color: colors.text,
-  },
+    },
 
   // Description displayed below the Nutrition heading.
   subtitle: {

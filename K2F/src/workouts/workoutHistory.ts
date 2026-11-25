@@ -1,4 +1,5 @@
-import type { PerformedSet } from "./workout";
+import type { PerformedSet, WorkoutExercise } from "./workout";
+import { countLabel } from "./workoutLabels";
 import type { WorkoutHistoryEntry } from "./workoutSessionModel";
 
 export type WorkoutHistoryFilter = "completed" | "all";
@@ -27,8 +28,18 @@ export function recordedSetResult(set: PerformedSet) {
   const reps = set.actualReps.trim();
   const weight = set.actualWeightLb.trim();
   return {
-    reps: reps === "" ? "Reps not recorded" : `${reps} reps`,
+    reps: reps === "" ? "Reps not recorded" : countLabel(reps, "rep"),
     weight: weight === "" ? "Weight not recorded" : `${weight} lb`,
     status: set.completed ? "Confirmed" : "Unconfirmed",
   };
+}
+
+// Keep original set numbers when unlogged rows are omitted. Both a confirmed
+// blank set and an unconfirmed row with an actual value are part of the log.
+export function recordedSetRows(exercise: WorkoutExercise) {
+  return (exercise.actualSets ?? []).flatMap((set, index) => {
+    const completed = set.completed ?? exercise.completed;
+    return completed || set.actualReps !== "" || set.actualWeightLb !== ""
+      ? [{ id: set.id, number: index + 1, ...recordedSetResult({ ...set, completed }) }] : [];
+  });
 }

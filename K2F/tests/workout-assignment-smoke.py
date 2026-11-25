@@ -1,17 +1,42 @@
 """K2F-39 Android smoke; removes all fixture data on success or failure."""
+import argparse
+import re
 
-from helpers.android_ui import adb, fill, open_route, scroll_to, snapshot, tap, wait_for
+from helpers.android_ui import adb, bounds, fill, open_route, scroll_to, snapshot, tap, wait_for
 from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
-BASE = "exp://127.0.0.1:8081"
+def assignment_actions(title, open_label=None):
+    scroll_to("Your assigned workouts")
+    width, height = map(int, re.findall(r"(\d+)x(\d+)", adb("shell", "wm", "size"))[-1])
+    labels = []
+    for _ in range(24):
+        nodes = snapshot()
+        for node in nodes:
+            label = node.get("content-desc", "")
+            if not label.startswith("Open assigned workout " + title + " from "):
+                continue
+            if label not in labels:
+                labels.append(label)
+            if label == open_label:
+                # The whole card is now the action. A tall card doesn't need to
+                # fit completely in the viewport to tap its visible middle.
+                left, top, right, bottom = bounds(node)
+                top, bottom = max(top, height // 8), min(bottom, height * 4 // 5)
+                if bottom > top:
+                    adb("shell", "input", "tap", str((left+right)//2), str((top+bottom)//2))
+                    return labels
+        if any(node.get("text") == "Your current goal" for node in nodes):
+            assert not open_label, "Could not open dated assignment: " + str(open_label)
+            return labels
+        adb("shell", "input", "swipe", str(width // 2), str(height * 2 // 3), str(width // 2), str(height * 2 // 5), "500")
+    raise AssertionError("Could not reach the end of the assigned workouts section")
 
 
-def route(path):
-    open_route(path, BASE)
+def main(base_url):
+    def route(path):
+        open_route(path, base_url)
 
-
-def main():
     title = smoke_title("Assignment")
     print("Fixture: " + title, flush=True)
     for client_id, name in [("2", "Alex Morgan"), ("1", "Spencer"), ("2", "Alex Morgan")]:
@@ -47,11 +72,12 @@ def main():
     route("client/home")
     tap("Change demo workout client")
     tap("Preview workouts for Spencer")
-    scroll_to("No coach-built workouts assigned yet.")
+    wait_for("Demo workout client: Spencer")
+    assert not assignment_actions(title), "Alex's workout appeared on Spencer's dashboard"
     route("client/home")
     tap("Change demo workout client")
     tap("Preview workouts for Alex Morgan")
-    scroll_to("Open " + title)
+    assert len(assignment_actions(title)) == 1
     print("PASS: assignment appears for Alex and not Spencer", flush=True)
 
     route("coach/workouts?clientId=2")
@@ -65,14 +91,10 @@ def main():
     scroll_to("Assigned " + title + " to Alex Morgan.")
     route("client/home")
     # Both latest and earlier assigned copies must remain reachable.
-    scroll_to("Your assigned workouts")
-    labels = set()
-    for _ in range(7):
-        labels.update(node.get("content-desc") for node in snapshot()
-                      if node.get("content-desc", "").startswith("Open assigned workout " + title + " from "))
-        adb("shell", "input", "swipe", "30", "1700", "30", "850", "300")
+    labels = assignment_actions(title)
     assert len(labels) == 2, labels
-    tap(sorted(labels)[0])
+    assignment_actions(title, open_label=labels[-1])
+    wait_for("Start Workout")
     wait_for(title)
     adb("shell", "am", "force-stop", "host.exp.exponent")
     route("coach-client/2/workouts")
@@ -82,5 +104,8 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-url", default="exp://127.0.0.1:8081", help="URL of the open Expo Go project")
+    args = parser.parse_args()
     with workout_sandbox():
-        main()
+        main(args.base_url)

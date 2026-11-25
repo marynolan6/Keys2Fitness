@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCoachClientsState } from "@/clients/clientStore";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { K2FBrand } from "@/components/K2FBrand";
 import { WorkoutAssignmentConfirmation } from "@/components/WorkoutAssignmentConfirmation";
 import { useWorkoutAssignment } from "@/hooks/useWorkoutAssignment";
 import { BuilderButton, BuilderField, ClientAssignmentPicker, builderStyles as styles } from "@/components/WorkoutBuilderControls";
@@ -51,7 +52,7 @@ function WorkoutLibraryContent({ clientId, saved }: { clientId?: string; saved?:
 
   return <ThemedBackground><ScrollView style={styles.screen} keyboardShouldPersistTaps="handled"
     contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
-    <Text style={styles.brand}>KEYS2FITNESS / COACH</Text>
+    <K2FBrand coach />
     <Text style={styles.title}>Workout Template Library</Text>
     <Text style={styles.muted}>Local prototype · templates and client assignments are saved on this device.</Text>
     {state.status === "loading" ? <Text style={styles.muted}>Loading workout library…</Text> : state.status === "error" ?

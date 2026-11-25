@@ -4,9 +4,30 @@ import { useCoachClients } from "@/clients/clientStore";
 import { WorkoutHistoryDetails } from "@/components/WorkoutHistoryDetails";
 import { useWorkoutHistory } from "@/hooks/useWorkoutHistory";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
-import { workoutHistoryTotals } from "@/workouts/workoutSessionModel";
-import { formatWorkoutTime } from "@/workouts/workoutTimer";
+import { workoutHistoryTotals, type WorkoutHistoryEntry } from "@/workouts/workoutSessionModel";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+
+const RECENT_LIMIT = 3;
+const rowDate = new Intl.DateTimeFormat(undefined, {
+  month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+});
+
+function HistoryRow({ entry, onPress }: { entry: WorkoutHistoryEntry; onPress: () => void }) {
+  const title = entry.title.trim() || "Untitled workout";
+  const status = entry.session.outcome === "completed" ? "Completed" : "Ended early";
+  const date = new Date(entry.session.finishedAt);
+  const validDate = Number.isFinite(date.getTime());
+  const dateLabel = validDate ? rowDate.format(date) : "Date unavailable";
+  return <Pressable accessibilityRole="button" accessibilityLabel={`View ${title}, ${status.toLowerCase()}, ${validDate ? date.toLocaleString() : dateLabel}`}
+    accessibilityHint="Opens the recorded sets for this workout" onPress={onPress}
+    style={({ pressed }) => [styles.entry, pressed && styles.pressed]}>
+    <View style={styles.entryText}>
+      <Text style={styles.label}>{title}</Text>
+      <Text style={styles.muted}>{dateLabel} · {status}</Text>
+    </View>
+    <Text accessible={false} style={styles.chevron}>›</Text>
+  </Pressable>;
+}
 
 export function WorkoutHistorySection() {
   const library = useWorkoutLibraryState();
@@ -16,6 +37,10 @@ export function WorkoutHistorySection() {
   // Do not query the default/previous client's history before library restoration.
   const history = useWorkoutHistory(library.status === "ready" ? clientId : null);
   const totals = workoutHistoryTotals(history.entries);
+  const minutes = Math.floor(totals.activeMs / 60_000);
+  const hasMore = history.visibleEntries.length > RECENT_LIMIT;
+  const shown = history.expanded ? history.visibleEntries : history.visibleEntries.slice(0, RECENT_LIMIT);
+  const includeEarly = history.filter === "all";
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = isCompactLayout(width, fontScale);
@@ -32,40 +57,33 @@ export function WorkoutHistorySection() {
     </Pressable>
   </> : loading ? <Text accessibilityLiveRegion="polite" style={styles.body}>Loading workout history…</Text> : null;
 
-  return <View style={styles.card}>
+  return <View style={[styles.card, !compact && styles.roomy]}>
     <View style={styles.content} importantForAccessibility={history.detailOpen ? "no-hide-descendants" : "auto"}>
-      <Text accessibilityRole="header" style={styles.heading}>Workout history</Text>
-      <Text style={styles.muted}>Demo client: {clientName} · saved on this device</Text>
-      {feedback ?? <>
-        <Text accessibilityLiveRegion="polite" style={styles.total}>{totals.completed} {totals.completed === 1 ? "workout" : "workouts"} completed</Text>
-        <Text style={styles.body}>{formatWorkoutTime(totals.activeMs)} total active time in completed workouts</Text>
-        {totals.endedEarly > 0 && <Text style={styles.muted}>{totals.endedEarly} ended early · excluded from completed totals</Text>}
-        <View style={[styles.filters, compact && styles.stacked]}>
-          {(["completed", "all"] as const).map((filter) => <Pressable key={filter} accessibilityRole="button"
-            accessibilityState={{ selected: history.filter === filter }}
-            onPress={() => history.dispatch({ type: "filter", filter })}
-            style={({ pressed }) => [styles.filter, history.filter === filter && styles.selected, pressed && styles.pressed]}>
-            <Text style={styles.link}>{filter === "completed" ? "Completed workouts" : "All finished workouts"}</Text>
-          </Pressable>)}
-        </View>
-        {!history.visibleEntries.length && <Text style={styles.body}>{history.filter === "completed"
-          ? "No completed workouts yet. Confirm a completed workout to record it here."
-          : "No finished workouts yet. Completed and ended-early workouts will appear here."}</Text>}
-        {(history.expanded ? history.visibleEntries : history.visibleEntries.slice(0, 3)).map((entry) => <Pressable
-          key={JSON.stringify([entry.session.workoutId, entry.id])} accessibilityRole="button"
-          accessibilityLabel={`View ${entry.title}, ${entry.session.outcome === "completed" ? "completed" : "ended early"}, ${new Date(entry.session.finishedAt).toLocaleString()}`}
-          onPress={() => history.dispatch({ type: "select", key: { workoutId: entry.session.workoutId, sessionId: entry.id } })}
-          style={({ pressed }) => [styles.entry, pressed && styles.pressed]}>
-          <Text style={styles.label}>{entry.title.trim() || "Untitled workout"}</Text>
-          <Text style={styles.link}>{entry.session.outcome === "completed" ? "Completed" : "Ended early"}</Text>
-          <Text style={styles.muted}>{new Date(entry.session.finishedAt).toLocaleString()} · {formatWorkoutTime(entry.session.timer.elapsedMs)} active</Text>
-          <Text style={styles.muted}>{entry.session.exercises.filter((exercise) => exercise.completed).length}/{entry.session.exercises.length} exercises complete · View recorded sets</Text>
-        </Pressable>)}
-        {history.visibleEntries.length > 3 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: history.expanded }}
-          onPress={() => history.dispatch({ type: "toggle-expanded" })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-          <Text style={styles.link}>{history.expanded ? "Show recent workouts" : "Show all workout history"}</Text>
-        </Pressable>}
-      </>}
+      <View style={styles.header}>
+        <Text accessibilityRole="header" style={styles.heading}>Workout history</Text>
+        {library.status === "ready" && <Text style={styles.context}
+          accessibilityLabel={`Demo client: ${clientName}. Saved on this device.`}>Demo · {clientName}</Text>}
+      </View>
+      {feedback ?? (history.entries.length === 0 ? (
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>Finish a workout to see it here.</Text>
+      ) : <>
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>{totals.completed > 0
+          ? `${totals.completed} completed${totals.activeMs > 0 ? ` · ${minutes || "<1"} min active` : ""}`
+          : "No completed workouts yet."}</Text>
+        {shown.length > 0 && <View>{shown.map((entry) => <HistoryRow key={JSON.stringify([entry.session.workoutId, entry.id])}
+          entry={entry} onPress={() => history.dispatch({ type: "select", key: { workoutId: entry.session.workoutId, sessionId: entry.id } })} />)}</View>}
+        {(totals.endedEarly > 0 || hasMore) && <View style={styles.actions}>
+          {hasMore && <Pressable accessibilityRole="button" accessibilityState={{ expanded: history.expanded }}
+            onPress={() => history.dispatch({ type: "toggle-expanded" })} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+            <Text style={styles.link}>{history.expanded ? "Show recent" : `Show all ${history.visibleEntries.length} workouts`}</Text>
+          </Pressable>}
+          {totals.endedEarly > 0 && <Pressable accessibilityRole="button" accessibilityState={{ expanded: includeEarly }}
+            onPress={() => history.dispatch({ type: "filter", filter: includeEarly ? "completed" : "all" })}
+            style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+            <Text style={styles.link}>{includeEarly ? "Hide" : "Show"} early finishes ({totals.endedEarly})</Text>
+          </Pressable>}
+        </View>}
+      </>)}
     </View>
     <Modal visible={history.detailOpen} transparent animationType="slide" onRequestClose={() => history.dispatch({ type: "back" })}>
       <View style={[styles.overlay, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md,
@@ -89,20 +107,20 @@ export function WorkoutHistorySection() {
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md },
   content: { gap: spacing.sm },
-  heading: { color: colors.text, fontSize: typography.heading, fontWeight: "600" },
-  total: { color: colors.primaryDark, fontSize: typography.heading, fontWeight: "700" },
+  header: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: spacing.sm, rowGap: spacing.xs },
+  heading: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
+  context: { color: colors.textMuted, fontSize: typography.caption, flexShrink: 1 },
   body: { color: colors.text, fontSize: typography.body, lineHeight: typography.bodyLineHeight },
   muted: { color: colors.textMuted, fontSize: typography.label },
   label: { color: colors.text, fontSize: typography.body, fontWeight: "600" },
   link: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "600", textAlign: "center" },
-  entry: { backgroundColor: colors.surfaceMuted, borderRadius: radii.control, padding: spacing.md, gap: spacing.sm, minHeight: layout.minTouchTarget },
-  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", alignItems: "center", padding: spacing.sm, borderRadius: radii.button },
-  filters: { flexDirection: "row", gap: spacing.sm },
-  stacked: { flexDirection: "column" },
-  filter: { flex: 1, minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, padding: spacing.sm,
-    justifyContent: "center", alignItems: "center", borderRadius: radii.button, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  selected: { backgroundColor: colors.surfaceMuted },
-  pressed: { backgroundColor: colors.border },
+  entry: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: layout.minTouchTarget,
+    paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  entryText: { flex: 1, minWidth: 0, gap: spacing.xs },
+  chevron: { color: colors.primaryDark, fontSize: typography.heading },
+  actions: { flexDirection: "row", flexWrap: "wrap", columnGap: spacing.sm, justifyContent: "space-between" },
+  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, maxWidth: "100%", justifyContent: "center", alignItems: "center", padding: spacing.sm, borderRadius: radii.button },
+  pressed: { backgroundColor: colors.surfaceMuted },
   overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: "center", alignItems: "center" },
   modal: { flex: 1, width: "100%", maxWidth: layout.maxContentWidth, padding: spacing.md,
     backgroundColor: colors.surface, borderRadius: radii.card, gap: spacing.md },

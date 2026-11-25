@@ -1,5 +1,6 @@
 // K2F-261: Client-facing workout screen
 import React from "react";
+import { K2FBrand } from "@/components/K2FBrand";
 import {
   View,
   Text,
@@ -22,7 +23,7 @@ const workout = {
 export default function WorkoutScreen() {
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.brand}>KEYS2FITNESS</Text>
+      <K2FBrand />
       <Text style={styles.title}>Today&apos;s Workout</Text>
 
       <View style={styles.card}>
@@ -61,12 +62,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#DCEAF0",
     padding: 20,
-  },
-  brand: {
-    color: "#287BA7",
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 12,
   },
   title: {
     fontSize: 30,
