@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  addPerformedSet, fillSetTargets, initializeSetPerformance, isValidPerformanceValue,
+  addPerformedSet, initializeSetPerformance, isValidPerformanceValue,
   isValidPerformedSets, prescribedSetDefaults, removeLastPerformedSet, resetSetPerformance,
   toggleExercisePerformance, togglePerformedSet, updateSetPerformance,
 } from "../src/workouts/setPerformance.ts";
@@ -89,11 +89,11 @@ test("local session round-trip preserves entries, row IDs, removed rows, and com
   assert.equal(isValidPerformedSets(null), false);
 });
 
-test("checking a set records its completion only; the exercise is complete only after every set", () => {
+test("checking a set accepts its targets and completes the exercise only after every set", () => {
   let exercise = initializeSetPerformance(prescription);
   exercise = togglePerformedSet(exercise, exercise.actualSets[0].id);
   assert.deepEqual(exercise.actualSets[0], {
-    id: "bench-set-1", actualReps: "", actualWeightLb: "", completed: true,
+    id: "bench-set-1", actualReps: "8", actualWeightLb: "135", completed: true,
   });
   assert.equal(exercise.completed, false);
   exercise = togglePerformedSet(exercise, exercise.actualSets[1].id);
@@ -101,7 +101,7 @@ test("checking a set records its completion only; the exercise is complete only 
   assert.equal(exercise.completed, true);
   exercise = togglePerformedSet(exercise, exercise.actualSets[1].id);
   assert.equal(exercise.completed, false);
-  assert.equal(exercise.actualSets[1].actualReps, "");
+  assert.equal(exercise.actualSets[1].actualReps, "8");
   assert.equal(exercise.reps, 8);
   assert.equal(exercise.weight, "135 lb");
 });
@@ -123,14 +123,14 @@ test("confirmation keeps customized values and explicit zero rather than replaci
 test("exercise-level completion confirms every set and adding an unfinished set reopens it", () => {
   let exercise = toggleExercisePerformance(initializeSetPerformance(prescription));
   assert.equal(exercise.completed, true);
-  assert.ok(exercise.actualSets.every((set) => set.completed && set.actualReps === ""));
+  assert.ok(exercise.actualSets.every((set) => set.completed && set.actualReps === "8"));
   exercise = addPerformedSet(exercise, "extra");
   assert.equal(exercise.completed, false);
   exercise = removeLastPerformedSet(exercise);
   assert.equal(exercise.completed, true);
   exercise = toggleExercisePerformance(exercise);
   assert.equal(exercise.completed, false);
-  assert.ok(exercise.actualSets.every((set) => !set.completed && set.actualReps === ""));
+  assert.ok(exercise.actualSets.every((set) => !set.completed && set.actualReps === "8"));
 });
 
 test("only an explicit bodyweight target supplies zero added weight; legacy rows gain confirmation state", () => {
@@ -143,18 +143,30 @@ test("only an explicit bodyweight target supplies zero added weight; legacy rows
   assert.equal(isValidPerformedSets([{ ...legacy.actualSets[0], completed: "yes" }]), false);
 });
 
-test("explicit use of targets fills only missing fields of the requested unconfirmed set", () => {
-  const fresh = initializeSetPerformance(prescription);
-  const [first, second] = fresh.actualSets;
-  const edited = updateSetPerformance(fresh, second.id, "actualWeightLb", "0");
-  const filled = fillSetTargets(edited, second.id);
-  assert.deepEqual(filled.actualSets[1], { ...second, actualReps: "8", actualWeightLb: "0" });
-  assert.equal(filled.actualSets[0], first);
-  assert.equal(fillSetTargets(filled, second.id), filled);
-  assert.equal(fillSetTargets(filled, "missing"), filled);
-  assert.equal(fillSetTargets(fresh, first.id).actualSets[0].actualWeightLb, "135");
-  const confirmed = togglePerformedSet(edited, second.id);
-  assert.equal(fillSetTargets(confirmed, second.id), confirmed);
+test("surviving and newly added rows use the exercise prescription, even after removing every row", () => {
+  let e = initializeSetPerformance({ ...prescription, weight: "132.5 lb" });
+  e = removeLastPerformedSet(e);
+  e = updateSetPerformance(e, "bench-set-2", "actualWeightLb", "0");
+  e = togglePerformedSet(e, "bench-set-2");
+  assert.deepEqual(e.actualSets[1], { id: "bench-set-2", actualReps: "8", actualWeightLb: "0", completed: true });
+  assert.equal(e.actualSets[0].actualWeightLb, "");
+  e = removeLastPerformedSet(removeLastPerformedSet(e));
+  assert.deepEqual(e.actualSets, []);
+  e = addPerformedSet(e, "replacement");
+  assert.equal(e.actualSets[0].actualReps, "");
+  assert.deepEqual(togglePerformedSet(e, "replacement").actualSets, [
+    { id: "replacement", actualReps: "8", actualWeightLb: "132.5", completed: true },
+  ]);
+});
+
+test("confirmation never invents missing weight and never revises a previously confirmed legacy row", () => {
+  for (const [weight, expected] of [["", ""], ["Light band", ""], ["Bodyweight", "0"], ["99999999999999999 lb", ""]]) {
+    const legacy = { id: "old", actualReps: "", actualWeightLb: "", completed: true };
+    let e = addPerformedSet({ ...prescription, weight, actualSets: [legacy] }, "new");
+    e = updateSetPerformance(e, "new", "actualReps", "4");
+    e = toggleExercisePerformance(e);
+    assert.deepEqual(e.actualSets, [legacy, { id: "new", actualReps: "4", actualWeightLb: expected, completed: true }]);
+  }
 });
 
 test("new workout resets actual entries while retaining assigned targets and guidance", () => {

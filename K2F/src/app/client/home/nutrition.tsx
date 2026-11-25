@@ -21,19 +21,18 @@ export default function NutritionScreen() {
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <K2FBrand />
       <PageTitle style={styles.title}>Nutrition</PageTitle>
-      <Text style={styles.subtitle}>Fuel your progress, one meal at a time.</Text>
       {library.status === "loading" ? <Text style={styles.body}>Loading demo client…</Text>
         : library.status === "error" ? <>
           <Text accessibilityRole="alert" style={styles.body}>{library.error}</Text>
           <BuilderButton label="Retry demo client" onPress={() => { void workoutLibrary.load(); }} />
         </> : <>
-          <DemoWorkoutClientPicker context="nutrition" />
           {loadStatus !== "ready" || !client || !nutrition ? <Text style={styles.body}>Nutrition is unavailable for this demo client.</Text>
             : <View key={clientId}>
-              <Text style={styles.context}>Coach-assigned plan for {client.name} · shared demo state</Text>
+              <Text style={styles.context}>Demo plan for {client.name}</Text>
               <DailyNutritionSummary entries={nutrition.entries} goals={nutrition.plan.targets} tip={nutrition.plan.tip} clientName={client.name}
-                setEntries={(update) => nutritionRepository.updateFood(clientId, (entries) => typeof update === "function" ? update(entries) : update)} />
+                updateFood={(update) => nutritionRepository.updateFood(clientId, update)} />
             </View>}
+          <DemoWorkoutClientPicker context="nutrition" />
         </>}
     </ScrollView>
   </ThemedBackground>;
@@ -42,7 +41,6 @@ export default function NutritionScreen() {
 const styles = StyleSheet.create({
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm },
   title: { color: colors.text, fontSize: typography.title, fontWeight: "400" },
-  subtitle: { color: colors.textMuted, fontSize: typography.body, marginBottom: spacing.sm },
-  context: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.md },
+  context: { color: colors.textMuted, fontSize: typography.label },
   body: { color: colors.text, fontSize: typography.body },
 });

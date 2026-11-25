@@ -17,7 +17,7 @@ import { useRecentClientActivity } from "@/hooks/useRecentClientActivity";
 import { auth } from "@/lib/firebase";
 import { isUnreadFor, mockMessages } from "@/messages/mockMessageCoachClient";
 import { colors, layout, radii, spacing, typography } from "@/theme";
-import { getPendingVideos } from "@/videos/mockVideos";
+import { useVideoReviewQueue } from "@/videoReviews/videoReviewStore";
 
 const count = (value: number, singular: string) => `${value} ${singular}${value === 1 ? "" : "s"}`;
 
@@ -30,7 +30,7 @@ export default function CoachHome() {
 
   const { loadStatus, clients } = useCoachClientsState();
   const activeClients = getActiveClients(clients);
-  const videos = getPendingVideos();
+  const { pending } = useVideoReviewQueue();
   const messages = mockMessages.filter((m) => m.senderType === "client" && isUnreadFor(m, "coach"))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const { status, activities } = useRecentClientActivity(clients);
@@ -44,8 +44,8 @@ export default function CoachHome() {
       <DashboardGreeting name={name} />
       <Text accessibilityRole="header" style={styles.heading}>Coach Dashboard</Text>
       <CoachDashboardGrid tiles={[
-        { id: "videos", title: "Videos to Review", summary: count(videos.length, "pending video"),
-          action: "View videos to review", onPress: () => router.push("/coach/client_list") },
+        { id: "videos", title: "Videos to Review", summary: count(pending.length, "pending video"),
+          action: "View videos to review", onPress: () => router.push("/coach-videos") },
         { id: "messages", title: "Recent Messages", summary: count(messages.length, "unread message"),
           action: "View recent messages", onPress: () => setPanel("messages") },
         { id: "clients", title: "Active Clients", summary: loadStatus === "loading" ? "Loading clients…" : loadStatus === "error" ? "Could not load clients. Tap to retry." : count(activeClients.length, "active client"),

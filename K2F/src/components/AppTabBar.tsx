@@ -43,7 +43,7 @@ export function AppTabBar({ role, state, descriptors, emitter, navigateToTab }: 
         {routes.map((route, index) => {
           const selected = route.name === activeTab;
           const label = descriptors[route.key].options.title ?? route.name;
-          const tint = selected ? colors.primaryDark : colors.textMuted;
+          const tint = selected ? colors.primaryDark : navigation.inactiveTint;
           return (
             <Fragment key={route.key}>
               {index === 2 && <View style={styles.centerSlot} />}
@@ -55,12 +55,11 @@ export function AppTabBar({ role, state, descriptors, emitter, navigateToTab }: 
                 }}
                 onLongPress={() => emitter.emit({ type: "tabLongPress", target: route.key })}
                 style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-                
-                <View style={[styles.iconPill, selected && styles.selected]}>
-                  <SymbolView name={tabIcons[route.name]}size={spacing.lg} tintColor={tint} />
-                  {route.name === "messages" && ( <MessageCount  viewer={role === "coach" ? "coach" : "client"}/>)}
+                <View style={styles.iconSlot}>
+                  <SymbolView name={tabIcons[route.name]} size={spacing.lg} tintColor={tint} />
+                  {route.name === "messages" && <MessageCount viewer={role} />}
                 </View>
-                {showLabels && <Text style={[styles.label, compact && styles.compactLabel, { color: tint }]}>{label}</Text>}
+                {showLabels && <Text style={[styles.label, compact && styles.compactLabel, selected && styles.activeLabel, { color: tint }]}>{label}</Text>}
               </Pressable>
             </Fragment>
           );
@@ -88,9 +87,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingTop: spacing.sm },
   tab: { flex: 1, minWidth: layout.minTouchTarget, minHeight: layout.minTouchTarget,
     alignItems: "center", paddingVertical: spacing.xs, gap: spacing.xs, borderRadius: radii.button },
-  iconPill: { position: "relative",paddingHorizontal: spacing.md,paddingVertical: spacing.xs,borderRadius: radii.card,
-},
-  selected: { backgroundColor: colors.surfaceMuted },
+  iconSlot: { position: "relative", paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  activeLabel: { fontWeight: "600" },
   label: { fontSize: typography.label, textAlign: "center", flexShrink: 1 },
   compactLabel: { fontSize: typography.caption },
   pressed: { backgroundColor: colors.surfaceMuted },

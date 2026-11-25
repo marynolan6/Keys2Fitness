@@ -85,6 +85,6 @@ test("very long feedback is cut to the limit", () => {
 });
 
 test("dates read like Nov 14, 2026 and bad dates don't crash", () => {
-  assert.equal(formatVideoDate("2026-11-14T17:20:00.000Z"), "Nov 14, 2026");
+  assert.equal(formatVideoDate(new Date(2026, 10, 14, 17, 20).toISOString()), "Nov 14, 2026");
   assert.equal(formatVideoDate("not a date"), "Unknown date");
 });

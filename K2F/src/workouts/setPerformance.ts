@@ -39,10 +39,11 @@ export function initializeSetPerformance(exercise: WorkoutExercise): WorkoutExer
 
 export function prescribedSetDefaults(exercise: WorkoutExercise): Pick<PerformedSet, "actualReps" | "actualWeightLb"> {
   const weight = exercise.weight?.trim() ?? "";
-  const numericWeight = weight.match(/^(\d+(?:\.\d+)?)\s*(?:lbs?)?$/i)?.[1];
+  const reps = String(exercise.reps);
+  const lb = weight.match(/^(\d+(?:\.\d+)?)\s*(?:lbs?)?$/i)?.[1] ?? (/^(?:body\s?weight|bw|no weight)$/i.test(weight) ? "0" : "");
   return {
-    actualReps: String(exercise.reps),
-    actualWeightLb: numericWeight ?? (/^(?:body\s?weight|bw|no weight)$/i.test(weight) ? "0" : ""),
+    actualReps: isValidPerformanceValue("actualReps", reps) ? reps : "",
+    actualWeightLb: isValidPerformanceValue("actualWeightLb", lb) ? lb : "",
   };
 }
 
@@ -50,29 +51,25 @@ function withSets(exercise: WorkoutExercise, actualSets: PerformedSet[]): Workou
   return { ...exercise, actualSets, completed: actualSets.length > 0 && actualSets.every((set) => set.completed === true) };
 }
 
+// Only an explicit confirmation accepts hints. Loading, editing and archiving never fill a blank.
+function setConfirmation(row: PerformedSet, completed: boolean, targets: ReturnType<typeof prescribedSetDefaults>): PerformedSet {
+  if (row.completed === completed) return row;
+  return completed ? { ...row, completed, actualReps: row.actualReps || targets.actualReps,
+    actualWeightLb: row.actualWeightLb || targets.actualWeightLb } : { ...row, completed };
+}
+
 export function togglePerformedSet(exercise: WorkoutExercise, setId: string): WorkoutExercise {
   const current = initializeSetPerformance(exercise);
   if (!current.actualSets!.some((set) => set.id === setId)) return exercise;
-  return withSets(current, current.actualSets!.map((set) => set.id === setId ? {
-    ...set, completed: !set.completed,
-  } : set));
+  const targets = prescribedSetDefaults(current);
+  return withSets(current, current.actualSets!.map((set) => set.id === setId ? setConfirmation(set, !set.completed, targets) : set));
 }
 
 export function toggleExercisePerformance(exercise: WorkoutExercise): WorkoutExercise {
   const current = initializeSetPerformance(exercise);
   const completed = !current.completed;
-  return withSets(current, current.actualSets!.map((set) => ({ ...set, completed })));
-}
-
-// A deliberate shortcut in the editor, never called on restore, confirmation or finish.
-export function fillSetTargets(exercise: WorkoutExercise, setId: string): WorkoutExercise {
-  const row = exercise.actualSets?.find((set) => set.id === setId);
-  if (!row || row.completed) return exercise;
-  const defaults = prescribedSetDefaults(exercise);
-  const actualReps = row.actualReps || defaults.actualReps;
-  const actualWeightLb = row.actualWeightLb || defaults.actualWeightLb;
-  if (actualReps === row.actualReps && actualWeightLb === row.actualWeightLb) return exercise;
-  return withSets(exercise, exercise.actualSets!.map((set) => set === row ? { ...row, actualReps, actualWeightLb } : set));
+  const targets = prescribedSetDefaults(current);
+  return withSets(current, current.actualSets!.map((set) => setConfirmation(set, completed, targets)));
 }
 
 export function updateSetPerformance(

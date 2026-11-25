@@ -1,8 +1,12 @@
+export const meals = ["Breakfast", "Lunch", "Dinner", "Snacks"] as const;
+export type Meal = (typeof meals)[number];
+
 export type FoodEntry = NutritionTotals & {
   id: string;
   name: string;
   serving?: string;
   date: string; // Local YYYY-MM-DD
+  meal: Meal;
 };
 
 export const nutrients = ["calories", "protein", "carbs", "fats"] as const;
@@ -30,10 +34,14 @@ export function nutritionDate(daysAgo = 0, now = new Date()): string {
 }
 
 export function getDailyNutrition(entries: readonly FoodEntry[], date: string) {
-  const dailyEntries = entries.filter((entry) => entry.date === date);
+  const byMeal: Record<Meal, FoodEntry[]> = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
   const totals: NutritionTotals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
-  for (const entry of dailyEntries) {
+  let count = 0;
+  for (const entry of entries) {
+    if (entry.date !== date) continue;
+    byMeal[entry.meal].push(entry);
+    count++;
     for (const nutrient of nutrients) totals[nutrient] += entry[nutrient];
   }
-  return { dailyEntries, totals };
+  return { byMeal, count, totals };
 }

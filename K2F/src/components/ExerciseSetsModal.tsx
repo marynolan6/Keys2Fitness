@@ -21,7 +21,6 @@ type Props = {
   onAdd: () => void;
   onRemove: () => void;
   onToggle: (setId: string) => void;
-  onFillTargets: (setId: string) => void;
 };
 
 export function ExerciseSetsModal({ exercise, disabled, status, progress, onClose, ...actions }: Props) {
@@ -32,7 +31,7 @@ export function ExerciseSetsModal({ exercise, disabled, status, progress, onClos
         behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View accessibilityViewIsModal style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.heading}>Workout sets</Text>
+            <Text accessibilityRole="header" style={styles.heading}>Workout sets</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close workout sets" onPress={onClose}
               style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
               <Text style={styles.closeText}>Close</Text>

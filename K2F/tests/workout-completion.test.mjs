@@ -169,8 +169,6 @@ test("per-set edits survive switching exercises, pause/reopen, review and finish
   const act = (action) => { state = workoutSessionReducer(state, action); };
   act({ type: "update-set", exerciseId: "bench", setId: "bench-set-2", field: "actualReps", value: "7" });
   act({ type: "update-set", exerciseId: "bench", setId: "bench-set-2", field: "actualWeightLb", value: "127.5" });
-  act({ type: "fill-set-targets", exerciseId: "curl", setId: "curl-set-1" });
-  act({ type: "update-set", exerciseId: "curl", setId: "curl-set-1", field: "actualWeightLb", value: "" });
   act({ type: "update-set", exerciseId: "curl", setId: "curl-set-1", field: "actualReps", value: "0" });
   const previous = state;
   act({ type: "update-set", exerciseId: "curl", setId: "bench-set-2", field: "actualReps", value: "99" });
@@ -187,9 +185,9 @@ test("per-set edits survive switching exercises, pause/reopen, review and finish
   act({ type: "toggle-exercise", exerciseId: "bench" });
   act({ type: "toggle-set", exerciseId: "curl", setId: "curl-set-1" });
   const review = state.session.exercises.map(recordedSetRows);
-  assert.equal(review[0][0].reps, "Reps not recorded");
+  assert.equal(review[0][0].reps, "8 reps");
   assert.equal(review[0][1].weight, "127.5 lb");
-  assert.deepEqual(review[1], [{ id: "curl-set-1", number: 1, reps: "0 reps", weight: "Weight not recorded", status: "Confirmed" }]);
+  assert.deepEqual(review[1], [{ id: "curl-set-1", number: 1, reps: "0 reps", weight: "40 lb", status: "Confirmed" }]);
   assert.deepEqual(await service.listHistory("2"), []); // Reviewing does not finish the workout.
   await service.changeSession(plan, state.session, "finish");
   const [record] = await service.listHistory("2");

@@ -217,7 +217,7 @@ return (
                 disabled={sessionDisabled || exercise.actualSets?.length === 0}
                 accessibilityState={{ checked: exercise.completed, disabled: sessionDisabled || exercise.actualSets?.length === 0 }}
                 onPress={() => toggleExercise(exercise.id)}
-                accessibilityHint="Marks all sets complete or incomplete without changing the reps or weights you logged."
+                accessibilityHint="Checks or unchecks every set. Checking accepts suggested values for any empty fields on unconfirmed sets."
                 style={({ pressed }) => [
                   styles.checkbox,
                   exercise.completed && styles.checkboxCompleted,
@@ -276,7 +276,6 @@ return (
         onToggle={(setId) => {
           if (selectedExercise) session.toggleSet(selectedExercise.id, setId);
         }}
-        onFillTargets={(setId) => { if (selectedExercise) session.fillSetTargets(selectedExercise.id, setId); }}
         onAdd={() => { if (selectedExercise) session.addSet(selectedExercise.id); }}
         onRemove={() => { if (selectedExercise) session.removeSet(selectedExercise.id); }}
       />

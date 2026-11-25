@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { VideoPlayerCard } from "@/components/VideoPlayerCard";
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -20,6 +21,10 @@ const errorMessages: Record<ReviewError, string> = {
 // K2F-267: write feedback and mark it reviewed
 export default function VideoReviewScreen() {
   const { videoId } = useLocalSearchParams<{ videoId: string }>();
+  return <VideoReviewContent key={videoId} videoId={videoId} />;
+}
+
+function VideoReviewContent({ videoId }: { videoId: string }) {
   const video = useVideoSubmissions().find((item) => item.id === videoId);
   const insets = useSafeAreaInsets();
   const [feedback, setFeedback] = useState("");
@@ -50,18 +55,19 @@ export default function VideoReviewScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}
         >
+          <K2FBrand coach />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Back to video reviews"
+            accessibilityLabel="Back from video review"
             onPress={goBack}
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
           >
-            <Text style={styles.backText}>Back to video reviews</Text>
+            <Text style={styles.backText}>Back</Text>
           </Pressable>
 
           {!video ? (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Video not found</Text>
+              <PageTitle>Video not found</PageTitle>
               <Text style={styles.body}>It may have been removed. Go back to see the videos waiting for review.</Text>
             </View>
           ) : (
@@ -69,7 +75,7 @@ export default function VideoReviewScreen() {
               <View style={styles.clientRow}>
                 <ClientAvatar name={video.clientName} />
                 <View style={styles.clientText}>
-                  <Text accessibilityRole="header" style={styles.heading}>{video.exerciseName}</Text>
+                  <PageTitle>{video.exerciseName}</PageTitle>
                   <Text style={styles.body}>{video.clientName} · submitted {formatVideoDate(video.submittedAt)}</Text>
                 </View>
               </View>
@@ -149,6 +155,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     justifyContent: "center",
     minHeight: layout.minTouchTarget,
+    minWidth: layout.minTouchTarget,
   },
   backText: {
     color: colors.primaryDark,
@@ -167,11 +174,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  heading: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
@@ -180,11 +182,6 @@ const styles = StyleSheet.create({
   },
   reviewedCard: {
     backgroundColor: colors.achievedMuted,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
   },
   label: {
     color: colors.primaryDark,

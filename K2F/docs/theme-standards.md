@@ -28,7 +28,7 @@ Android previews: [Coach dashboard](images/coach-dashboard.png) · [Client dashb
 
 Client and coach navigation must have the same visual treatment. Both layouts render `AppTabBar` with a `role` prop and share `AppQuickAccessMenu`. Role-specific destinations and identity do not change the bar's styling.
 
-- White surface, rounded top corners, subtle border, and muted active-icon pill.
+- White surface, rounded top corners, and a subtle border. The active icon and label are blue; other tabs use `navigation.inactiveTint`. The rounded press highlight disappears on release.
 - Four visible tabs, retaining the existing role-specific icon symbols and order.
 - Raised circular dark-blue plus button centered between tabs two and three, with a white plus and shared shadow/pressed treatment.
 - Use the `navigation` theme tokens for corner radius, overlap, center spacing, button size/radius, color, elevation, and shadow opacity. Continue using the common color, typography, spacing, and touch-target tokens for other details.
@@ -36,7 +36,7 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 - Respect bottom and horizontal safe-area insets, maintain at least 48 dp touch targets, and keep the center button usable at all supported widths/font scales.
 - At narrow widths with large text, hide the visual tab labels while preserving full accessibility labels. The scrollable quick-access menu always provides full-size text labels.
 - Show extra destinations only in the menu, not as additional bottom tabs. Preferences and Account settings remain associated with the coach Profile tab.
-- Menus share the rounded white panel, identity/avatar row, current-route highlight, blue icons, and chevrons. X, backdrop, and Android Back dismiss the menu. Do not include logout.
+- Show only the destinations and a red **Close** button. Center each icon and label together. Keep **Close** below the scrolling list so it stays visible. Tapping outside the panel and Android Back also dismiss the menu. Keep the current-route highlight and accessible labels.
 
 ### Role destinations
 
@@ -45,4 +45,8 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 | Client | Home, Progress, Messages, Profile | Home, Workout, Workout history, Nutrition, Messages, Progress, Profile |
 | Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Video reviews, Messages, Profile, Preferences, Account settings |
 
-Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews (K2F-58) are root-stack destinations; Android Back returns to the coach screen. Coach identity uses Firebase's display name when available, otherwise “Coach”; it must not reuse the locally saved client profile.
+Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews are root-stack destinations; Android Back returns to the coach screen.
+
+**Android verification (Nov 25, 2026):** opened both roles’ menus at 320 dp / 1.5× text, 390 dp, and 800 dp. Checked the close button, Android Back, tapping outside the panel, and navigation to Nutrition and Video reviews. At 390 dp the selected Home tab had no background at rest, showed the rounded highlight while held, and cleared it on release. The active blue and inactive gray matched the theme colors in the screenshots.
+
+In demo 1.0.2, both menus kept **Close** in the same position while scrolling to the last destination at 320 × 490 dp with 1.5× text. At 390 dp and 800 dp the icon-label pairs were centered and the current destination stayed highlighted. The signed APK updated 1.0.1 in place. The first automated launch closed when Android started the activity twice; subsequent cold launches reached login.

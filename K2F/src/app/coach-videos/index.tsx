@@ -4,20 +4,21 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { K2FBrand } from "@/components/K2FBrand";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { colors, layout, radii, spacing, typography } from "@/theme";
-import { formatVideoDate, splitByStatus, type VideoSubmission } from "@/videoReviews/videoReview";
-import { useVideoSubmissions } from "@/videoReviews/videoReviewStore";
+import { formatVideoDate, type VideoSubmission } from "@/videoReviews/videoReview";
+import { useVideoReviewQueue } from "@/videoReviews/videoReviewStore";
 
 // K2F-265: coach-facing list of client videos, waiting ones first
 export default function VideoReviewQueue() {
   const insets = useSafeAreaInsets();
-  const { pending, reviewed } = splitByStatus(useVideoSubmissions());
+  const { pending, reviewed } = useVideoReviewQueue();
 
   return (
     <ThemedBackground>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
+        <K2FBrand coach />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -27,8 +28,7 @@ export default function VideoReviewQueue() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
-        <K2FBrand coach />
-        <Text accessibilityRole="header" style={styles.heading}>Video reviews</Text>
+        <PageTitle>Video reviews</PageTitle>
         <Text style={styles.subtitle}>
           {pending.length === 0
             ? "You're all caught up."
@@ -106,11 +106,6 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: typography.body,
     fontWeight: "600",
-  },
-  heading: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
   },
   subtitle: {
     color: colors.textMuted,

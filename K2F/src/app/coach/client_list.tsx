@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 import { demoClients } from "@/clients/mockClients";
-import { getPendingVideos } from "@/videos/mockVideos";
+import { useVideoReviewQueue } from "@/videoReviews/videoReviewStore";
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
@@ -22,7 +22,7 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 export default function Client_List() {
   const insets = useSafeAreaInsets();
   const clientCount = demoClients.length;
-  const pendingVideos = getPendingVideos();
+  const { pending: pendingVideos } = useVideoReviewQueue();
 
   return (
     <ThemedBackground>
@@ -51,14 +51,14 @@ export default function Client_List() {
           </View>
         ) : (
           demoClients.map((client) => {
-            const hasPendingVideo = pendingVideos.some(
+            const status = pendingVideos.some(
               (video) => video.clientId === client.id,
-            );
+            ) ? "Review video" : "On track";
             return (
               <Pressable
                 key={client.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${client.name}, ${client.goal}. Open client profile`}
+                accessibilityLabel={`${client.name}, ${client.goal}. ${status}. Open client profile`}
                 onPress={() =>
                   router.push({
                     pathname: "/coach-client/[clientId]",
@@ -79,9 +79,7 @@ export default function Client_List() {
 
                 <View style={styles.clientActions}>
                   <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>
-                      {hasPendingVideo ? "Review video" : "On track"}
-                    </Text>
+                    <Text style={styles.statusText}>{status}</Text>
                   </View>
                   <Text style={styles.chevron}>›</Text>
                 </View>

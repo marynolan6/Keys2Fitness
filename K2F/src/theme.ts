@@ -77,6 +77,7 @@ export const branding = {
 // Shared bottom navigation standard for both client and coach layouts.
 // Render through AppTabBar so role-specific destinations never fork the design.
 export const navigation = {
+  inactiveTint: "#6B7280",
   cornerRadius: radii.card,
   overlap: spacing.md,
   centerSlotWidth: layout.minTouchTarget + spacing.md,
