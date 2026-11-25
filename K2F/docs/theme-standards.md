@@ -2,6 +2,17 @@
 
 Use the shared blue/white palette, screen gradient, typography, spacing, radii, and touch-target tokens from `src/theme.ts`. App screens use `ThemedBackground`; reusable visual rules belong in the theme rather than role-specific copies.
 
+## Tappable controls
+
+- **Make the action visible before the first tap.** Use a filled or outlined button, an underlined text link, or a labeled action row with a familiar icon. A pressed state alone does not tell someone where to tap. Use a visible text label when the icon's meaning is ambiguous. See the [U.S. Web Design System button guidance](https://designsystem.digital.gov/components/button/#usability-guidance).
+- **Size the icon and its target separately.** Use at least `layout.minTouchTarget` (48 × 48 dp) for the whole control, with `spacing.sm` (8 dp) between adjacent controls where possible. Use a recognizable symbol instead of punctuation for icon-only buttons. The nutrition day selector uses 32 dp arrows. See [Android's touch-target guidance](https://support.google.com/accessibility/android/answer/7101858?hl=en).
+- **Check contrast in context.** Normal-size text needs at least [4.5:1 contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). Icons and visual cues needed to identify an enabled control or its state need at least [3:1 against adjacent colors](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html). Use a solid background when a gradient makes contrast unreliable.
+- **Make states match behavior.** Show press feedback, preserve visible keyboard focus, and give each control an accessible role and action label. If an action is unavailable, distinguish it visually, disable activation, and expose the disabled state to assistive technology. Check the default, pressed, and disabled states at narrow width with large text.
+
+![Nutrition date selector with an outlined Previous day button and a muted Next day button on Today](images/nutrition-date-controls.png)
+
+On Android, both date buttons measured 50 × 50 dp at 320 dp with 1.5× text, 390 dp, and 800 dp. The enabled arrow has 8.15:1 contrast against white. Previous day, Next day, and Back to Today changed the selected date; tapping Next day on Today did nothing.
+
 ## Required screen branding
 
 Every new or modified client and coach tab, section, and detail screen must show one [`K2FBrand`](../src/components/K2FBrand.tsx) at the top of its content, before the page title or greeting. This applies to loading, empty, error, and unavailable-item views as well as populated screens. Use [`BrandedPage`](../src/components/BrandedPage.tsx) for a simple page; it supplies the brand, heading, scroll area, and safe spacing. A screen with a custom scroll container places `K2FBrand` itself.

@@ -1,6 +1,6 @@
 # README screenshots
 
-These PNGs are captures of the running Android app in Expo Go, using the project's demo data. They show the implemented UI, rather than Figma mockups.
+These PNGs show the running Android app with demo data. Most were captured in Expo Go.
 
 | File | View |
 | --- | --- |
@@ -16,6 +16,7 @@ These PNGs are captures of the running Android app in Expo Go, using the project
 | `weight-progress-chart.png` | K2F-129: six sample check-ins on Client Progress with All time selected (390 × 844 dp) |
 | `workout-history-empty.png`, `workout-history-list.png` | Empty and populated workout history cards, cropped from the 390 dp Android view using temporary demo records |
 | `nutrition-targets.png` | K2F-125: Alex's assigned daily targets and same-day intake (390 dp) |
+| [Nutrition date controls](nutrition-date-controls.png) | Previous day and disabled Next day on Today, cropped from the standalone 1.0.4 demo at 390 dp |
 | `workout-progress.png` | K2F-47: progress remains pinned while scrolling through a two-exercise demo session (390 dp) |
 
 The two dashboard previews show the Sprint 4 branding update at 390 × 844 dp and normal font scale. The login preview is from K2F-34. The workout library, prescription editor, client workout, exercise details, and messaging captures date to `e97c283`. Workout data is local, and conversations use demo messages.

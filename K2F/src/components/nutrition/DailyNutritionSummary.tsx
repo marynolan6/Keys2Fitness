@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { FoodEntryEditor } from "./FoodEntryEditor";
 import NutritionProgress from "./NutritionProgress";
 import { getDailyNutrition, meals, nutritionDate, type FoodEntry, type Meal, type NutritionTargets } from "@/utils/nutrition";
@@ -23,12 +24,14 @@ export default function DailyNutritionSummary({ entries, updateFood, goals, tip,
 
   return <View style={styles.content}>
     <View style={styles.dateRow}>
-      <Action label="‹" name="Previous day" onPress={() => setDate(nutritionDate(1, day))} />
+      <Action label="Previous day" icon={{ ios: "arrow.left", android: "arrow_back", web: "arrow_back" }}
+        onPress={() => setDate(nutritionDate(1, day))} />
       <View style={styles.dateText}>
         <Text accessibilityLiveRegion="polite" style={styles.label}>{date === today ? "Today" : dateLabel}</Text>
         {date !== today && <Action label="Back to Today" onPress={() => setDate(today)} />}
       </View>
-      <Action label="›" name="Next day" disabled={date >= today} onPress={() => setDate(nutritionDate(-1, day))} />
+      <Action label="Next day" icon={{ ios: "arrow.right", android: "arrow_forward", web: "arrow_forward" }}
+        disabled={date >= today} onPress={() => setDate(nutritionDate(-1, day))} />
     </View>
     <NutritionProgress totals={totals} goals={goals} context={context} />
     <View style={styles.card}>
@@ -68,10 +71,13 @@ export default function DailyNutritionSummary({ entries, updateFood, goals, tip,
   </View>;
 }
 
-function Action({ label, name = label, onPress, disabled = false }: { label: string; name?: string; onPress: () => void; disabled?: boolean }) {
+function Action({ label, name = label, icon, onPress, disabled = false }: {
+  label: string; name?: string; icon?: SymbolViewProps["name"]; onPress: () => void; disabled?: boolean;
+}) {
   return <Pressable accessibilityRole="button" accessibilityLabel={name} accessibilityState={{ disabled }} disabled={disabled}
     onPress={onPress} style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && styles.pressed]}>
-    <Text style={styles.buttonText}>{label}</Text>
+    {icon ? <SymbolView name={icon} size={spacing.xl} tintColor={disabled ? colors.textMuted : colors.primaryDeep} />
+      : <Text style={styles.buttonText}>{label}</Text>}
   </Pressable>;
 }
 
@@ -83,15 +89,16 @@ const styles = StyleSheet.create({
   caption: { color: colors.textMuted, fontSize: typography.label },
   body: { color: colors.text, fontSize: typography.body, lineHeight: typography.bodyLineHeight },
   header: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  dateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  dateText: { flex: 1, alignItems: "center" },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.card },
+  dateText: { flex: 1, alignItems: "center", gap: spacing.xs },
   meal: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, gap: spacing.xs },
   food: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
   foodText: { flex: 1, gap: spacing.xs, minWidth: 0 },
   stacked: { flexDirection: "column", alignItems: "stretch" },
   actions: { flexDirection: "row", gap: spacing.sm },
-  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", alignItems: "center", padding: spacing.sm, borderRadius: radii.control },
+  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", alignItems: "center", padding: spacing.sm,
+    backgroundColor: colors.surface, borderColor: colors.primaryDark, borderWidth: 1, borderRadius: radii.control },
   buttonText: { color: colors.primaryDeep, fontSize: typography.label, fontWeight: "600", textAlign: "center" },
-  disabled: { opacity: 0.5 },
+  disabled: { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
   pressed: { backgroundColor: colors.surfaceMuted },
 });
