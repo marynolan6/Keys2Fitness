@@ -39,25 +39,11 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
       {rows.length === 0 && <Text style={styles.hint}>No performed sets. Add a set to record your workout.</Text>}
       {rows.map((set, index) => (
         <View key={set.id} style={[styles.setCard, set.completed && styles.completedCard]}>
-          <View style={styles.row}>
-            <Text style={styles.setNumber}>Set {index + 1} ·</Text>
-            {(["actualReps", "actualWeightLb"] as const).map((field) => {
-              const reps = field === "actualReps";
-              const suggestion = set.completed ? "" : defaults[field];
-              const error = errors[`${set.id}:${field}`];
-              return <View key={field} style={styles.valueWithUnit}>
-                <TextInput
-                  accessibilityLabel={`${exercise.name}, set ${index + 1}, ${reps ? "actual reps" : "actual weight (lb)"}`}
-                  accessibilityHint={error || (suggestion ? `Suggested: ${suggestion}. Check the set to accept.` : "No suggested value.")}
-                  editable={!disabled} returnKeyType="done"
-                  keyboardType={reps ? "number-pad" : "decimal-pad"} inputMode={reps ? "numeric" : "decimal"}
-                  placeholder={suggestion || "—"} placeholderTextColor={colors.textMuted} value={set[field]}
-                  onChangeText={(value) => change(set.id, field, value)}
-                  style={[styles.input, disabled && styles.inputDisabled, !!error && styles.inputError]}
-                />
-                <Text style={styles.unit}>{reps ? "reps," : "lb"}</Text>
-              </View>;
-            })}
+          <View style={styles.rowHeader}>
+            <View style={styles.flex}>
+              <Text accessibilityRole="header" style={styles.setNumber}>Set {index + 1}</Text>
+              <Text style={styles.hint}>{set.completed ? "Completed" : "Not complete"}</Text>
+            </View>
             <Pressable accessibilityRole="checkbox"
               accessibilityLabel={`${exercise.name}, set ${index + 1} completed`}
               accessibilityHint={set.completed ? "Uncheck to reopen this set. Your values stay in the log." : "Confirms this set using your entries or the suggested values."}
@@ -70,8 +56,27 @@ export function ExerciseSetEntries({ exercise, disabled, onChange, onAdd, onRemo
               {set.completed && <Text style={styles.checkmark}>✓</Text>}
             </Pressable>
           </View>
-          {!!errors[`${set.id}:actualReps`] && <Text accessibilityRole="alert" style={styles.error}>{errors[`${set.id}:actualReps`]}</Text>}
-          {!!errors[`${set.id}:actualWeightLb`] && <Text accessibilityRole="alert" style={styles.error}>{errors[`${set.id}:actualWeightLb`]}</Text>}
+          <View style={[styles.fields, compact && styles.fieldsCompact]}>
+            {(["actualReps", "actualWeightLb"] as const).map((field) => {
+              const reps = field === "actualReps";
+              const label = reps ? "Actual reps" : "Actual weight (lb)";
+              const suggestion = set.completed ? "" : defaults[field];
+              const error = errors[`${set.id}:${field}`];
+              return <View key={field} style={[styles.field, !compact && styles.flex]}>
+                <Text style={styles.label}>{label}</Text>
+                <TextInput
+                  accessibilityLabel={`${exercise.name}, set ${index + 1}, ${label.toLowerCase()}`}
+                  accessibilityHint={error || (suggestion ? `Suggested: ${suggestion}. Check the set to accept.` : "Enter your performed value.")}
+                  editable={!disabled} returnKeyType="done"
+                  keyboardType={reps ? "number-pad" : "decimal-pad"} inputMode={reps ? "numeric" : "decimal"}
+                  placeholder={suggestion || "—"} placeholderTextColor={colors.textMuted} value={set[field]}
+                  onChangeText={(value) => change(set.id, field, value)}
+                  style={[styles.input, disabled && styles.inputDisabled, !!error && styles.inputError]}
+                />
+                {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+              </View>;
+            })}
+          </View>
         </View>
       ))}
       <View style={[styles.fields, compact && styles.fieldsCompact]}>
@@ -103,19 +108,20 @@ const styles = StyleSheet.create({
   hint: { color: colors.textMuted, fontSize: typography.label },
   setCard: { borderColor: colors.border, borderWidth: 1, borderRadius: radii.control, padding: spacing.sm, gap: spacing.sm },
   completedCard: { backgroundColor: colors.achievedMuted, borderColor: colors.achieved },
-  row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
-  checkbox: { marginLeft: "auto", minWidth: layout.minTouchTarget, minHeight: layout.minTouchTarget, borderRadius: radii.control, borderColor: colors.primaryDark, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  rowHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  flex: { flex: 1 },
+  checkbox: { minWidth: layout.minTouchTarget, minHeight: layout.minTouchTarget, borderRadius: radii.control, borderColor: colors.primaryDark, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   checkboxCompleted: { backgroundColor: colors.primaryDark },
   checkmark: { color: colors.surface, fontSize: typography.heading, fontWeight: "700" },
   setNumber: { color: colors.primaryDark, fontSize: typography.body, fontWeight: "700" },
   fields: { flexDirection: "row", gap: spacing.sm },
   fieldsCompact: { flexDirection: "column" },
-  valueWithUnit: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-  unit: { color: colors.text, fontSize: typography.label },
+  field: { gap: spacing.xs },
+  label: { color: colors.text, fontSize: typography.label },
   input: {
     color: colors.text, backgroundColor: colors.surface, borderColor: colors.textMuted, borderWidth: 1,
     borderRadius: radii.control, minHeight: layout.minTouchTarget, fontSize: typography.body,
-    minWidth: layout.minTouchTarget, maxWidth: layout.minTouchTarget * 2, textAlign: "center", padding: spacing.sm,
+    padding: spacing.sm,
   },
   inputDisabled: { backgroundColor: colors.surfaceMuted },
   inputError: { borderColor: colors.danger },
