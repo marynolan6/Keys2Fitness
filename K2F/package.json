@@ -44,7 +44,7 @@
     "lint": "expo lint",
     "check:branding": "expo export --platform web --output-dir .expo/brand-check && node scripts/check-branding.mjs .expo/brand-check",
     "test:workouts": "node --test tests/workout-*.test.mjs tests/set-performance.test.mjs",
-    "test:progress": "node --test tests/weight-chart.test.mjs",
+    "test:progress": "node --test tests/weight-chart.test.mjs tests/checkin-form.test.mjs tests/checkin-history.test.mjs",
     "test:nutrition": "node --test tests/nutrition.test.mjs"
   },
   "private": true

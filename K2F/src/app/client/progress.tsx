@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   limit,
   onSnapshot,
@@ -33,7 +34,20 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { WeightProgressChart } from "@/components/WeightProgressChart";
-import { mockCheckIns, sampleCheckInAsOf } from "@/checkins/mockCheckIns";
+import { sampleCheckInAsOf } from "@/checkins/mockCheckIns";
+import { useCheckIns } from "@/checkins/checkInStore";
+import {
+  CHECK_IN_MEASUREMENTS,
+  draftFromCheckIn,
+  emptyCheckInDraft,
+  localDateString,
+  readStoredCheckIn,
+  type CheckInDraft,
+  type CheckInMeasurements,
+  type CheckInValues,
+  type StoredCheckIn,
+} from "@/checkins/checkInForm";
+import { CheckInForm } from "@/components/CheckInForm";
 
 const MAX_HISTORY = 5;
 const TAB_BAR_CLEARANCE = 96;
@@ -45,14 +59,13 @@ type Goal = {
   startDate: string;
 };
 
-type WeightEntry = { id: string; weightLb: number; date: string };
+type WeightEntry = StoredCheckIn;
 
-const localDate = () => {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
-};
+const displayMeasurements = (measurementsIn: CheckInMeasurements) =>
+  CHECK_IN_MEASUREMENTS.flatMap(({ key, label }) => {
+    const value = measurementsIn[key];
+    return value === undefined ? [] : [`${label} ${Number(value.toFixed(1))} in`];
+  }).join(" · ");
 
 const displayDate = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
@@ -67,6 +80,9 @@ const displayChange = (change: number) =>
 
 export default function Progress() {
   const insets = useSafeAreaInsets();
+  const checkIns = useCheckIns();
+  // Ends at the sample date so demo ranges stay fixed, or later if a newer check-in was added.
+  const chartThrough = checkIns.reduce((latest, { date }) => (date > latest ? date : latest), sampleCheckInAsOf);
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   useEffect(() => onAuthStateChanged(auth, (user) => setUserId(user?.uid ?? null)), []);
 
@@ -83,7 +99,7 @@ export default function Progress() {
           <K2FBrand />
           <PageTitle style={styles.title}>Your Progress</PageTitle>
           <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
-          <WeightProgressChart checkIns={mockCheckIns} through={sampleCheckInAsOf} />
+          <WeightProgressChart checkIns={checkIns} through={chartThrough} />
           <WorkoutHistorySection />
           {userId === undefined ? <LoadingAccountProgress /> : userId === null ? (
             <View style={styles.card}>
@@ -109,8 +125,8 @@ function AccountProgress({ userId }: { userId: string }) {
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [weight, setWeight] = useState("");
+  // The open check-in form's starting values; `null` while the form is closed.
+  const [draft, setDraft] = useState<CheckInDraft | null>(null);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -133,7 +149,7 @@ function AccountProgress({ userId }: { userId: string }) {
             title: data.title ?? "Weight goal",
             startWeightLb: Number(data.startWeightLb),
             targetWeightLb: Number(data.targetWeightLb),
-            startDate: data.startDate ?? localDate(),
+            startDate: data.startDate ?? localDateString(),
           });
         }
         setLoading(false);
@@ -151,13 +167,7 @@ function AccountProgress({ userId }: { userId: string }) {
         limit(MAX_HISTORY),
       ),
       (snapshot) =>
-        setEntries(
-          snapshot.docs.map((item) => ({
-            id: item.id,
-            weightLb: Number(item.data().weightLb),
-            date: item.data().date,
-          })),
-        ),
+        setEntries(snapshot.docs.flatMap((item) => readStoredCheckIn(item.id, item.data()) ?? [])),
       () => setError("Unable to load your weight history."),
     );
 
@@ -183,60 +193,58 @@ function AccountProgress({ userId }: { userId: string }) {
     return { percent, remaining: Math.max(0, remaining), achieved };
   }, [currentWeight, goal]);
 
-const saveWeight = async () => {
-  const signedInUser = auth.currentUser;
-  const weightLb = Number(weight.trim());
+  const closeCheckInForm = () => {
+    setDraft(null);
+    setEditingEntryId(null);
+    setFormError("");
+  };
 
-  if (!signedInUser) {
-    setFormError("You must be logged in to save a measurement.");
-    return;
-  }
+  const openNewCheckIn = () => {
+    setEditingEntryId(null);
+    setFormError("");
+    setDraft(emptyCheckInDraft(localDateString()));
+  };
 
-  if (!Number.isFinite(weightLb) || weightLb <= 0 || weightLb > 1000) {
-    setFormError("Enter a valid weight between 1 and 1,000 lb.");
-    return;
-  }
+  const saveCheckIn = async ({ date, weightLb, measurementsIn }: CheckInValues) => {
+    const signedInUser = auth.currentUser;
+    if (!signedInUser) {
+      setFormError("You must be logged in to save a check-in.");
+      return;
+    }
+    const hasMeasurements = Object.keys(measurementsIn).length > 0;
 
-  try {
-    setSaving(true);
-      const existingEntry = entries.find((entry) => entry.id === editingEntryId);
-      const entryDate = existingEntry?.date ?? localDate();
-
-    if (editingEntryId) {
-      await updateDoc(
-        doc(db, "users", signedInUser.uid, "weightEntries", editingEntryId),
-        {
+    try {
+      setSaving(true);
+      if (editingEntryId) {
+        await updateDoc(doc(db, "users", signedInUser.uid, "weightEntries", editingEntryId), {
           weightLb,
           unit: "lb",
-          date: entryDate,
+          date,
+          // Replaced as a whole so a cleared measurement is removed, not kept.
+          measurementsIn: hasMeasurements ? measurementsIn : deleteField(),
           updatedAt: serverTimestamp(),
-        },
-      );
-    } else {
-      await addDoc(collection(db, "users", signedInUser.uid, "weightEntries"), {
-        weightLb,
-        unit: "lb",
-        date: localDate(),
-        recordedAt: serverTimestamp(),
-      });
+        });
+      } else {
+        await addDoc(collection(db, "users", signedInUser.uid, "weightEntries"), {
+          weightLb,
+          unit: "lb",
+          date,
+          ...(hasMeasurements && { measurementsIn }),
+          recordedAt: serverTimestamp(),
+        });
+      }
+      closeCheckInForm();
+    } catch {
+      setFormError("Unable to save your check-in. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    setWeight("");
-    setFormError("");
-    setEditingEntryId(null);
-    setAdding(false);
-  } catch {
-    setFormError("Unable to save your measurement. Please try again.");
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const editWeightEntry = (entry: WeightEntry) => {
     setEditingEntryId(entry.id);
-    setWeight(String(entry.weightLb));
     setFormError("");
-    setAdding(true);
+    setDraft(draftFromCheckIn(entry.date, entry.weightLb, entry.measurementsIn));
   };
 
   const deleteWeightEntry = (entryId: string) => {
@@ -307,7 +315,7 @@ const saveWeight = async () => {
         title: goalTitle.trim(),
         startWeightLb,
         targetWeightLb,
-        startDate: goal?.startDate ?? localDate(),
+        startDate: goal?.startDate ?? localDateString(),
         unit: "lb",
         updatedAt: serverTimestamp(),
       };
@@ -418,47 +426,42 @@ const saveWeight = async () => {
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.cardTitle}>Weight history</Text>
-              {!adding && <Pressable onPress={() => { setEditingEntryId(null); setWeight(""); setAdding(true); }}><Text style={styles.addLink}>Add</Text></Pressable>}
+              {!draft && (
+                <Pressable onPress={openNewCheckIn} accessibilityRole="button" accessibilityLabel="Add check-in" style={styles.addButton}>
+                  <Text style={styles.addLink}>Add</Text>
+                </Pressable>
+              )}
             </View>
 
-            {adding && (
-              <View style={styles.form}>
-                <Text style={styles.formLabel}>New weight</Text>
-                <TextInput
-                  autoFocus
-                  style={styles.input}
-                  placeholder="Enter weight in lb"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="decimal-pad"
-                  value={weight}
-                  onChangeText={(value) => {
-                    setWeight(value);
-                    setFormError("");
-                  }}
-                />
-                {formError ? <Text style={styles.error}>{formError}</Text> : null}
-                <View style={styles.actions}>
-                  <Pressable onPress={() => { setAdding(false); setEditingEntryId(null); setWeight(""); setFormError(""); }} style={styles.cancel}>
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </Pressable>
-                  <Pressable onPress={saveWeight} disabled={saving} style={styles.save}>
-                    <Text style={styles.saveText}>{saving ? "Saving..." : editingEntryId ? "Update" : "Save"}</Text>
-                  </Pressable>
-                </View>
-              </View>
+            {draft && (
+              <CheckInForm
+                key={editingEntryId ?? "new"}
+                initialDraft={draft}
+                today={localDateString()}
+                isEditing={editingEntryId !== null}
+                saving={saving}
+                saveError={formError}
+                onSave={saveCheckIn}
+                onCancel={closeCheckInForm}
+              />
             )}
 
             {entries.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>No weight history yet</Text>
                 <Text style={styles.emptyBody}>Add your first measurement to start tracking progress.</Text>
-                {!adding && <Pressable onPress={() => { setEditingEntryId(null); setWeight(""); setAdding(true); }} style={styles.save}><Text style={styles.saveText}>Add measurement</Text></Pressable>}
+                {!draft && <Pressable onPress={openNewCheckIn} accessibilityRole="button" style={styles.save}><Text style={styles.saveText}>Add check-in</Text></Pressable>}
               </View>
             ) : (
               entries.map((entry, index) => (
                 <View key={entry.id} style={styles.entry}>
                   <Text style={styles.entryDate}>{displayDate(entry.date)}</Text>
-                  <Text style={styles.entryWeight}>{displayWeight(entry.weightLb)}</Text>
+                  <View style={styles.entryValues}>
+                    <Text style={styles.entryWeight}>{displayWeight(entry.weightLb)}</Text>
+                    {displayMeasurements(entry.measurementsIn) ? (
+                      <Text style={styles.muted}>{displayMeasurements(entry.measurementsIn)}</Text>
+                    ) : null}
+                  </View>
                   <Text style={styles.muted}>
                     {entries[index + 1]
                     ? displayChange(entry.weightLb - entries[index + 1].weightLb)
@@ -578,6 +581,11 @@ const styles = StyleSheet.create({
     flexDirection: "row", 
     justifyContent: "space-between" 
   },
+  addButton: {
+    justifyContent: "center",
+    minHeight: layout.minTouchTarget,
+    minWidth: layout.minTouchTarget,
+  },
   addLink: { 
     color: colors.primaryDark, 
     fontSize: typography.label,
@@ -656,9 +664,11 @@ const styles = StyleSheet.create({
     fontSize: typography.label, 
     width: 72 
   },
+  entryValues: {
+    flex: 1,
+  },
   entryWeight: { 
     color: colors.text, 
-    flex: 1, 
     fontSize: typography.body, 
     fontWeight: "600" 
   },

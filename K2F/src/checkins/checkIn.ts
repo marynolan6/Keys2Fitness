@@ -41,11 +41,11 @@ export type CheckInMonth = {
 };
 
 // Newest first; ties keep a stable order by id. "YYYY-MM-DD" strings sort chronologically.
-export function sortCheckInsNewestFirst(checkIns: CheckIn[]): CheckIn[] {
+export function sortCheckInsNewestFirst(checkIns: readonly CheckIn[]): CheckIn[] {
   return [...checkIns].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 }
 
-export function buildCheckInRows(checkIns: CheckIn[]): CheckInRow[] {
+export function buildCheckInRows(checkIns: readonly CheckIn[]): CheckInRow[] {
   const newestFirst = sortCheckInsNewestFirst(checkIns);
 
   return newestFirst.map((checkIn, index) => {

@@ -22,7 +22,7 @@ import { ProgressEmptyState } from "@/components/ProgressEmptyState";
 import { ProgressStatsSection } from "@/components/ProgressStatsSection";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
-import { mockCheckIns } from "@/checkins/mockCheckIns";
+import { addCheckIn, deleteCheckIn, updateCheckIn, useCheckIns } from "@/checkins/checkInStore";
 import { mockClientStats } from "@/profile/mockStats";
 import { ClientStats, hasRecordedProgress } from "@/profile/stats";
 import { centimetersToInches, defaultProfile, EditableProfile, formatHeightImperial, normalizeProfile, validateProfile } from "@/profile/profile";
@@ -121,7 +121,8 @@ export default function Profile() {
     }
   };
 
-  const hasProgress = hasRecordedProgress(mockClientStats) || mockCheckIns.length > 0;
+  const checkIns = useCheckIns();
+  const hasProgress = hasRecordedProgress(mockClientStats) || checkIns.length > 0;
   const stats = {
     ...mockClientStats,
     heightCm: mockClientStats.heightCm === null ? null : Number(profile.heightInches) * 2.54,
@@ -235,7 +236,7 @@ export default function Profile() {
               <View style={styles.section}>
                 <ProgressStatsSection stats={stats} />
               </View>
-              <View style={styles.section}><CheckInHistory checkIns={mockCheckIns} /></View>
+              <View style={styles.section}><CheckInHistory checkIns={checkIns} onAdd={addCheckIn} onUpdate={updateCheckIn} onDelete={deleteCheckIn} /></View>
             </>
           ) : (
             <View style={styles.section}>
