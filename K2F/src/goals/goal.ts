@@ -6,13 +6,21 @@ export type GoalEntry = {
   value: number;
 };
 
+// Each type follows one value recorded in check-ins.
+export type GoalType = "weight" | "waist" | "hips" | "arm";
+
 export type FitnessGoal = {
+  id: string;
+  type: GoalType;
   title: string;
   metricLabel: string;
   unit: string;
-  startValue: number;
+  // `null` when the goal was set before anything of its type was recorded; the first
+  // check-in on or after `startDate` then becomes the starting point.
+  startValue: number | null;
   targetValue: number;
   startDate: GoalDate;
+  targetDate: GoalDate;
   // Recorded measurements, in any order.
   entries: GoalEntry[];
 };
@@ -23,6 +31,8 @@ export type GoalStatus = "no-data" | "in-progress" | "achieved";
 
 export type GoalProgress = {
   status: GoalStatus;
+  // The goal's starting point, or `null` while nothing has been recorded to start from.
+  startValue: number | null;
   // Most recent recorded value, or the start value if nothing has been recorded yet.
   currentValue: number;
   // Date of that value (the start date if nothing has been recorded yet).
@@ -47,9 +57,12 @@ export function sortEntriesNewestFirst(entries: GoalEntry[]): GoalEntry[] {
 }
 
 export function getGoalProgress(goal: FitnessGoal): GoalProgress {
-  const { startValue, targetValue } = goal;
-  const latest = sortEntriesNewestFirst(goal.entries)[0];
-  const currentValue = latest?.value ?? startValue;
+  const { targetValue } = goal;
+  const newestFirst = sortEntriesNewestFirst(goal.entries);
+  const latest = newestFirst[0];
+  const startValue = goal.startValue ?? firstEntrySince(newestFirst, goal.startDate)?.value ?? null;
+  if (startValue === null || latest === undefined) return noDataProgress(goal, startValue);
+  const currentValue = latest.value;
 
   const direction = targetValue < startValue ? "decrease" : "increase";
   const sign = direction === "decrease" ? -1 : 1;
@@ -57,9 +70,8 @@ export function getGoalProgress(goal: FitnessGoal): GoalProgress {
   const total = (targetValue - startValue) * sign;
   const changeSoFar = Math.max(0, (currentValue - startValue) * sign);
   const remaining = Math.max(0, (targetValue - currentValue) * sign);
-  const hasEntries = latest !== undefined;
-  const fraction = !hasEntries ? 0 : total <= 0 ? 1 : Math.min(1, changeSoFar / total);
-  const reached = hasEntries && remaining === 0;
+  const fraction = total <= 0 ? 1 : Math.min(1, changeSoFar / total);
+  const reached = remaining === 0;
   const hitsTarget = (value: number) => (targetValue - value) * sign <= 0;
   const achievedOn = reached
     ? [...goal.entries]
@@ -68,10 +80,11 @@ export function getGoalProgress(goal: FitnessGoal): GoalProgress {
     : undefined;
 
   return {
-    status: reached ? "achieved" : hasEntries ? "in-progress" : "no-data",
+    status: reached ? "achieved" : "in-progress",
+    startValue,
     currentValue,
-    asOf: latest?.date ?? goal.startDate,
-    hasEntries,
+    asOf: latest.date,
+    hasEntries: true,
     fraction,
     percent: Math.round(fraction * 100),
     changeSoFar,
@@ -79,6 +92,28 @@ export function getGoalProgress(goal: FitnessGoal): GoalProgress {
     direction,
     reached,
     achievedOn,
+  };
+}
+
+// Oldest entry dated on or after `date`, or the oldest entry if every one is earlier.
+function firstEntrySince(newestFirst: GoalEntry[], date: GoalDate): GoalEntry | undefined {
+  const oldestFirst = [...newestFirst].reverse();
+  return oldestFirst.find((entry) => entry.date >= date) ?? oldestFirst[0];
+}
+
+function noDataProgress(goal: FitnessGoal, startValue: number | null): GoalProgress {
+  return {
+    status: "no-data",
+    startValue,
+    currentValue: startValue ?? goal.targetValue,
+    asOf: goal.startDate,
+    hasEntries: false,
+    fraction: 0,
+    percent: 0,
+    changeSoFar: 0,
+    remaining: startValue === null ? 0 : Math.abs(goal.targetValue - startValue),
+    direction: startValue !== null && goal.targetValue < startValue ? "decrease" : "increase",
+    reached: false,
   };
 }
 

@@ -33,6 +33,10 @@ import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
 import { WeightProgressChart } from "@/components/WeightProgressChart";
+import { GoalManager } from "@/components/GoalManager";
+import { localDateString } from "@/goals/goalForm";
+import { activeWeightGoal } from "@/goals/goalProgress";
+import { useGoals } from "@/goals/goalStore";
 import { mockCheckIns, sampleCheckInAsOf } from "@/checkins/mockCheckIns";
 
 const MAX_HISTORY = 5;
@@ -67,6 +71,7 @@ const displayChange = (change: number) =>
 
 export default function Progress() {
   const insets = useSafeAreaInsets();
+  const goals = useGoals();
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   useEffect(() => onAuthStateChanged(auth, (user) => setUserId(user?.uid ?? null)), []);
 
@@ -83,7 +88,12 @@ export default function Progress() {
           <K2FBrand />
           <PageTitle style={styles.title}>Your Progress</PageTitle>
           <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
-          <WeightProgressChart checkIns={mockCheckIns} through={sampleCheckInAsOf} />
+          <WeightProgressChart
+            checkIns={mockCheckIns}
+            through={sampleCheckInAsOf}
+            goal={activeWeightGoal(goals, localDateString())}
+          />
+          <GoalManager />
           <WorkoutHistorySection />
           {userId === undefined ? <LoadingAccountProgress /> : userId === null ? (
             <View style={styles.card}>

@@ -81,3 +81,23 @@ test("calendar filtering covers leap days and stays consistent through daylight-
   const fall = buildWeightChart([reading("2026-10-11"), reading("2026-10-12"), reading("2026-11-10")], 30, "2026-11-10");
   assert.deepEqual(fall.points.map((p) => p.date), ["2026-10-12", "2026-11-10"]);
 });
+
+test("a goal target stays inside the scale and sits at its own weight, without moving the readings", () => {
+  const input = [reading("2026-09-20", 70), reading("2026-10-03", 68)];
+  const plain = buildWeightChart(input, 30, "2026-10-03");
+  assert.equal(plain.targetY, undefined);
+
+  const below = buildWeightChart(input, 30, "2026-10-03", 65);
+  assert.ok(below.lowKg <= 65 && below.highKg >= 70);
+  assert.ok(below.targetY > 0 && below.targetY < 1);
+  assert.ok(Math.abs(below.lowKg + (1 - below.targetY) * (below.highKg - below.lowKg) - 65) < 1e-9);
+  assert.ok(below.points.every((point) => point.y < below.targetY)); // every reading is drawn above the lower goal
+  assert.deepEqual(below.points.map((point) => point.weightKg), [70, 68]);
+
+  const inside = buildWeightChart(input, 30, "2026-10-03", 69);
+  assert.deepEqual([inside.lowKg, inside.highKg], [plain.lowKg, plain.highKg]); // a target within the data keeps the same scale
+  assert.ok(Math.abs(inside.targetY - (inside.highKg - 69) / (inside.highKg - inside.lowKg)) < 1e-9);
+
+  for (const bad of [Number.NaN, 0, -5]) assert.equal(buildWeightChart(input, 30, "2026-10-03", bad).targetY, undefined);
+  assert.equal(buildWeightChart([], 30, "2026-10-03", 65).kind, "empty");
+});
