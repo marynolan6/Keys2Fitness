@@ -31,7 +31,7 @@ export function CurrentGoalCard({
         <Text style={styles.cardTitle}>Your current goal</Text>
         <Text style={styles.emptyTitle}>No active goal yet</Text>
         <Text style={styles.emptyBody}>
-          Your coach will set a goal with you. Send them a message to get started.
+          Add one from the Progress tab, or message your coach to plan it together.
         </Text>
         <SecondaryButton label="Message your coach" onPress={onMessageCoach} />
       </View>
@@ -60,7 +60,9 @@ export function CurrentGoalCard({
         <>
           <View style={[styles.statsRow, compact && styles.compactRow]}>
             <View style={[styles.stat, compact && styles.compactStat]}>
-              <Text style={styles.statValue}>{formatMeasurement(goal.startValue, goal.unit)}</Text>
+              <Text style={styles.statValue}>
+                {progress.startValue === null ? "—" : formatMeasurement(progress.startValue, goal.unit)}
+              </Text>
               <Text style={styles.statLabel}>Starting point</Text>
             </View>
             <View style={[styles.stat, compact && styles.compactStat]}>
@@ -104,7 +106,7 @@ export function CurrentGoalCard({
           <GoalProgressBar
             fraction={progress.fraction}
             percent={progress.percent}
-            startValue={goal.startValue}
+            startValue={progress.startValue ?? progress.currentValue}
             currentValue={progress.currentValue}
             targetValue={goal.targetValue}
             unit={goal.unit}

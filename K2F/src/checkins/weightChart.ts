@@ -23,9 +23,12 @@ export type WeightPlot = {
   endDate: string;
   lowKg: number;
   highKg: number;
+  // Fraction from the top of the plot for the goal target, when one was given.
+  targetY?: number;
 };
 
-export function buildWeightChart(checkIns: readonly Reading[], range: WeightRange, through: string):
+// `targetKg` (an active weight goal) is kept inside the vertical scale so its line is always visible.
+export function buildWeightChart(checkIns: readonly Reading[], range: WeightRange, through: string, targetKg?: number):
   WeightPlot | { kind: "empty"; hasEarlier: boolean } {
   const end = calendarDay(through);
   if (end === null) return { kind: "empty", hasEarlier: false };
@@ -44,6 +47,8 @@ export function buildWeightChart(checkIns: readonly Reading[], range: WeightRang
   const start = range === "all" ? first.day : cutoff;
   let min = first.weightKg, max = first.weightKg;
   for (const { weightKg } of readings) { min = Math.min(min, weightKg); max = Math.max(max, weightKg); }
+  const hasTarget = targetKg !== undefined && Number.isFinite(targetKg) && targetKg > 0;
+  if (hasTarget) { min = Math.min(min, targetKg); max = Math.max(max, targetKg); }
   // A flat series (including a single weigh-in) still has a usable vertical scale.
   const padding = Math.max(0.5, (max - min) / 10, max * Number.EPSILON);
   const lowKg = Math.max(0, Math.floor(min - padding));
@@ -52,6 +57,7 @@ export function buildWeightChart(checkIns: readonly Reading[], range: WeightRang
   return {
     kind: readings.length === 1 ? "single" : first.day === last.day ? "same-day" : "line",
     startDate: new Date(start * dayMs).toISOString().slice(0, 10), endDate: through, lowKg, highKg,
+    ...(hasTarget && { targetY: (highKg - targetKg) / (highKg - lowKg) }),
     points: readings.map(({ day, ...reading }) => ({ ...reading,
       x: start === end ? 0.5 : (day - start) / (end - start),
       y: (highKg - reading.weightKg) / (highKg - lowKg),

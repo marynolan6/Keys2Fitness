@@ -12,7 +12,9 @@ import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibrar
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
 import { useCoachClients } from "@/clients/clientStore";
 import { loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
-import { mockCurrentGoal } from "@/goals/mockGoal";
+import { withCheckIns } from "@/goals/goalProgress";
+import { useGoals } from "@/goals/goalStore";
+import { mockCheckIns } from "@/checkins/mockCheckIns";
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
@@ -27,6 +29,8 @@ type HomeSessions = { clientId: string } & (
 export default function ClientHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const firstGoal = useGoals()[0];
+  const currentGoal = firstGoal ? withCheckIns(firstGoal, mockCheckIns) : null;
   const focused = useIsFocused();
   const library = useWorkoutLibraryState();
   const previewClientId = library.data.previewClientId;
@@ -113,7 +117,7 @@ export default function ClientHome() {
 
           <View style={styles.goalSection}>
             <CurrentGoalCard
-              goal={mockCurrentGoal}
+              goal={currentGoal}
               onViewProgress={() => router.push("/client/progress")}
               onMessageCoach={() => router.push("/client/messages")}
             />
