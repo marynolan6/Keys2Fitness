@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { VideoPlayerCard } from "@/components/VideoPlayerCard";
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -59,17 +60,21 @@ export default function VideoReviewScreen() {
             <Text style={styles.backText}>Back to video reviews</Text>
           </Pressable>
 
+          <K2FBrand coach />
+
           {!video ? (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Video not found</Text>
-              <Text style={styles.body}>It may have been removed. Go back to see the videos waiting for review.</Text>
-            </View>
+            <>
+              <PageTitle>Video not found</PageTitle>
+              <View style={styles.card}>
+                <Text style={styles.body}>It may have been removed. Go back to see the videos waiting for review.</Text>
+              </View>
+            </>
           ) : (
             <>
               <View style={styles.clientRow}>
                 <ClientAvatar name={video.clientName} />
                 <View style={styles.clientText}>
-                  <Text accessibilityRole="header" style={styles.heading}>{video.exerciseName}</Text>
+                  <PageTitle>{video.exerciseName}</PageTitle>
                   <Text style={styles.body}>{video.clientName} · submitted {formatVideoDate(video.submittedAt)}</Text>
                 </View>
               </View>
@@ -167,11 +172,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  heading: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
@@ -180,11 +180,6 @@ const styles = StyleSheet.create({
   },
   reviewedCard: {
     backgroundColor: colors.achievedMuted,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
   },
   label: {
     color: colors.primaryDark,

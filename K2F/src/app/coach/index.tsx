@@ -45,7 +45,7 @@ export default function CoachHome() {
       <Text accessibilityRole="header" style={styles.heading}>Coach Dashboard</Text>
       <CoachDashboardGrid tiles={[
         { id: "videos", title: "Videos to Review", summary: count(videos.length, "pending video"),
-          action: "View videos to review", onPress: () => router.push("/coach/client_list") },
+          action: "View videos to review", onPress: () => router.push("/coach-videos") },
         { id: "messages", title: "Recent Messages", summary: count(messages.length, "unread message"),
           action: "View recent messages", onPress: () => setPanel("messages") },
         { id: "clients", title: "Active Clients", summary: loadStatus === "loading" ? "Loading clients…" : loadStatus === "error" ? "Could not load clients. Tap to retry." : count(activeClients.length, "active client"),
