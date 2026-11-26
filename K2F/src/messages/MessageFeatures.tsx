@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
 
 ownTypingBubble: {
   alignSelf: "flex-end",
-  backgroundColor: colors.primary,
+  backgroundColor: colors.primaryDark,
 },
 
 otherTypingBubble: {

@@ -2,6 +2,17 @@
 
 Use the shared blue/white palette, screen gradient, typography, spacing, radii, and touch-target tokens from `src/theme.ts`. App screens use `ThemedBackground`; reusable visual rules belong in the theme rather than role-specific copies.
 
+## Tappable controls
+
+- **Make the action visible before the first tap.** Use a filled or outlined button, an underlined text link, or a labeled action row with a familiar icon. A pressed state alone does not tell someone where to tap. Use a visible text label when the icon's meaning is ambiguous. See the [U.S. Web Design System button guidance](https://designsystem.digital.gov/components/button/#usability-guidance).
+- **Size the icon and its target separately.** Use at least `layout.minTouchTarget` (48 × 48 dp) for the whole control, with `spacing.sm` (8 dp) between adjacent controls where possible. Use a recognizable symbol instead of punctuation for icon-only buttons. The nutrition day selector uses 32 dp arrows. See [Android's touch-target guidance](https://support.google.com/accessibility/android/answer/7101858?hl=en).
+- **Check contrast in context.** Normal-size text needs at least [4.5:1 contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). Icons and visual cues needed to identify an enabled control or its state need at least [3:1 against adjacent colors](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html). Use a solid background when a gradient makes contrast unreliable.
+- **Make states match behavior.** Show press feedback, preserve visible keyboard focus, and give each control an accessible role and action label. If an action is unavailable, distinguish it visually, disable activation, and expose the disabled state to assistive technology. Check the default, pressed, and disabled states at narrow width with large text.
+
+![Nutrition date selector with an outlined Previous day button and a muted Next day button on Today](images/nutrition-date-controls.png)
+
+On Android, both date buttons measured 50 × 50 dp at 320 dp with 1.5× text, 390 dp, and 800 dp. The enabled arrow has 8.15:1 contrast against white. Previous day, Next day, and Back to Today changed the selected date; tapping Next day on Today did nothing.
+
 ## Required screen branding
 
 Every new or modified client and coach tab, section, and detail screen must show one [`K2FBrand`](../src/components/K2FBrand.tsx) at the top of its content, before the page title or greeting. This applies to loading, empty, error, and unavailable-item views as well as populated screens. Use [`BrandedPage`](../src/components/BrandedPage.tsx) for a simple page; it supplies the brand, heading, scroll area, and safe spacing. A screen with a custom scroll container places `K2FBrand` itself.
@@ -11,7 +22,7 @@ Every new or modified client and coach tab, section, and detail screen must show
 - **Placement and accessibility:** keep the logo clear of the status bar and notches. A native navigation bar may sit above it. The logo and name form one accessible image called `Keys2Fitness` or `Keys2Fitness, coach`. Use the shared `PageTitle` for the main heading or greeting. It supplies heading semantics and wraps long titles. Section headings inside cards remain ordinary headings.
 - **Messaging exception:** the Messages tabs and individual conversations show the list title or participant name instead of a brand row. Redirects have no screen content, and task dialogs do not repeat their parent screen's header. Keep the brand out of the bottom tab bar.
 - **Dashboards:** use `DashboardGreeting` with the device's local clock: morning before noon, afternoon until 6 pm, evening until midnight. Use the signed-in coach's first name or `Coach`. The client keeps its selected demo/profile name. Coach overview tiles share the tallest tile's natural height and the same column width. Stack them on compact or large-text layouts without truncating counts or actions.
-- **Coach tile icons:** use ▶ for Videos to Review, 💬 for Recent Messages, 👥 for Active Clients, and 📊 for Client Activity. Center each icon in a 48 dp circle. Show the count once in the summary below the title. Labels and counts follow the device's text size.
+- **Coach Home, local review candidate:** lead with the form-check inbox, its pending count, and the oldest submission. The four equal tiles remain shortcuts. Use native video, message, group, and activity symbols; the whole tile is tappable. The wider layout places the latest check-in beside the inbox and shortcuts.
 - Change sizing in [`src/theme.ts`](../src/theme.ts), not in individual screens.
 
 ### Check on every code change
@@ -28,7 +39,7 @@ Android previews: [Coach dashboard](images/coach-dashboard.png) · [Client dashb
 
 Client and coach navigation must have the same visual treatment. Both layouts render `AppTabBar` with a `role` prop and share `AppQuickAccessMenu`. Role-specific destinations and identity do not change the bar's styling.
 
-- White surface, rounded top corners, subtle border, and muted active-icon pill.
+- White surface, rounded top corners, and a subtle border. The active icon and label are blue; other tabs use `navigation.inactiveTint`. The rounded press highlight disappears on release.
 - Four visible tabs, retaining the existing role-specific icon symbols and order.
 - Raised circular dark-blue plus button centered between tabs two and three, with a white plus and shared shadow/pressed treatment.
 - Use the `navigation` theme tokens for corner radius, overlap, center spacing, button size/radius, color, elevation, and shadow opacity. Continue using the common color, typography, spacing, and touch-target tokens for other details.
@@ -36,7 +47,7 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 - Respect bottom and horizontal safe-area insets, maintain at least 48 dp touch targets, and keep the center button usable at all supported widths/font scales.
 - At narrow widths with large text, hide the visual tab labels while preserving full accessibility labels. The scrollable quick-access menu always provides full-size text labels.
 - Show extra destinations only in the menu, not as additional bottom tabs. Preferences and Account settings remain associated with the coach Profile tab.
-- Menus share the rounded white panel, identity/avatar row, current-route highlight, blue icons, and chevrons. X, backdrop, and Android Back dismiss the menu. Do not include logout.
+- Show only the destinations and a red **Close** button. Center each icon and label together. Keep **Close** below the scrolling list so it stays visible. Tapping outside the panel and Android Back also dismiss the menu. Keep the current-route highlight and accessible labels.
 
 ### Role destinations
 
@@ -45,4 +56,18 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 | Client | Home, Progress, Messages, Profile | Home, Workout, Workout history, Nutrition, Messages, Progress, Profile |
 | Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Video reviews, Messages, Profile, Preferences, Account settings |
 
-Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews (K2F-58) are root-stack destinations; Android Back returns to the coach screen. Coach identity uses Firebase's display name when available, otherwise “Coach”; it must not reuse the locally saved client profile.
+Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews are root-stack destinations; Android Back returns to the coach screen.
+
+## Local design candidate: 1.0.5
+
+[Screenshots and local review walkthrough](local-design-preview.md)
+
+- Choose `ThemedBackground` for a quiet reading or editing screen, `variant="home"` for either dashboard, and `variant="welcome"` for auth. These are light surfaces. Use dark system icons in both OS appearances. Login is available immediately; the welcome animation is optional and is omitted when reduced motion is requested.
+- Use `textStyles.page` for page titles, `section` for section or exercise headings, `metric` for comparable numbers, and `meta` for secondary information. Reserve `eyebrow` for a short category. A greeting should not outweigh the task.
+- The [shared action button](../src/components/ActionButton.tsx) uses `actionColors` for normal and pressed pairs. Use it for the next action, `secondary` for supporting actions, and `selected` for a filter. A selected filter has a checkmark and an outline, rather than another primary fill. Use `danger` when confirming destruction and for the approved red quick-access Close.
+- Keep Nutrition named on client Home. In a running workout, Log sets leads; Pause and exercise details remain available. In the food log, tap a named entry to edit it. Save stays in the dialog footer. Deletion needs a separate confirmation. Workout Library shows template details and one **Assign or manage** disclosure per template; the choice of clients and template tools sit inside that row.
+- Review the color pairs with `node --test tests/theme-contrast.test.mjs`. It checks declared colors, not native rendering, keyboard navigation, or spoken output.
+
+**Android verification (Nov 25, 2026):** opened both roles’ menus at 320 dp / 1.5× text, 390 dp, and 800 dp. Checked the close button, Android Back, tapping outside the panel, and navigation to Nutrition and Video reviews. At 390 dp the selected Home tab had no background at rest, showed the rounded highlight while held, and cleared it on release. The active blue and inactive gray matched the theme colors in the screenshots.
+
+In demo 1.0.2, both menus kept **Close** in the same position while scrolling to the last destination at 320 × 490 dp with 1.5× text. At 390 dp and 800 dp the icon-label pairs were centered and the current destination stayed highlighted. The signed APK updated 1.0.1 in place. The first automated launch closed when Android started the activity twice; subsequent cold launches reached login.

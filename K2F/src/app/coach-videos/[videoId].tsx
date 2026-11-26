@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { PageTitle, SectionMasthead } from "@/components/K2FBrand";
+import { ActionButton } from "@/components/ActionButton";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { VideoPlayerCard } from "@/components/VideoPlayerCard";
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -20,6 +22,10 @@ const errorMessages: Record<ReviewError, string> = {
 // K2F-267: write feedback and mark it reviewed
 export default function VideoReviewScreen() {
   const { videoId } = useLocalSearchParams<{ videoId: string }>();
+  return <VideoReviewContent key={videoId} videoId={videoId} />;
+}
+
+function VideoReviewContent({ videoId }: { videoId: string }) {
   const video = useVideoSubmissions().find((item) => item.id === videoId);
   const insets = useSafeAreaInsets();
   const [feedback, setFeedback] = useState("");
@@ -50,18 +56,11 @@ export default function VideoReviewScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to video reviews"
-            onPress={goBack}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.backText}>Back to video reviews</Text>
-          </Pressable>
+          <SectionMasthead coach onBack={goBack} backLabel="Back from video review" />
 
           {!video ? (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Video not found</Text>
+              <PageTitle>Video not found</PageTitle>
               <Text style={styles.body}>It may have been removed. Go back to see the videos waiting for review.</Text>
             </View>
           ) : (
@@ -69,7 +68,7 @@ export default function VideoReviewScreen() {
               <View style={styles.clientRow}>
                 <ClientAvatar name={video.clientName} />
                 <View style={styles.clientText}>
-                  <Text accessibilityRole="header" style={styles.heading}>{video.exerciseName}</Text>
+                  <PageTitle>{video.exerciseName}</PageTitle>
                   <Text style={styles.body}>{video.clientName} · submitted {formatVideoDate(video.submittedAt)}</Text>
                 </View>
               </View>
@@ -114,16 +113,7 @@ export default function VideoReviewScreen() {
                     style={styles.input}
                   />
                   {error && <Text accessibilityLiveRegion="polite" style={styles.errorText}>{error}</Text>}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Send feedback to ${video.clientName}`}
-                    accessibilityState={{ disabled: !canSend }}
-                    disabled={!canSend}
-                    onPress={sendFeedback}
-                    style={({ pressed }) => [styles.sendButton, !canSend && styles.disabled, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.sendText}>Send feedback</Text>
-                  </Pressable>
+                  <ActionButton label="Send feedback" accessibilityLabel={`Send feedback to ${video.clientName}`} disabled={!canSend} onPress={sendFeedback} />
                 </View>
               )}
             </>
@@ -145,19 +135,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     width: "100%",
   },
-  backButton: {
-    alignSelf: "flex-start",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
-  },
-  backText: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "600",
-  },
-  pressed: {
-    opacity: 0.7,
-  },
   clientRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -167,11 +144,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  heading: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
@@ -180,11 +152,6 @@ const styles = StyleSheet.create({
   },
   reviewedCard: {
     backgroundColor: colors.achievedMuted,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
   },
   label: {
     color: colors.primaryDark,
@@ -218,21 +185,5 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: typography.label,
-  },
-  sendButton: {
-    alignItems: "center",
-    backgroundColor: colors.primaryDark,
-    borderRadius: radii.button,
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: spacing.md,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  sendText: {
-    color: colors.surface,
-    fontSize: typography.label,
-    fontWeight: "700",
   },
 });

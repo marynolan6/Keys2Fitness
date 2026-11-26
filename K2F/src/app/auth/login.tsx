@@ -11,7 +11,8 @@ import {
 import { AuthFormScreen, authFormStyles as styles } from "@/components/AuthFormScreen";
 import { PageTitle } from "@/components/K2FBrand";
 
-import DoorOpeningIntro from "../../components/DoorOpeningIntro";
+import { WelcomeAnimation } from "@/components/DoorOpeningIntro";
+import { ActionButton } from "@/components/ActionButton";
 import { colors } from "@/theme";
 import { auth, db } from "@/lib/firebase";
 import type { LoginFields } from "@/validation/login";
@@ -33,8 +34,6 @@ export default function LoginScreen() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [showIntro, setShowIntro] = useState(true);
 
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
@@ -111,7 +110,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <AuthFormScreen overlay={showIntro && <DoorOpeningIntro onComplete={() => setShowIntro(false)} />}>
+    <AuthFormScreen>
       <PageTitle style={styles.title}>Log in</PageTitle>
       <Text style={styles.subtitle}>Use your Keys2Fitness email and password.</Text>
 
@@ -137,13 +136,11 @@ export default function LoginScreen() {
         onSubmitEditing={handleSubmit} accessibilityLabel="Password" accessibilityHint={passwordError} />
       {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
 
-      <TouchableOpacity accessibilityRole="button" style={[styles.primary, isSubmitting && styles.disabled]}
-        onPress={handleSubmit} disabled={isSubmitting || showIntro}>
-        <Text style={styles.primaryText}>{isSubmitting ? "Logging in..." : "Log In"}</Text>
-      </TouchableOpacity>
+      <ActionButton label={isSubmitting ? "Logging in..." : "Log In"} onPress={handleSubmit} disabled={isSubmitting} />
       <TouchableOpacity accessibilityRole="button" onPress={handleSignUp} style={styles.link}>
         <Text style={styles.linkText}>Don&apos;t have an account? Sign up here</Text>
       </TouchableOpacity>
+      <WelcomeAnimation />
     </AuthFormScreen>
   );
 }

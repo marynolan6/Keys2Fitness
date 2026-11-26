@@ -9,6 +9,8 @@ labeled CC0 sample, not real client footage. Review state lives in memory
 (`src/videoReviews/videoReviewStore.ts`), so it resets when the app restarts. Clients don't see the
 feedback anywhere yet; that needs a client-side story.
 
+**Dashboard integration:** Videos to Review opens the same queue as the plus menu. The dashboard count, client-list badge, and profile form checks subscribe to the review store. A profile links each submission to its review screen, including saved feedback after review. The queue and both detail states use the shared coach brand and page title.
+
 Set `PREVIEW_NO_VIDEOS = true` in the mock file to see the empty queue.
 
 ## Files
@@ -40,7 +42,11 @@ Set `PREVIEW_NO_VIDEOS = true` in the mock file to see the empty queue.
   screen at 320 dp with 1.5x font; menu, queue, video, Android Back twice to coach home.
 - iOS simulator (iPhone 16, Expo Go 58): play, replay after the end, typing with the keyboard open, send.
 - Not tested: iOS large text, offline on this screen (same player as K2F-71, which was tested offline),
-  real tablet hardware.
+   real tablet hardware.
+
+## Dashboard integration verified (Nov 25, 2026)
+
+On Android at 390 dp, submitting Alex's Back Squat feedback from the dashboard queue reduced the pending count from 3 to 2 on both the queue and dashboard. Alex's list badge changed from **Review video** to **On track**. The profile's **View feedback for Back Squat** button reopened the saved text. The missing-video screen showed its coach brand, title and Back button at 320 dp / 1.5× text, 390 dp, and 800 dp.
 
 ## Fixed along the way
 

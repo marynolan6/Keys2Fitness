@@ -5,13 +5,11 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Modal,
 } from "react-native";
 
-import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { getPendingVideos, type MockVideo } from "@/videos/mockVideos";
+import { formatVideoDate } from "@/videoReviews/videoReview";
+import { useVideoReviewQueue } from "@/videoReviews/videoReviewStore";
 
 import { colors, radii, spacing, typography, layout } from "@/theme";
 
@@ -27,9 +25,8 @@ export default function ClientProfile() {
   const { clientId } = useLocalSearchParams<{ clientId: string }>();
   const client = getClientById(clientId);
 
-  const pendingVideo = getPendingVideos().find(
-    (video) => video.clientId === clientId,
-  );
+  const { pending, reviewed } = useVideoReviewQueue();
+  const videos = [...pending, ...reviewed].filter((video) => video.clientId === clientId);
   const goBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -87,7 +84,14 @@ export default function ClientProfile() {
             </View>
             <Text style={styles.description}>Sample schedule: {completedWorkouts} of {totalWorkouts} workouts completed.</Text>
           </View>
-          {pendingVideo && <PendingVideoCard video={pendingVideo} />}
+          {videos.length > 0 && <View style={styles.card}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>Uploaded Form Checks</Text>
+            {videos.map((video) => <View key={video.id} style={styles.videoRow}>
+              <Text style={styles.description}>{video.status === "pending" ? "Awaiting review" : "Reviewed"} · {formatVideoDate(video.reviewedAt ?? video.submittedAt)}</Text>
+              <BuilderButton label={`${video.status === "pending" ? "Review" : "View feedback for"} ${video.exerciseName}`} secondary
+                onPress={() => router.push({ pathname: "/coach-videos/[videoId]", params: { videoId: video.id } })} />
+            </View>)}
+          </View>}
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Client Details</Text>
             <BuilderButton label="Nutrition targets and tips" secondary onPress={() => router.push({
@@ -104,87 +108,6 @@ export default function ClientProfile() {
       </ScrollView>
     </ThemedBackground>
   );
-}
-function PendingVideoCard({ video }: { video: MockVideo }) {
-  const [showVideo, setShowVideo] = useState(false);
-
-  return (
-    <>
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Uploaded Form Checks</Text>
-
-        <View style={styles.videoSummary}>
-          <Text style={styles.videoIcon}>🎥</Text>
-
-          <View style={styles.videoInfo}>
-            <Text style={styles.videoTitle}>{video.workoutName}</Text>
-            <Text style={styles.description}>
-              Uploaded {formatVideoTimestamp(video.createdAt)} · Awaiting your review
-            </Text>
-          </View>
-        </View>
-
-        <BuilderButton label="Review Form-Check Video" secondary onPress={() => setShowVideo(true)} />
-      </View>
-
-      {showVideo && (
-        <VideoModal
-          video={video}
-          onClose={() => setShowVideo(false)}
-        />
-      )}
-    </>
-  );
-}
-
-function VideoModal({
-  video,
-  onClose,
-}: {
-  video: MockVideo;
-  onClose: () => void;
-}) {
-  const player = useVideoPlayer(video.videoUri);
-
-  return (
-    <Modal
-      visible
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.sectionTitle}>{video.workoutName}</Text>
-
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-
-          <VideoView
-            player={player}
-            nativeControls
-            contentFit="contain"
-            style={styles.video}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function formatVideoTimestamp(timestamp: string) {
-  const date = new Date(timestamp);
-
-  return `${date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  })} · ${date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  })}`;
 }
 const styles = StyleSheet.create({
   screen: {
@@ -271,57 +194,5 @@ const styles = StyleSheet.create({
     borderRadius: radii.control,
   },
 
-  videoSummary: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-
-  videoIcon: {
-    color: colors.primary,
-    fontSize: 24,
-  },
-
-  videoInfo: {
-    flex: 1,
-  },
-
-  videoTitle: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
-
-  modalOverlay: {
-    backgroundColor: colors.overlay,
-    flex: 1,
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    gap: spacing.md,
-    padding: spacing.lg,
-  },
-
-  modalHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  closeText: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-  },
-
-  video: {
-    aspectRatio: 16 / 9,
-    backgroundColor: colors.text,
-    borderRadius: radii.control,
-    width: "100%",
-  },
+  videoRow: { gap: spacing.xs },
 });

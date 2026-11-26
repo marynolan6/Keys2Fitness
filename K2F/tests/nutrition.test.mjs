@@ -6,10 +6,17 @@ const hooks = registerSourceTypes();
 const { createNutritionRepository } = await import("../src/nutrition/nutritionRepository.ts");
 const { draftNutritionPlan, targetsFromDraft, unassignedNutritionTargets, validateNutritionPlan } = await import("../src/nutrition/nutritionPlan.ts");
 const { createNutritionEditorState, nutritionEditorReducer: reduce } = await import("../src/nutrition/nutritionEditorReducer.ts");
-const { compareNutrition, getDailyNutrition, nutritionDate } = await import("../src/utils/nutrition.ts");
+const { compareNutrition, foodEntryErrors, getDailyNutrition, nutritionDate } = await import("../src/utils/nutrition.ts");
 hooks.deregister();
 
-const lunch = { id: "lunch", name: "Lunch", serving: "1 plate", date: "2026-11-20", calories: 650, protein: 52, carbs: 61, fats: 18 };
+const lunch = { id: "lunch", name: "Lunch", meal: "Lunch", serving: "1 plate", date: "2026-11-20", calories: 650, protein: 52, carbs: 61, fats: 18 };
+test("food drafts distinguish zero from blank and identify each field needing correction", () => {
+  const draft = { name: "Eggs", serving: "2", calories: "140", protein: "12.5", carbs: "0", fats: "10" };
+  assert.deepEqual(foodEntryErrors(draft), {});
+  assert.deepEqual(Object.keys(foodEntryErrors({ ...draft, name: " ", serving: "", carbs: "", protein: "-1" })).sort(),
+    ["carbs", "name", "protein", "serving"]);
+  for (const calories of ["Infinity", "not a number", "99999999999999999"]) assert.ok(foodEntryErrors({ ...draft, calories }).calories);
+});
 function initial() {
   return {
     alex: { plan: { revision: 0, targets: { calories: 2000, protein: 150, carbs: 220, fats: 65 }, tip: "Alex's plan tip" },
@@ -35,7 +42,7 @@ test("a coach update publishes the new scoped plan and leaves all logged foods a
   const before = repo.getState();
   const today = getDailyNutrition(before.alex.entries, "2026-11-20");
   const yesterday = getDailyNutrition(before.alex.entries, "2026-11-19");
-  assert.deepEqual(today.dailyEntries, [lunch]);
+  assert.deepEqual(today.byMeal.Lunch, [lunch]);
   let published = 0;
   const unsubscribe = repo.subscribe(() => published++);
   const draft = draftNutritionPlan(before.alex.plan);
@@ -107,6 +114,28 @@ test("invalid goals fail without publishing, preserving the editable draft and e
   assert.equal(repo.getState().alex.plan.targets.calories, 2100.5);
   const saved = reduce(state, { type: "saved" });
   assert.equal(reduce(saved, { type: "tip", value: "late edit" }), saved);
+});
+
+test("adding, moving and deleting food keeps each row in one meal on the selected day", () => {
+  const repo = createNutritionRepository(initial());
+  const summary = () => getDailyNutrition(repo.getState().alex.entries, lunch.date);
+  assert.deepEqual(summary().byMeal, { Breakfast: [], Lunch: [lunch], Dinner: [], Snacks: [] });
+  const snack = { ...lunch, id: "fruit", meal: "Snacks", calories: 80 };
+  repo.updateFood("alex", (entries) => [...entries, snack]);
+  const before = summary();
+  assert.equal(before.count, 2);
+  assert.equal(before.totals.calories, 730);
+  repo.updateFood("alex", (entries) => entries.map((entry) => entry.id === snack.id ? { ...entry, meal: "Dinner" } : entry));
+  const moved = summary();
+  assert.deepEqual(moved.byMeal.Dinner.map((e) => e.id), [snack.id]);
+  assert.deepEqual(moved.byMeal.Snacks, []);
+  assert.deepEqual(moved.totals, before.totals);
+  assert.equal(moved.count, before.count);
+  repo.updateFood("alex", (entries) => entries.filter((e) => e.id !== snack.id));
+  assert.deepEqual(summary().byMeal.Dinner, []);
+  assert.equal(summary().totals.calories, 650);
+  assert.equal(getDailyNutrition(repo.getState().alex.entries, "2026-11-19").totals.calories, 500);
+  assert.equal(getDailyNutrition(repo.getState().spencer.entries, lunch.date).count, 0);
 });
 
 test("stale and duplicate coach updates are rejected without changing the newest plan; draft stays reviewable", () => {

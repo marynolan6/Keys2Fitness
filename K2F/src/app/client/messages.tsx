@@ -11,7 +11,7 @@ import { MessageSearchResults } from "@/messages/MessageSearchResults";
 import { MessageComposer } from "@/messages/MessageComposer";
 import { MessageTimestamp } from "@/messages/MessageTimestamp";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { colors, spacing, typography } from "@/theme";
+import { colors, layout, navigation, spacing, typography } from "@/theme";
 
 export default function Messages() {
   const insets = useSafeAreaInsets();
@@ -39,7 +39,6 @@ export default function Messages() {
     setIsSearchOpen(false);
     setSearchQuery("");
   }
-  const isTyping = message.trim().length > 0;
 
   const firstUnreadIndex = useFirstUnreadIndex(messages, "client", "client-1-read-messages-test-2");
 
@@ -71,13 +70,12 @@ export default function Messages() {
     <ThemedBackground>
       <KeyboardAvoidingView
         style={styles.screen}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Pinned above the conversation so search stays reachable however far the client has scrolled. */}
         <View style={[styles.headerArea, { paddingTop: insets.top + spacing.md }]}>
           <ConversationHeader
-            name="COACH KEYS"
+            name="Coach Keys"
             onSearchPress={() => (isSearchOpen ? closeSearch() : setIsSearchOpen(true))}
             isSearchActive={isSearchOpen}
           />
@@ -92,6 +90,7 @@ export default function Messages() {
 
         <ScrollView
           ref={scrollViewRef}
+          style={styles.thread}
           contentContainerStyle={styles.messageList}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
@@ -154,12 +153,6 @@ export default function Messages() {
                 />
               )}
 
-              {isTyping && (
-                <TypingIndicator
-                  sender="You"
-                  isOwnMessage
-                />
-              )}
             </>
           )}
         </ScrollView>
@@ -178,9 +171,8 @@ export default function Messages() {
 
 const styles = StyleSheet.create({
   empty: { padding: spacing.xl, textAlign: "center", color: colors.textMuted, fontSize: typography.body },
-  screen: {
-    flex: 1,
-  },
+  screen: { flex: 1, width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
+  thread: { flex: 1 },
   headerArea: {
     paddingHorizontal: spacing.lg,
   },
@@ -190,6 +182,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   composerContainer: {
-    padding: spacing.sm,
+    flexShrink: 0, padding: spacing.sm, paddingBottom: navigation.overlap + spacing.xs,
   },
 });

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { AuthFormScreen, authFormStyles as styles } from "@/components/AuthFormScreen";
+import { ActionButton } from "@/components/ActionButton";
 import { PageTitle } from "@/components/K2FBrand";
 import { colors } from "@/theme";
 
@@ -116,10 +117,7 @@ export default function SignupScreen() {
       <TextInput accessibilityLabel="Confirm password" style={styles.input} placeholder="Re-enter your password"
         placeholderTextColor={colors.textMuted} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
-      <TouchableOpacity accessibilityRole="button" style={[styles.primary, isSubmitting && styles.disabled]}
-        onPress={handleSubmit} disabled={isSubmitting}>
-        <Text style={styles.primaryText}>{isSubmitting ? "Creating account..." : "Create account"}</Text>
-      </TouchableOpacity>
+      <ActionButton label={isSubmitting ? "Creating account..." : "Create account"} onPress={handleSubmit} disabled={isSubmitting} />
       <TouchableOpacity accessibilityRole="button" onPress={() => router.back()} style={styles.link}>
         <Text style={styles.linkText}>Already have an account? Log in</Text>
       </TouchableOpacity>

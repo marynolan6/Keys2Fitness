@@ -10,7 +10,7 @@ Nutrition already calculated food totals, provided daily navigation, and allowed
 
 | Criteria / subtask | Implementation and evidence |
 | --- | --- |
-| K2F-154 — calorie/macro targets | Client **Menu → Nutrition** shows Calories (kcal), Protein (g), Carbohydrates (g), and Fat (g), with separately labeled logged intake and current target. Blank targets say **Not assigned**, not zero. |
+| K2F-154 — calorie/macro targets | Client **Menu → Nutrition** shows a compact daily summary. Tap **Daily targets & intake** for the selected day's full calorie and macro breakdown. Blank targets say **Not assigned**, not zero. |
 | K2F-155 — coach tips | The same screen labels the tips as the current plan for the named client. Spencer and Alex have distinct sample guidance. Jordan has no tip and displays **No coach tips for this plan yet.** Cleared tips stay cleared. |
 | K2F-156 — integration/navigation | Goals, intake comparison, tips, date controls and food log appear together. The nutrition client picker uses the existing selected mock-client context. Leaving through the menu and returning retains the client, plan and logged food. |
 | Client-specific assignment | Shared state is keyed by demo-client ID. Unknown clients get an unavailable state rather than another client's plan. The nutrition picker is available even when no workouts have been assigned. |
@@ -19,6 +19,10 @@ Nutrition already calculated food totals, provided daily navigation, and allowed
 | Missing versus explicit zero | All targets may be unassigned, or a plan may have only some targets. Explicit zero remains a visible zero target, without dividing by zero. Missing targets show no misleading progress bar. |
 
 The client screen offers food logging but no target/tip editing. Goal editing is on the coach route. The shared `nutritionRepository` is **in memory for this app session**; restarting/reloading JavaScript resets its sample data. The existing preview-client preference remains on-device. This is the requested same-app prototype flow, not Firebase assignments, production authorization, cross-device propagation, or a historical target-version archive.
+
+The food log sits directly under the summary. Each day has Breakfast, Lunch, Dinner, and Snacks. **+ Add food** preselects that meal; editing an entry can move it to a different meal without changing the day's totals. Coach tips follow the log.
+
+**Meal log verification (Nov 25, 2026):** checked the summary popup, Android Back, all four add buttons and day navigation at 320 dp / 1.5× text, 390 dp, and 800 dp. At 320 dp, saved a 100 kcal entry with the keyboard open, moved it from Breakfast to Snacks, and reopened it. The day still had one entry and 100 kcal. Deleting it returned that day to zero; today's intake stayed at 300 kcal. Nine nutrition tests passed.
 
 [Nutrition target preview](images/nutrition-targets.png)
 
@@ -34,7 +38,7 @@ When performed rows exist, they determine completion rather than a stale exercis
 
 [Pinned progress preview](images/workout-progress.png)
 
-## Automated verification
+## Original K2F-125 / K2F-47 automated verification
 
 Run from `K2F/`:
 
@@ -53,7 +57,7 @@ npx expo lint
 - Full-project lint retains **30 existing errors and 3 warnings** in DoorOpeningIntro, the root index, and useRecentClientActivity.
 - Expo web export passes; no new dependency was needed.
 
-## Android verification performed
+## Original K2F-125 / K2F-47 Android verification
 
 Expo Go / SDK 58, Android 17 emulator:
 

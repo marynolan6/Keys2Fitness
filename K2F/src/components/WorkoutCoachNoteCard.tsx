@@ -57,7 +57,7 @@ export function WorkoutCoachNoteCard({ note, sessionLabel, style, collapsible = 
 }
 
 const styles = StyleSheet.create({
-  collapsibleCard: { padding: spacing.md },
+  collapsibleCard: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   toggle: { flexDirection: "row", alignItems: "center", gap: spacing.md,
     minHeight: layout.minTouchTarget, borderRadius: radii.control },
   heading: { flex: 1 },
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderLeftColor: colors.primaryDark,
-    borderLeftWidth: 5,
+    borderLeftWidth: spacing.xs,
     borderRadius: radii.card,
     borderWidth: 1,
     marginBottom: spacing.md,

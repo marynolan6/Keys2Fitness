@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { colors } from "@/theme";
+import { colors, layout } from "@/theme";
 
 type ClientAvatarProps = {
   name: string;
@@ -11,7 +11,7 @@ type ClientAvatarProps = {
 export function ClientAvatar({
   name,
   imageUrl,
-  size = 48,
+  size = layout.minTouchTarget,
 }: ClientAvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase();
 
@@ -56,11 +56,11 @@ const styles = StyleSheet.create({
   },
   fallback: {
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surfaceMuted,
     justifyContent: "center",
   },
   initial: {
-    color: colors.surface,
+    color: colors.primaryDeep,
     fontWeight: "700",
   },
 });

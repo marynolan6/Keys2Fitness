@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "k2f",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -25,6 +25,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-status-bar", { "style": "dark" }],
       [
         "expo-splash-screen",
         {

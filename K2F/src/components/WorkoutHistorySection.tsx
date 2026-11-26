@@ -5,7 +5,7 @@ import { WorkoutHistoryDetails } from "@/components/WorkoutHistoryDetails";
 import { useWorkoutHistory } from "@/hooks/useWorkoutHistory";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { workoutHistoryTotals, type WorkoutHistoryEntry } from "@/workouts/workoutSessionModel";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 const RECENT_LIMIT = 3;
 const rowDate = new Intl.DateTimeFormat(undefined, {
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md },
   content: { gap: spacing.sm },
   header: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: spacing.sm, rowGap: spacing.xs },
-  heading: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
+  heading: { ...textStyles.section, flexShrink: 1 },
   context: { color: colors.textMuted, fontSize: typography.caption, flexShrink: 1 },
   body: { color: colors.text, fontSize: typography.body, lineHeight: typography.bodyLineHeight },
   muted: { color: colors.textMuted, fontSize: typography.label },
   label: { color: colors.text, fontSize: typography.body, fontWeight: "600" },
-  link: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "600", textAlign: "center" },
+  link: { ...textStyles.label, color: colors.primaryDeep, textDecorationLine: "underline", textAlign: "center" },
   entry: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: layout.minTouchTarget,
     paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   entryText: { flex: 1, minWidth: 0, gap: spacing.xs },

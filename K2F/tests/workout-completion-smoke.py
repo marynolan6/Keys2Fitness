@@ -1,13 +1,13 @@
 """K2F-33 Android smoke; restores the library, assignments and sessions afterward."""
 import argparse
 import re
-import time
-from helpers.android_ui import adb, bounds, fill, matches, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.android_ui import adb, fill, matches, open_route, scroll_to, snapshot, tap, tap_node, wait_for
 from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
 def completed_count():
-    for start, end in [(1500, 700), (700, 1500)]:
+    height = int(re.findall(r"\d+x(\d+)", adb("shell", "wm", "size"))[-1])
+    for start, end in [(height * 2 // 3, height // 3), (height // 3, height * 2 // 3)]:
         for _ in range(12):
             for node in snapshot():
                 text = node.get("text", "")
@@ -49,34 +49,32 @@ def main(base_url):
     tap("Preview " + title + " as Alex Morgan")
     wait_for(title)
     assert_progress(0)
-    start = scroll_to("Start Workout")
-    # Capture stable controls before the running clock prevents UIAutomator idle.
-    sets = next(node for node in snapshot() if matches(node, "View Bench Press sets"))
-    tap_node(start)
-    tap_node(sets)
+    tap("Start Workout")
+    tap("View Bench Press sets")
     wait_for("Workout sets")
+    for _ in range(3):
+        tap("Remove last performed set from Bench Press")
+    wait_for("No performed sets. Add a set to record your workout.")
+    for _ in range(3):
+        tap("Add performed set to Bench Press")
+    for field, target in [("actual reps", "8"), ("actual weight (lb)", "135")]:
+        assert scroll_to("Bench Press, set 1, " + field, editable=True).get("text") == target
     fill("Bench Press, set 1, actual reps", "7", dismiss_keyboard=False)
     fill("Bench Press, set 1, actual weight (lb)", "127.5", dismiss_keyboard=False)
+    fill("Bench Press, set 3, actual weight (lb)", "0", dismiss_keyboard=False)
     adb("shell", "input", "keyevent", "KEYCODE_ENTER")  # Done on the numeric keypad.
     for index in range(1, 4):
         tap(f"Bench Press, set {index} completed")
     assert_progress(100)
-    complete_label = next(node for node in snapshot() if matches(node, "All exercises complete"))
-    _, complete_top, _, complete_bottom = bounds(complete_label)
-    density = int(re.findall(r"density:\s*(\d+)", adb("shell", "wm", "density"))[-1]) / 160
-    # The pinned indicator gains its completion message, shifting the scene below it.
-    completion_height = complete_bottom - complete_top + round(8 * density)
     tap_node(next(node for node in snapshot() if node.get("content-desc") == "Close workout sets"))
-    left, top, right, bottom = bounds(start)
-    # Finish now shares the former Start button's space with Pause on the left.
-    adb("shell", "input", "tap", str(left + (right-left)//4), str((top+bottom)//2 + completion_height))
-    time.sleep(1)
+    tap("Ⅱ Pause Workout")
     wait_for("Workout paused. Your progress is saved.")
     assert_progress(100)
     tap("Finish Workout")
     wait_for("Confirm workout completion?")
-    wait_for("7 reps")
-    wait_for("127.5 lb")
+    wait_for("Set 1 · 7 reps, 127.5 lb")
+    wait_for("Set 2 · 8 reps, 135 lb")
+    wait_for("Set 3 · 8 reps, 0 lb")
     tap("Keep Workout")
     assert scroll_to("Bench Press completed").get("checked") == "true"
     wait_for("Workout paused. Your progress is saved.")
@@ -88,18 +86,15 @@ def main(base_url):
     assert completed_count() == baseline + 1
     tap(title)
     wait_for("Recorded workout")
-    wait_for("Set 1 · Confirmed")
-    wait_for("7 reps")
-    wait_for("127.5 lb")
+    wait_for("Set 1 · 7 reps, 127.5 lb")
+    wait_for("Set 2 · 8 reps, 135 lb")
+    wait_for("Set 3 · 8 reps, 0 lb")
     tap_node(next(node for node in snapshot() if node.get("content-desc") == "Back to workout history"))
     print("PASS: confirmed completion appears in progress/history with recorded sets", flush=True)
     route("coach-client/2/workouts")
     tap("Preview " + title + " as Alex Morgan")
-    restart = scroll_to("Start New Workout")
-    tap_node(restart)
-    left, top, right, bottom = bounds(restart)
-    adb("shell", "input", "tap", str((left+right)//2), str((top+bottom)//2 - completion_height))
-    time.sleep(1)
+    tap("Start New Workout")
+    tap("Ⅱ Pause Workout")
     wait_for("Workout paused. Your progress is saved.")
     assert_progress(0)
     tap("End Workout")

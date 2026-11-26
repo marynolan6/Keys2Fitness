@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActionButton } from "./ActionButton";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 
 import type { CheckIn } from "@/checkins/checkIn";
 import { buildWeightChart, rangeLabel, weightRanges, type WeightPlot, type WeightRange } from "@/checkins/weightChart";
 import { formatMeasurement, formatShortGoalDate, formatSignedMeasurement } from "@/goals/goal";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 const dateLabel = (date: string, year = false) => `${formatShortGoalDate(date)}${year ? `, ${date.slice(0, 4)}` : ""}`;
 const weightLabel = (kg: number) => formatMeasurement(kg, "kg");
@@ -24,22 +25,20 @@ export function WeightProgressChart({ checkIns, through }: { checkIns: readonly 
     <View style={[styles.controls, compact && fontScale >= layout.largeFontScale && styles.stacked]}>
       {weightRanges.map((option) => {
         const selected = range === option;
-        return <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected }}
-          accessibilityLabel={`${rangeLabel(option)} weight chart`} onPress={() => setRange(option)}
-          style={({ pressed }) => [styles.control, selected && styles.selected, pressed && (selected ? styles.selectedPressed : styles.pressed)]}>
-          <Text style={[styles.controlText, selected && styles.selectedText]}>{rangeLabel(option)}</Text>
-        </Pressable>;
+        return <ActionButton key={option} label={rangeLabel(option)} selected={selected} style={styles.control}
+          accessibilityLabel={`${rangeLabel(option)} weight chart`} onPress={() => setRange(option)} />;
       })}
     </View>
     {chart.kind === "empty" ? <Text accessibilityLiveRegion="polite" style={styles.notice}>
       {chart.hasEarlier ? "No weight check-ins in this range. Choose All time to see earlier readings."
         : "No check-in weights yet. Your first weigh-in will appear here."}
-    </Text> : <WeightPlotView chart={chart} />}
+    </Text> : <WeightPlotView key={range} chart={chart} />}
   </View>;
 }
 
 function WeightPlotView({ chart }: { chart: WeightPlot }) {
   const [width, setWidth] = useState(0);
+  const [visibleReadings, setVisibleReadings] = useState(0);
   const { fontScale } = useWindowDimensions();
   const first = chart.points[0];
   const latest = chart.points[chart.points.length - 1];
@@ -51,7 +50,7 @@ function WeightPlotView({ chart }: { chart: WeightPlot }) {
   const crossYear = chart.startDate.slice(0, 4) !== chart.endDate.slice(0, 4);
   const singleDate = chart.startDate === chart.endDate;
   const ticks = [chart.highKg, (chart.highKg + chart.lowKg) / 2, chart.lowKg];
-  const description = chart.points.map((point) => `${dateLabel(point.date, true)}: ${weightLabel(point.weightKg)}`).join("; ");
+  const change = chart.kind === "line" ? formatSignedMeasurement(latest.weightKg - first.weightKg, "kg") : null;
 
   return <>
     <View style={styles.stats}>
@@ -61,10 +60,10 @@ function WeightPlotView({ chart }: { chart: WeightPlot }) {
       </View>
       {chart.kind === "line" && <View style={styles.group}>
         <Text style={styles.caption}>Change in range</Text>
-        <Text style={styles.value}>{formatSignedMeasurement(latest.weightKg - first.weightKg, "kg")}</Text>
+        <Text style={styles.value}>{change}</Text>
       </View>}
     </View>
-    <View accessible accessibilityRole="image" accessibilityLabel={`Weight in pounds by check-in date. ${description}`}>
+    <View accessible accessibilityRole="image" accessibilityLabel={`Weight by check-in date. Latest: ${weightLabel(latest.weightKg)} on ${dateLabel(latest.date, true)}.${change ? ` Change: ${change}.` : ""}`}>
       <Text style={styles.axisTitle}>Weight (lb)</Text>
       <View style={styles.plotRow}>
         <View style={[styles.scale, { height }]}>
@@ -90,8 +89,17 @@ function WeightPlotView({ chart }: { chart: WeightPlot }) {
     <Text accessibilityLiveRegion="polite" style={chart.kind === "line" ? styles.caption : styles.notice}>
       {chart.kind === "single" ? `One check-in: ${dateLabel(latest.date, true)}. A second date is needed to show a trend.`
         : chart.kind === "same-day" ? `${chart.points.length} check-ins on ${dateLabel(latest.date, true)}. A second date is needed to show a trend.`
-          : `${chart.points.length} check-ins in this range`}
+         : `${chart.points.length} check-ins in this range`}
     </Text>
+    <ActionButton secondary expanded={visibleReadings > 0} label={visibleReadings ? "Hide readings" : "Show readings"}
+      onPress={() => setVisibleReadings(visibleReadings ? 0 : 10)} />
+    {visibleReadings > 0 && <>
+      {chart.points.slice(-visibleReadings).reverse().map((point) => <View key={point.id} accessible
+        accessibilityLabel={`${dateLabel(point.date, true)}, ${weightLabel(point.weightKg)}`} style={styles.reading}>
+        <Text style={textStyles.meta}>{dateLabel(point.date, true)}</Text><Text style={textStyles.label}>{weightLabel(point.weightKg)}</Text>
+      </View>)}
+      {visibleReadings < chart.points.length && <ActionButton secondary label="Show older readings" onPress={() => setVisibleReadings((n) => n + 10)} />}
+    </>}
   </>;
 }
 
@@ -100,19 +108,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: radii.card, gap: spacing.md, marginVertical: spacing.md },
   compactCard: { padding: spacing.md },
   group: { gap: spacing.xs },
-  title: { color: colors.text, fontSize: typography.heading, fontWeight: "500" },
+  title: textStyles.section,
   caption: { color: colors.textMuted, fontSize: typography.label },
-  controls: { flexDirection: "row", gap: spacing.xs },
+  controls: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   stacked: { flexDirection: "column" },
-  control: { flexGrow: 1, flexBasis: 0, minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget,
-    justifyContent: "center", alignItems: "center", padding: spacing.sm, backgroundColor: colors.surfaceMuted, borderRadius: radii.control },
-  selected: { backgroundColor: colors.primaryDark },
-  pressed: { backgroundColor: colors.border },
-  selectedPressed: { backgroundColor: colors.primaryDeep },
-  controlText: { color: colors.primaryDeep, fontSize: typography.label, fontWeight: "600", textAlign: "center" },
-  selectedText: { color: colors.surface },
+  control: { flexGrow: 1, paddingHorizontal: spacing.sm },
+  reading: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: spacing.sm,
+    paddingTop: spacing.sm, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
   stats: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, columnGap: spacing.xl },
-  value: { color: colors.text, fontSize: typography.heading, fontWeight: "600" },
+  value: textStyles.metric,
   notice: { color: colors.text, fontSize: typography.body, backgroundColor: colors.surfaceMuted, borderRadius: radii.control, padding: spacing.md },
   axisTitle: { color: colors.textMuted, fontSize: typography.caption, fontWeight: "600" },
   axisLabel: { color: colors.textMuted, fontSize: typography.caption, flexShrink: 1, fontVariant: ["tabular-nums"] },

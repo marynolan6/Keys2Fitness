@@ -58,7 +58,7 @@ The project is a working UI prototype with selected Firebase-backed features. **
 | Workout history | Open Progress or choose Workout history from the + menu to review completed workouts, recorded sets, and active time saved on this device. |
 | Profiles and preferences | Client profile/preferences persist locally. Coach profile editing is currently a local UI prototype. |
 | Goals and weight measurements | Authenticated Firestore reads/writes for the current weight goal and weight entries, including entry editing/deletion. Dashboard goal summaries also include mock data. |
-| Weight progress chart | Client Progress plots sample check-in weights in pounds over 30 days, 90 days, or all time. [Chart preview](K2F/docs/images/weight-progress-chart.png) |
+| Weight progress chart | Client Progress plots sample check-in weights in pounds over 30 days, 90 days, or all time. [All-time chart preview](K2F/docs/images/weight-progress-chart.png) |
 | Messaging | Conversation UI, search, local message composition, and on-device read markers. End-to-end coach/client message delivery is not yet connected. |
 | Check-ins | Demo check-in/history views and coach navigation. |
 | Nutrition | Client-scoped demo calorie/macro targets, coach tips, dated food logging and intake comparison. Coach edits update the shared in-memory client plan without rewriting logged food. |
@@ -66,7 +66,7 @@ The project is a working UI prototype with selected Firebase-backed features. **
 
 ## App screenshots
 
-The team captured these screens in Expo Go on Android with demo data. Select an image to enlarge it.
+These screenshots show the standalone Android demo, version 1.0.5, with sample coaching data. Select an image to enlarge it.
 
 <table>
   <tr>
@@ -75,9 +75,9 @@ The team captured these screens in Expo Go on Android with demo data. Select an 
     <th>Exercise prescription editor</th>
   </tr>
   <tr>
-    <td><a href="K2F/docs/images/coach-dashboard.png"><img src="K2F/docs/images/coach-dashboard.png" alt="Coach dashboard with active clients and recent demo activity" width="240" /></a></td>
-    <td><a href="K2F/docs/images/workout-library.png"><img src="K2F/docs/images/workout-library.png" alt="Workout template library filtered to strength plans, with create, duplicate, edit, and delete controls" width="240" /></a></td>
-    <td><a href="K2F/docs/images/prescription-editor.png"><img src="K2F/docs/images/prescription-editor.png" alt="Bench Press prescription editor showing sets, reps, pounds, rest seconds, and instructions" width="240" /></a></td>
+    <td><a href="K2F/docs/images/coach-dashboard.png"><img src="K2F/docs/images/coach-dashboard.png" alt="Coach inbox with three pending videos and a Review oldest video button for Spencer's Bench Press" width="240" /></a></td>
+    <td><a href="K2F/docs/images/workout-library.png"><img src="K2F/docs/images/workout-library.png" alt="Workout Library filtered to strength templates, with Assign or manage below Upper Body Strength" width="240" /></a></td>
+    <td><a href="K2F/docs/images/prescription-editor.png"><img src="K2F/docs/images/prescription-editor.png" alt="Bench Press prescription set to three sets of eight reps at 135 lb, with optional rest and lifting instructions" width="240" /></a></td>
   </tr>
   <tr>
     <th>Client workout</th>
@@ -85,13 +85,13 @@ The team captured these screens in Expo Go on Android with demo data. Select an 
     <th>Client messaging prototype</th>
   </tr>
   <tr>
-    <td><a href="K2F/docs/images/client-workout.png"><img src="K2F/docs/images/client-workout.png" alt="Client workout with progress, a recorded ended session, and exercise completion controls" width="240" /></a></td>
-    <td><a href="K2F/docs/images/exercise-details.png"><img src="K2F/docs/images/exercise-details.png" alt="Bench Press details with prescription, reusable instructions, and a client-specific coach recommendation" width="240" /></a></td>
-    <td><a href="K2F/docs/images/client-messages.png"><img src="K2F/docs/images/client-messages.png" alt="Client conversation prototype with sample coach messages and a message composer" width="240" /></a></td>
+    <td><a href="K2F/docs/images/client-workout.png"><img src="K2F/docs/images/client-workout.png" alt="Upper Body Strength ended early at 50%, with each confirmed Bench Press set listed as 8 reps, 135 lb" width="240" /></a></td>
+    <td><a href="K2F/docs/images/exercise-details.png"><img src="K2F/docs/images/exercise-details.png" alt="Bench Press details with prescribed sets, reps and weight, lifting instructions, and a labeled sample video" width="240" /></a></td>
+    <td><a href="K2F/docs/images/client-messages.png"><img src="K2F/docs/images/client-messages.png" alt="Client conversation with Coach Keys, a blue outgoing message about increasing weight, and the message composer" width="240" /></a></td>
   </tr>
 </table>
 
-See the [screenshot notes](K2F/docs/images/README.md) for capture context. Original UI mockups are available in [design references](K2F/design-references).
+The [nine-screen overview](K2F/docs/images/mobile-ui-preview-1.0.5.png) also shows Client Home, Nutrition, and Progress. See the [screenshot notes](K2F/docs/images/README.md) for capture details or the [original mockups](K2F/design-references) for the design references.
 
 ## Technology and architecture
 

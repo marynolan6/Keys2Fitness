@@ -2,7 +2,9 @@
 
 Branch: `spencer/sprint-3/client-quick-access-menu`
 
-## Behavior
+These are the original Sprint 3 results. The current plus menu has only a close button and destinations, including Workout history and the daily Nutrition screen. See the [navigation standard](theme-standards.md).
+
+## Sprint 3 behavior
 
 - Rounded, white client tab bar; existing Home, Progress, Messages, and Profile symbol names and order are retained.
 - Raised center plus button opens a modal menu with Home, Workout, Nutrition, Messages, Progress, and Profile. No logout action.

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { mockVideoSubmissions } from "./mockVideoSubmissions";
-import { completeReview, type ReviewResult, type VideoSubmission } from "./videoReview";
+import { completeReview, splitByStatus, type ReviewResult, type VideoSubmission } from "./videoReview";
 
 // K2F-58: In-memory review state shared by the queue and review screens, same idea as
 // clientStore.ts. Seeded from the sample videos, so it resets when the app restarts.
@@ -21,6 +21,10 @@ function subscribe(listener: () => void): () => void {
 
 export function useVideoSubmissions(): readonly VideoSubmission[] {
   return useSyncExternalStore(subscribe, getSubmissions, getSubmissions);
+}
+
+export function useVideoReviewQueue() {
+  return splitByStatus(useVideoSubmissions());
 }
 
 export function submitVideoReview(videoId: string, feedback: string): ReviewResult {

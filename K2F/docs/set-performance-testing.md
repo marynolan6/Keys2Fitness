@@ -4,19 +4,19 @@
 
 | Subtask | Behavior |
 | --- | --- |
-| K2F-181 — inputs | **Log sets** records reps, pounds and completion by exercise ID and set ID. Checking a set or exercise marks completion only. **Use prescribed values** explicitly fills missing fields on that one set; an existing zero or custom value is preserved. |
+| K2F-181 — inputs | In **Log sets**, the checkbox sits beside the set heading. The labeled reps and weight boxes sit below it and stack on narrow or large-text layouts. Gray placeholders show the prescription, including on added rows. Checking a set fills only its blank fields; checking an exercise does the same for its unconfirmed sets. Custom entries, including zero, are preserved. A missing weight stays unrecorded. |
 | K2F-182 — preservation and review | Entries survive closing the editor, switching exercises and pause/reopen. Each active exercise has a compact log preview; the finish/early-end confirmation shows the recorded rows for all exercises. **Keep Workout** returns without finalizing. |
-| K2F-183 — result | The ended session and history render the same read-only rows as the review. Skipped rows keep their original set numbers; confirmed sets with blank values explicitly say “not recorded.” Old archives are not rewritten or filled from targets. |
+| K2F-183 — result | The review, ended session and history use one text row per set, such as `Set 1 · 8 reps, 135 lb`. Unconfirmed entries are labeled. Skipped rows keep their original numbers; missing actuals say “not recorded.” Old archives are not filled from targets. |
 
 Client Home lists each assignment ID once, with the active workout first and its **Continue** action intact. Separately assigned copies of the same plan retain their dates and open independently. A legacy title matching its linked template’s coach note exactly is presented as a note alongside the template name; the stored assignment is preserved.
 
-**Verification:** `npm run test:workouts` passed 101 tests, including cross-exercise edits → checkpoint → pause/reopen → review → immutable completion. The Android completion smoke entered **7 reps / 127.5 lb** against an **8 reps / 135 lb** target and checked the review, cancel, finish, history and early-end paths. The assignment smoke checked client isolation, distinct copies and restart. Both restored their fixtures via the shared sandbox.
+**Verification (Nov 25, 2026):** `npm run test:workouts` passed 116 tests, including cross-exercise edits, pause/reopen and archived results. On Android, `tests/workout-completion-smoke.py` removed all three Bench Press sets and added three new ones. Review and history showed **7 reps / 127.5 lb** (custom), **8 reps / 135 lb** (both hints accepted), and **8 reps / 0 lb** (custom zero). Canceling the first finish kept the log; ending a second attempt early did not increase the completion count. The sandbox restored the original workout records and preview client.
 
-On Android, the branded welcome, signup, client/coach Home and menu plus the paused set log and pre-finish review were checked at **320 dp / 1.5×**, **390 dp / 1×**, and **800 dp / 1×**. TypeScript and the web production export also passed. See [brand placement and previews](theme-standards.md#brand-placement). iOS and screen-reader interactions were not manually exercised.
+**Demo 1.0.3, Android:** In Incline Dumbbell Press, the two input boxes appeared below each set heading. They sat side by side at 390 and 800 dp and stacked at 320 dp with 1.5× text. Checking untouched suggestions and reopening the paused log showed `Set 1 · 10 reps, 40 lb`. Entering only a zero weight before checking the next set showed `Set 2 · 10 reps, 0 lb`. The walkthrough restored the workout fixtures and display settings. iOS and spoken screen-reader output were not tested.
 
 ## Original K2F-32 behavior and verification (K2F-166–168)
 
-The notes below describe the earlier K2F-32 implementation. K2F-34 supersedes its automatic target-filling, gray placeholder, and disabled-editor presentation described below.
+The notes below describe the earlier K2F-32 implementation. The current behavior is summarized above.
 
 - Exercise cards stay compact. **View Details** opens the existing instructions,
   demonstration placeholder, and recommendations. **View Sets** opens the separate

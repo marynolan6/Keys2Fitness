@@ -6,7 +6,7 @@ import { coachMessages } from "@/messages/mockMessagesCoach";
 // K2F-282: Find the selected client's profile using their ID.
 // This allows clients without messages to display their correct name.
 import { getClientById } from "@/clients/mockClients";
-import { colors, radii, spacing, typography } from "@/theme";
+import { actionColors, colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { PageTitle } from "@/components/K2FBrand";
@@ -34,7 +34,8 @@ export default function CoachConversation() {
   return (
     <ThemedBackground>
       <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to Messages" style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/coach/messages")}>
           <Text style={styles.backButton}>← Back to Messages</Text>
         </Pressable>
 
@@ -123,14 +124,17 @@ export default function CoachConversation() {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center",
     padding: spacing.lg,
   },
   backButton: {
     color: colors.primaryDark,
     fontSize: typography.body,
     fontWeight: "700",
-    marginBottom: spacing.lg,
+    textDecorationLine: "underline",
   },
+  back: { alignSelf: "flex-start", minHeight: layout.minTouchTarget, justifyContent: "center" },
+  pressed: { backgroundColor: colors.surfaceMuted },
 
   timestamp: {
     color: colors.textMuted,
@@ -149,14 +153,14 @@ const styles = StyleSheet.create({
   },
   coachBubble: {
     alignSelf: "flex-end",
-    backgroundColor: colors.primary,
+    backgroundColor: actionColors.primary.fill,
   },
   message: {
     color: colors.text,
     fontSize: typography.body,
   },
   coachMessage: {
-    color: colors.surface,
+    color: actionColors.primary.ink,
   },
   newMessagesRow: {
     alignItems: "center",
@@ -182,10 +186,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    color: colors.text,
+    ...textStyles.page,
     flex: 1,
-    fontSize: typography.title,
-    fontWeight: "700",
   },
   
   // K2F-97: Allows the client name and goal to fit on mobile.
