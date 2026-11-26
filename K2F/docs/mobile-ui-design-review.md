@@ -1,0 +1,93 @@
+# Keys2Fitness mobile UI review
+
+**November 25, 2026 · Demo 1.0.4 · Source `b8fdaa9` · Research and proposals**
+
+**Verdict: 6/10.** I would keep the workout logger and redesign the screens around it. The logger understands the difference between *doing* a set and *reading* a result. The coach dashboard, by contrast, gives three videos waiting for feedback exactly the same space and emphasis as a count of active clients. The app looks consistent from across the room. Up close, it often makes the user decide what matters.
+
+[See the nine screens reviewed](images/mobile-ui-review-1.0.4.png) · [Courses, standards, and team exercises](mobile-ui-design-resources.md) · [Current product standards](theme-standards.md)
+
+## What the ratings mean
+
+These are editorial judgments. A 5 means usable with recurring friction; an 8 means a coherent experience that another contributor can reproduce; a 10 would also require evidence from the people who actually use it.
+
+| What I rated | Score | Why |
+| --- | ---: | --- |
+| My mobile UI review knowledge entering this research | **7/10** | I can check layout, contrast, component states, and platform conventions. I previously accepted a 48 dp target with a barely visible date arrow, and applied a good reading layout to an editing task. Both met technical criteria and both needed user correction. |
+| My confidence predicting this coach's and clients' preferences | **4/10** | We have direct feedback on a handful of decisions. We don't have observations of first-time clients finding Nutrition, logging between sets, or a coach triaging a busy day. Reading more courses doesn't close that gap. |
+| Design resources in the repo **before** this review | **6/10** | Strong visual references and Android verification notes; weaker guidance for making a *new* design decision. Two contributors can follow different checked-in guides and choose different primary buttons. |
+| Current UI | **6/10** | Equal-weight judgments: fitness task design **8**, navigation and control clarity **6**, visual consistency **6**, hierarchy **5**, inclusive legibility **5**. The last score describes sampled issues, not accessibility conformance. |
+
+**How I reviewed it.** I inspected the installed Android demo at 1080 × 2400 px, 420 dpi (about 411 dp wide), normal text, with the system reporting night mode off. The contact sheet shows Client Home, a running workout, Nutrition, Coach Home, Workout Library, My Clients, Progress, Video reviews, and Login. I compared three original mockups, current source and theme values, the recent set/date verification, and the older messaging capture. I didn't enter credentials, log sets, send feedback, or edit records. Earlier 320 dp/large-text and tablet results are labeled in their own test notes. This review did not test a physical device, iOS, spoken screen-reader output, or actual users.
+
+## What deserves to survive a redesign
+
+- **Workout entry and review have different jobs.** In [Log sets](../src/components/ExerciseSetEntries.tsx), labeled fields sit below the set heading. Checking a set accepts missing prescribed values and preserves custom entries, including zero. In [history](../src/components/RecordedSets.tsx), `Set 1 · 10 reps, 40 lb` is a single scan. Don't put the editing form into history or compress the form back into a sentence. [Android evidence](set-performance-testing.md).
+- **Client Home has a real primary action.** The named workout, its duration, and a high-contrast **Continue workout** button are together. The whole [workout card](../src/components/AssignedWorkoutCard.tsx) opens the same destination; there are no competing actions inside it.
+- **Nutrition gets disclosure right.** The [daily summary](../src/components/nutrition/NutritionProgress.tsx) shows the day's intake, discloses the breakdown on demand, and leaves the meal log directly beneath it. Keep the four meal groups and [visible date arrows](images/nutrition-date-controls.png). Obvious controls are compatible with a quiet screen.
+- **Progress explains its data.** The [weight chart](../src/components/WeightProgressChart.tsx) gives pounds, date range, latest reading, change, and a point count. The single-reading state doesn't invent a trend. The words around the chart are as valuable as the line itself. [Chart evidence](weight-progress-chart.md).
+
+## What needs work, in priority order
+
+### 1. Fix the colors that make information disappear
+
+**Measured.** The [original theme guide](../design-references/K2F_Theme_Use.md#button-conventions) recommends white text on `colors.primary`. The [current standard](theme-standards.md#tappable-controls) calls for 4.5:1 for normal text. The former recipe gives **2.84:1**. It's still used for [outgoing messages](../src/messages/MessageBubble.tsx), the [enabled Send button](../src/messages/MessageComposer.tsx), and [unread-count text](../src/components/MessageCount.tsx). This is what makes a message feel washed out even though the app is full of strong blues. The composer also specifies a 46 dp minimum for Send versus the house 48 dp minimum; measure its rendered target rather than assuming the minimum is the final height.
+
+| Actual pair from [the theme](../src/theme.ts) | Contrast | What it means |
+| --- | ---: | --- |
+| White `#FFFFFF` on light blue `#599FDB` | **2.84:1** | Fails the normal-text benchmark. A white checkmark in this pair also falls below 3:1 if it is needed to convey state. Keep light blue available for decoration. |
+| White on `primaryDark` `#176E96` | **5.66:1** | The existing primary workout/login action is a better starting pair for white labels. |
+| `primaryDeep` `#125574` on white | **8.15:1** | The enabled nutrition arrow is a good reference for an icon on white. |
+| `textMuted` `#5B7180` on white / middle gradient stop `#BDD3DC` | **5.10:1 / 3.28:1** | A caption that works on a card isn't automatically safe on the page. Test where it can actually land, including after scrolling. |
+
+Ratios use WCAG relative luminance of the specified opaque sRGB colors. A gradient stop is a **risk screen**, not proof that every caption sits on that pixel. Inactive controls have different requirements. The [Android status and navigation icons](https://developer.android.com/design/ui/mobile/guides/foundations/system-bars) also deserve a check: the clock and signal icons looked almost white against the pale top of the release screenshots. Reproduce that in light and dark system appearances before assigning a platform-wide cause.
+
+**First change to propose:** publish tested foreground/background **pairs**, migrate outgoing text, badges and enabled Send together, and retire the contradictory recipe. Acceptance: sample enabled text at 4.5:1 and meaningful icons at 3:1 on the actual surface; check keyboard focus and pressed states separately. Large hit areas alone would not have caught this.
+
+### 2. Give the coach a queue, and the lifter a next action
+
+**Observed.** [Coach Home](../src/app/coach/index.tsx) leads with a wordmark, a two-line greeting in this capture, a date, “Coach Dashboard,” then four equal tiles. “3 pending videos” asks for work; “2 active clients” describes the roster. Equal geometry makes them equally prominent. Compare the [coach mockup](../design-references/10%20·%20Welcome,%20Jamie.pdf): a compact numeric overview leaves room to name the people waiting. On Client Home the workout card was visible, but it started about **291 dp from the top** in the captured two-line greeting state. The [client mockup](../design-references/02%20·%20Good%20morning,%20Alex.pdf) moves directly from the greeting to the workout.
+
+**Propose:** keep the required brand and the equal coach tiles for the first prototype. Give the pending count and an action such as **Review oldest video** priority within that layout. Use the smaller metadata style for passive counts. On the client side, let the workout name and Continue button outrank the greeting. In a running workout, [Exercise details and Log sets currently share a treatment](../src/app/client/home/workout/%5BworkoutId%5D.tsx), while Pause gets the filled button. Make **Log sets** easiest to spot and keep Pause easy to reach.
+
+**One revealing detail:** the captured workout shows `0%` above `1/3 sets complete`. Both are correct: the pinned bar counts *finished exercises*. A lifter who just recorded a set may still read the large zero as “nothing was saved.” Test a locally prominent `1 of 3 sets logged` acknowledgment; preserve the exercise-based completion and history rules. Success is a lifter who can tell what was saved and what to do next without reopening the editor to check.
+
+### 3. Stop making administration compete with the thing being administered
+
+**Observed.** In [Workout Library](../src/app/coach/workouts/index.tsx), Create and the selected All filter both get a filled blue treatment. A template then has a detail panel, an assignment selection, and Duplicate, Edit and Delete. On the captured phone, the first template's management controls reach the tab bar before a second plan is visible. In [Nutrition](../src/components/nutrition/DailyNutritionSummary.tsx), the new outline makes the date arrows discoverable, but Add food, Edit and Delete share that outline. Delete removes the entry immediately. On a narrow food row, macro data wraps while Edit and Delete get their own prominent boxes. The [nutrition mockup](../design-references/07%20·%20Nutrition.pdf) shows the advantage of aligning meal names and calorie values. Don't bring back the expanded macro panel the owner chose to collapse.
+
+**Propose:** use a compact list for comparing repeated objects, and a card when a single object deserves a primary action. In Library, keep a distinct selected-filter cue, show name plus exercise count, and give assignment one clear entry. Put occasional management actions behind a labeled, accessible menu or on the detail screen. In Nutrition, keep per-meal Add and the date buttons obvious; put editing on the named food entry and offer Undo or confirmation for deletion. In the [food editor](../src/components/nutrition/FoodEntryEditor.tsx), Save is inside the scroll area while Cancel is fixed in the [dialog](../src/components/nutrition/NutritionDialog.tsx); test keeping the primary action reachable when the keyboard is up. Preserve all existing functions and the distinction between zero and missing intake.
+
+### 4. Navigation has a vocabulary problem
+
+**Observed.** The raised `+` is the strongest persistent symbol. It opens a [directory of destinations](../src/components/AppQuickAccessMenu.tsx), not an add action. Four of seven client menu items repeat the four tabs. A first-time client looking for Nutrition has to guess that `+` means “go somewhere.” On Nutrition the native bar says “Nutrition,” followed by the wordmark, another “Nutrition,” and demo-plan copy before the date. On the [client list](../src/app/coach/client_list.tsx), “Review video” looks like a specific action but the row opens the profile. Worse, “On track” means **no pending video** in code. That's not evidence the client is on track with a fitness plan.
+
+**Propose:** give Nutrition a named entry where clients plan their day. Test this against today's menu before changing the approved plus, centered destinations, red bottom Close, or blue active tab. Keep one useful page title and a clear Back affordance. Use factual status copy such as “No videos waiting,” or omit the badge when there is no action. If a label says “Review video,” either lead to that task or make it read as a status on a profile link. Apple distinguishes destinations from actions; Android gives a floating action button a primary action. Neither says K2F must copy a specific navigation bar. See [platform references](mobile-ui-design-resources.md#platform-and-visual-references).
+
+### 5. Give the brand a type and icon system, not another layer of decoration
+
+**Design judgment.** The pale-to-deep blue is recognizable. Its strongest color often sits behind empty space at the bottom while useful content sits in equally rounded white panels. Login has a restrained serif wordmark, section titles can be thin 38-size text, exercise titles are light, and several section headers are heavy. [The type tokens](../src/theme.ts) name sizes, but weights and most line heights are left to each screen. A colorful chart emoji, a play triangle and the monochrome native tab symbols look as if they came from different kits. The coach emojis are **specified today**, not an implementation error.
+
+**Propose:** try a quieter version of the existing gradient on dense work screens; keep the signature treatment on welcome and Home. Define complete styles for screen title, section title, metric, body, and metadata, including weight and line height. Align names and labels to a common leading edge and comparable numbers to a trailing edge; keep units alongside numbers. Prototype one icon family for navigation and actions and reserve illustration for personality. Compare it with the approved coach icons before changing the rule. Don't add glass or extra shadows to food rows to make them look current. Even [Apple's materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) separates navigation materials from content.
+
+### 6. Respect time, motion preferences, and increasing amounts of data
+
+**Source findings.** The [door intro](../src/components/DoorOpeningIntro.tsx) schedules approximately **4.42 seconds** of delays and animation, counting the parallel section once. [Login](../src/app/auth/login.tsx) disables submission until the intro finishes; this is configured duration, not a measured startup benchmark. Keep the key-and-door idea as an optional brand moment. Prototype immediate access for returning users and a reduced-motion path. The [weight chart](../src/components/WeightProgressChart.tsx) already supplies dated values, but concatenates *every* point into one spoken image label. That's manageable for five readings; a year of readings is a different experience. Test a short trend summary with a separately navigable values list. Neither the operating system's motion behavior nor actual screen-reader speech was tested here.
+
+## Why six contributors can still produce six looks
+
+| What exists in this revision | What a teammate can reproduce | Where they still have to guess |
+| --- | --- | --- |
+| [32 tracked PDF references](../design-references/), including dialogs and state examples; [15 tracked screen PNGs before this audit](images/README.md) | Brand direction, original layout intent, and examples of the running app | Some references predate the approved meal log, navigation, units, or workout editor. A static export can't tell a teammate which decision superseded it. I didn't inspect a private Figma library. |
+| [Theme](../src/theme.ts), [standards](theme-standards.md), [shared branding](../src/components/K2FBrand.tsx) and [shared tabs](../src/components/AppTabBar.tsx) | Palette, 4/8/16/24/32 spacing, corner sizes, minimum target, brand placement and role-specific navigation | What weight/line height makes a section heading? When does a secondary action get an outline, a filled background, or a text treatment? Which foreground goes with each fill? |
+| [Builder controls](../src/components/WorkoutBuilderControls.tsx), [auth form](../src/components/AuthFormScreen.tsx), nutrition actions, and [message composer](../src/messages/MessageComposer.tsx) | Working examples to start from | Several valid-looking implementations make different color, state, and sizing choices. No tracked `*.stories.*` or `.fig` files showed up in this review. A shared file outside Git might exist; its ownership/version isn't established here. |
+| [Branding check](../scripts/check-branding.mjs), [set logging](set-performance-testing.md), [nutrition](nutrition-and-workout-progress.md), and [chart verification](weight-progress-chart.md) | Brand/title checks and device-specific examples, including failure and empty states | Branding checks initial web markup, not whether an Android message is readable or a coach finds the right queue. A screenshot collection isn't a tested component-state catalog. |
+
+## A small first redesign the team can actually evaluate
+
+1. **First, fix the provable issues.** One person owns the color-pair table; a second checks actual Messaging and tab badges. Resolve the conflicting guide. Verify system-bar legibility in both appearances and specify the reduced-motion/login behavior.
+2. **Then make two competing mockups, not a whole-app reskin.** Use the existing Coach Home as the control. In the candidate, the first read is `3 videos awaiting review`, followed by the oldest submission and **Review video**; the four overview tiles remain available. Do the same for one running workout: current exercise, confirmed sets, **Log sets**, then details. Ask the coach which work really deserves priority before publishing a new hierarchy.
+3. **Publish only patterns the pilots prove.** Start with action buttons, status badges, and list rows. Record Figma name, React Native equivalent, owner, eligible uses, prohibited uses, visual/accessible states, and a dated example. A second teammate should be able to reconstruct a Nutrition row without asking which blue or which Delete button to use. See the [worked handoff](mobile-ui-design-resources.md#worked-handoff-for-two-contributors).
+
+**Test the next prototype with people.** Suggested first round: the coach and 4–5 representative clients, including someone who uses larger text or assistive technology. Use fictional records. Ask “Which upload has waited longest?”, “Yesterday you ate this with lunch; record it,” and “You did ten reps at a different weight; record that and show me what was saved.” Don't name the menu or the button. Record first tap, wrong turns, completion without hints, and whether the participant can repeat the saved values. Separately ask what they noticed after five seconds and which words describe the look; include distractors as well as the intended traits *calm*, *clear*, and *personal*. Compare versions with the same data and alternate their order. With a small sample, report the observed mistakes and counts, not a universal percentage improvement.
+
+**Research handoff:** The learning guide includes 18 courses, codelabs, workshops, and recorded sessions. All 57 distinct external pages linked across the two documents responded, and 52 local paths or heading references resolved. The native Unslop prose review kept observations distinct from proposed fixes. TypeScript, lint, and the diff check passed. The changes consist of documentation and a screenshot sheet.

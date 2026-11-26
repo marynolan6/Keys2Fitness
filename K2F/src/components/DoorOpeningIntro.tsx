@@ -1,12 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { colors } from '@/theme';
+import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActionButton } from './ActionButton';
+import { colors, layout, spacing, textStyles } from '@/theme';
 
 const DOOR_BLUE = '#438EF2';
 
 type Props = { onComplete: () => void };
 
-export default function DoorOpeningIntro({ onComplete }: Props) {
+export function WelcomeAnimation() {
+  const [available, setAvailable] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const insets = useSafeAreaInsets();
+  useEffect(() => {
+    let querying = true;
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (reduced) => {
+      querying = false; setAvailable(!reduced); if (reduced) setPlaying(false);
+    });
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => { if (querying) setAvailable(!reduced); }).catch(() => {});
+    return () => { querying = false; sub.remove(); };
+  }, []);
+  if (!available) return null;
+  return <>
+    <Pressable accessibilityRole="button" onPress={() => setPlaying(true)}
+      style={({ pressed }) => [styles.replay, pressed && { backgroundColor: colors.surfaceMuted }]}>
+      <Text style={styles.replayText}>Play welcome animation</Text>
+    </Pressable>
+    {playing && <Modal onRequestClose={() => setPlaying(false)}>
+      <View accessibilityViewIsModal style={{ flex: 1, paddingBottom: insets.bottom + spacing.md, paddingHorizontal: spacing.md }}>
+        <View aria-hidden style={{ flex: 1 }}><DoorOpeningIntro onComplete={() => setPlaying(false)} /></View>
+        <ActionButton label="Skip animation" secondary onPress={() => setPlaying(false)} />
+      </View>
+    </Modal>}
+  </>;
+}
+
+function DoorOpeningIntro({ onComplete }: Props) {
   const { width, height } = useWindowDimensions();
   const doorWidth = Math.min(width * 0.76, 355);
   const doorHeight = Math.min(height * 0.74, 660);
@@ -110,6 +139,8 @@ export default function DoorOpeningIntro({ onComplete }: Props) {
 }
 
 const styles = StyleSheet.create({
+  replay: { justifyContent: 'center', alignItems: 'center', minHeight: layout.minTouchTarget, padding: spacing.sm },
+  replayText: { ...textStyles.meta, textDecorationLine: 'underline' },
   overlay: {
     position: 'absolute', top: 0, right: 0, bottom: 0, left: 0,
     zIndex: 1000, elevation: 1000, alignItems: 'center', justifyContent: 'center',

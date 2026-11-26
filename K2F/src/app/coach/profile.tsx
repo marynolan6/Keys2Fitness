@@ -19,7 +19,7 @@ import { auth } from "@/lib/firebase";
 
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 export default function CoachProfile() {
   const router = useRouter();
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   screenContent: { padding: spacing.lg, paddingBottom: spacing.xl },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
   titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
-  title: { flex: 1, color: colors.text, fontSize: typography.title, fontWeight: "300" },
+  title: { flex: 1, ...textStyles.page },
   avatar: { alignItems: "center", backgroundColor: colors.primaryDark, borderRadius: avatarSize / 2, height: avatarSize, justifyContent: "center", width: avatarSize },
   avatarText: { color: colors.surface, fontSize: typography.body, fontWeight: "700" },
   subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginBottom: spacing.lg, marginTop: spacing.xs },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   cardHeader: { alignItems: "center", flexDirection: "row", gap: spacing.md, justifyContent: "space-between" },
   compactColumn: { alignItems: "stretch", flexDirection: "column" },
   headerCopy: { flex: 1 },
-  cardTitle: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
+  cardTitle: textStyles.section,
   cardSummary: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
   field: { marginTop: spacing.md },
   fieldLabel: { color: colors.text, fontSize: typography.label, fontWeight: "700", marginBottom: spacing.xs },

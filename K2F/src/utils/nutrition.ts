@@ -21,6 +21,19 @@ export const nutrientLabels: Record<Nutrient, { label: string; unit: string }> =
   fats: { label: "Fat", unit: "g" },
 };
 
+export function foodEntryErrors(form: Record<"name" | "serving" | Nutrient, string>) {
+  const errors: Partial<Record<keyof typeof form, string>> = {};
+  if (!form.name.trim()) errors.name = "Enter a food name.";
+  if (!form.serving.trim()) errors.serving = "Enter a serving, such as 1 bowl.";
+  for (const key of nutrients) {
+    const value = Number(form[key]);
+    if (!form[key].trim() || !Number.isFinite(value) || value < 0 || value > Number.MAX_SAFE_INTEGER) {
+      errors[key] = `Enter ${nutrientLabels[key].label.toLowerCase()} as zero or a positive number.`;
+    }
+  }
+  return errors;
+}
+
 export function compareNutrition(current: number, target: number | null) {
   if (target === null) return { status: "unassigned" as const, percent: null, remaining: null };
   if (target === 0) return { status: "zero-target" as const, percent: null, remaining: -current };

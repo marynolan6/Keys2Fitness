@@ -6,10 +6,17 @@ const hooks = registerSourceTypes();
 const { createNutritionRepository } = await import("../src/nutrition/nutritionRepository.ts");
 const { draftNutritionPlan, targetsFromDraft, unassignedNutritionTargets, validateNutritionPlan } = await import("../src/nutrition/nutritionPlan.ts");
 const { createNutritionEditorState, nutritionEditorReducer: reduce } = await import("../src/nutrition/nutritionEditorReducer.ts");
-const { compareNutrition, getDailyNutrition, nutritionDate } = await import("../src/utils/nutrition.ts");
+const { compareNutrition, foodEntryErrors, getDailyNutrition, nutritionDate } = await import("../src/utils/nutrition.ts");
 hooks.deregister();
 
 const lunch = { id: "lunch", name: "Lunch", meal: "Lunch", serving: "1 plate", date: "2026-11-20", calories: 650, protein: 52, carbs: 61, fats: 18 };
+test("food drafts distinguish zero from blank and identify each field needing correction", () => {
+  const draft = { name: "Eggs", serving: "2", calories: "140", protein: "12.5", carbs: "0", fats: "10" };
+  assert.deepEqual(foodEntryErrors(draft), {});
+  assert.deepEqual(Object.keys(foodEntryErrors({ ...draft, name: " ", serving: "", carbs: "", protein: "-1" })).sort(),
+    ["carbs", "name", "protein", "serving"]);
+  for (const calories of ["Infinity", "not a number", "99999999999999999"]) assert.ok(foodEntryErrors({ ...draft, calories }).calories);
+});
 function initial() {
   return {
     alex: { plan: { revision: 0, targets: { calories: 2000, protein: 150, carbs: 220, fats: 65 }, tip: "Alex's plan tip" },

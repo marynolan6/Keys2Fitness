@@ -4,9 +4,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { PageTitle, SectionMasthead } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles } from "@/theme";
 import { formatVideoDate, type VideoSubmission } from "@/videoReviews/videoReview";
 import { useVideoReviewQueue } from "@/videoReviews/videoReviewStore";
 
@@ -18,22 +18,10 @@ export default function VideoReviewQueue() {
   return (
     <ThemedBackground>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}>
-        <K2FBrand coach />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/coach"))}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
+        <SectionMasthead coach onBack={() => router.canGoBack() ? router.back() : router.replace("/coach")} />
 
         <PageTitle>Video reviews</PageTitle>
-        <Text style={styles.subtitle}>
-          {pending.length === 0
-            ? "You're all caught up."
-            : `${pending.length} ${pending.length === 1 ? "video is" : "videos are"} waiting for your feedback.`}
-        </Text>
+        <Text style={textStyles.meta}>Form checks are ordered by time waiting.</Text>
 
         <Text accessibilityRole="header" style={styles.sectionTitle}>Awaiting review ({pending.length})</Text>
         {pending.length === 0 ? (
@@ -41,14 +29,14 @@ export default function VideoReviewQueue() {
             <Text style={styles.emptyText}>No videos waiting for review.</Text>
           </View>
         ) : (
-          pending.map((video) => <VideoRow key={video.id} video={video} />)
+          <View style={styles.list}>{pending.map((video) => <VideoRow key={video.id} video={video} />)}</View>
         )}
 
         {/* Reviewed videos stay visible below, marked so they don't read as new */}
         {reviewed.length > 0 && (
           <>
             <Text accessibilityRole="header" style={styles.sectionTitle}>Reviewed ({reviewed.length})</Text>
-            {reviewed.map((video) => <VideoRow key={video.id} video={video} />)}
+            <View style={styles.list}>{reviewed.map((video) => <VideoRow key={video.id} video={video} />)}</View>
           </>
         )}
       </ScrollView>
@@ -66,22 +54,13 @@ function VideoRow({ video }: { video: VideoSubmission }) {
       accessibilityLabel={`${video.clientName}, ${video.exerciseName}, ${isPending ? `awaiting review, submitted ${date}` : `reviewed ${date}`}`}
       accessibilityHint={isPending ? "Opens the video to review" : "Opens the video and your feedback"}
       onPress={() => router.push({ pathname: "/coach-videos/[videoId]", params: { videoId: video.id } })}
-      style={({ pressed }) => [styles.card, !isPending && styles.reviewedCard, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <ClientAvatar name={video.clientName} />
       <View style={styles.cardText}>
-        <Text style={styles.clientName}>{video.clientName}</Text>
-        <Text style={styles.exercise}>{video.exerciseName}</Text>
-        <Text style={styles.detail}>{isPending ? `Submitted ${date}` : `Reviewed ${date}`}</Text>
-        {isPending && video.clientNote ? <Text style={styles.note}>&quot;{video.clientNote}&quot;</Text> : null}
-        <View style={[styles.badge, isPending ? styles.pendingBadge : styles.reviewedBadge]}>
-          {!isPending && (
-            <SymbolView name={{ ios: "checkmark", android: "check", web: "check" }} size={spacing.md} tintColor={colors.achieved} />
-          )}
-          <Text style={[styles.badgeText, isPending ? styles.pendingBadgeText : styles.reviewedBadgeText]}>
-            {isPending ? "Awaiting review" : "Reviewed"}
-          </Text>
-        </View>
+        <Text style={textStyles.label}>{video.exerciseName}</Text>
+        <Text style={textStyles.body}>{video.clientName}</Text>
+        <Text style={textStyles.meta}>{isPending ? `Submitted ${date}` : `Reviewed ${date}`}</Text>
       </View>
       <SymbolView name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }} size={spacing.md} tintColor={colors.primaryDark} />
     </Pressable>
@@ -96,97 +75,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     width: "100%",
   },
-  backButton: {
-    alignSelf: "flex-start",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
-    minWidth: layout.minTouchTarget,
-  },
-  backText: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "600",
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-    marginTop: spacing.sm,
-  },
+  list: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.card, overflow: "hidden" },
+  sectionTitle: textStyles.section,
   card: {
     alignItems: "center",
     backgroundColor: colors.surface,
-    borderRadius: radii.card,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     flexDirection: "row",
     gap: spacing.md,
     minHeight: layout.minTouchTarget,
     padding: spacing.md,
   },
-  reviewedCard: {
-    backgroundColor: colors.surfaceMuted,
-  },
   pressed: {
-    opacity: 0.7,
+    backgroundColor: colors.surfaceMuted,
   },
   cardText: {
     flex: 1,
     gap: spacing.xs,
-  },
-  clientName: {
-    color: colors.text,
-    fontSize: typography.label,
-    fontWeight: "700",
-  },
-  exercise: {
-    color: colors.text,
-    fontSize: typography.body,
-  },
-  detail: {
-    color: colors.textMuted,
-    fontSize: typography.caption,
-  },
-  note: {
-    color: colors.textMuted,
-    fontSize: typography.caption,
-    fontStyle: "italic",
-  },
-  badge: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    borderRadius: radii.control,
-    flexDirection: "row",
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  pendingBadge: {
-    backgroundColor: colors.surfaceMuted,
-  },
-  reviewedBadge: {
-    backgroundColor: colors.achievedMuted,
-  },
-  badgeText: {
-    fontSize: typography.caption,
-    fontWeight: "700",
-  },
-  pendingBadgeText: {
-    color: colors.primaryDark,
-  },
-  reviewedBadgeText: {
-    color: colors.achieved,
   },
   emptyCard: {
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     padding: spacing.lg,
   },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: typography.body,
-  },
+  emptyText: textStyles.meta,
 });

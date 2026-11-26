@@ -42,12 +42,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
   },
-  primaryButton: {
-    backgroundColor: colors.primary,
-  },
-  buttonText: {
-    color: colors.text,
-  },
 });
 ```
 
@@ -57,13 +51,14 @@ Current design colors include:
 colors.background     Main blue workout background
 colors.surface        White cards and panels
 colors.surfaceMuted   Light blue secondary controls
-colors.primary        Primary buttons and completed controls
+colors.primary        Blue accent for data and icons
 colors.primaryDark    Dark blue labels and action text
 colors.text           Main dark text
 colors.textMuted      Supporting text and subtitles
-colors.border         Borders and unchecked controls
+colors.border         Dividers and card edges
+colors.controlBorder  Input and checkbox boundaries
 colors.progressTrack  Empty portion of progress bars
-colors.success        Successful/completed state
+colors.achieved       Confirmed or achieved state
 colors.danger         Destructive or error state
 ```
 
@@ -132,50 +127,24 @@ const styles = StyleSheet.create({
 });
 ```
 
-The theme currently provides sizes, not font families or weights. Keep font weights consistent with the design reference until a shared font system is added.
+For new UI, use `textStyles.page`, `section`, `metric`, `body`, `label`, `meta`, and `eyebrow` from `@/theme`. They include size, weight, line height, and foreground. Use the metric style for values people compare.
 
 ## Button Conventions
 
-Use these conventions for common button types:
+Use `ActionButton` for actions. Its tested foreground/background pairs live in `actionColors` in `src/theme.ts`. `BuilderButton` is the same component exported under its existing name for workout screens.
 
 ```text
-Primary action       colors.primary with white text
-Secondary action     colors.surfaceMuted with colors.primaryDark text
-Destructive action   colors.danger with white text
-Disabled action      muted surface and muted text
+Primary action       actionColors.primary
+Secondary action     actionColors.secondary
+Destructive action   actionColors.danger
+Disabled action      actionColors.disabled
 ```
 
 Example:
 
 ```tsx
-const styles = StyleSheet.create({
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
-    justifyContent: "center",
-    minHeight: 56,
-    paddingHorizontal: spacing.lg,
-  },
-  primaryButtonText: {
-    color: colors.surface,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: spacing.md,
-  },
-  secondaryButtonText: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-  },
-});
+<ActionButton label="Log sets" onPress={openSetEditor} />
+<ActionButton label="Exercise details" secondary onPress={openDetails} />
 ```
 
 ## What Belongs In The Theme

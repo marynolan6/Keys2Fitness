@@ -5,9 +5,9 @@ import { StyleSheet } from "react-native";
 import { colors, gradients } from "@/theme";
 
 // Wrap scrolling content so the gradient stays fixed to the screen viewport.
-export function ThemedBackground({ children }: PropsWithChildren) {
+export function ThemedBackground({ children, variant = "screen" }: PropsWithChildren<{ variant?: keyof typeof gradients }>) {
   return (
-    <LinearGradient {...gradients.screen} style={styles.screen}>
+    <LinearGradient {...gradients[variant]} style={styles.screen}>
       {children}
     </LinearGradient>
   );

@@ -4,7 +4,7 @@ import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { FoodEntryEditor } from "./FoodEntryEditor";
 import NutritionProgress from "./NutritionProgress";
 import { getDailyNutrition, meals, nutritionDate, type FoodEntry, type Meal, type NutritionTargets } from "@/utils/nutrition";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 type Props = {
   entries: FoodEntry[]; updateFood: (update: (entries: FoodEntry[]) => FoodEntry[]) => void;
@@ -45,17 +45,19 @@ export default function DailyNutritionSummary({ entries, updateFood, goals, tip,
           <Action label="+ Add food" name={`Add food to ${meal}`} onPress={() => setEditor({ meal })} />
         </View>
         {!byMeal[meal].length && <Text style={styles.caption}>No food logged.</Text>}
-        {byMeal[meal].map((entry) => <View key={entry.id} style={[styles.food, compact && styles.stacked]}>
+        {byMeal[meal].map((entry) => <Pressable key={entry.id} accessibilityRole="button" accessibilityLabel={`Edit ${entry.name}`}
+          accessibilityHint={`${meal}. ${entry.serving || "Serving not specified"}. ${entry.calories} calories. Protein ${entry.protein} grams, carbs ${entry.carbs} grams, fat ${entry.fats} grams.`}
+          onPress={() => setEditor({ meal, entry })} style={({ pressed }) => [styles.food, compact && styles.stacked, pressed && styles.pressed]}>
           <View style={styles.foodText}>
             <Text style={styles.label}>{entry.name}</Text>
-            <Text style={styles.caption}>{entry.serving || "Serving not specified"} · {entry.calories} kcal</Text>
+            <Text style={styles.caption}>{entry.serving || "Serving not specified"}</Text>
             <Text style={styles.caption}>Protein {entry.protein} g · Carbs {entry.carbs} g · Fat {entry.fats} g</Text>
           </View>
-          <View style={styles.actions}>
-            <Action label="Edit" name={`Edit ${entry.name}`} onPress={() => setEditor({ meal, entry })} />
-            <Action label="Delete" name={`Delete ${entry.name}`} onPress={() => updateFood((current) => current.filter((food) => food.id !== entry.id))} />
+          <View style={styles.foodValue}>
+            <Text style={styles.label}>{entry.calories} kcal</Text>
+            <Text style={styles.editLink}>Edit</Text>
           </View>
-        </View>)}
+        </Pressable>)}
       </View>)}
     </View>
     <View style={styles.card}>
@@ -64,6 +66,7 @@ export default function DailyNutritionSummary({ entries, updateFood, goals, tip,
       <Text style={styles.body}>{tip.trim() || "No coach tips for this plan yet."}</Text>
     </View>
     {editor && <FoodEntryEditor initialMeal={editor.meal} entry={editor.entry} date={date} context={context} onClose={() => setEditor(null)}
+      onDelete={(id) => { updateFood((current) => current.filter((item) => item.id !== id)); setEditor(null); }}
       onSave={(food) => {
         updateFood((current) => editor.entry ? current.map((item) => item.id === food.id ? food : item) : [...current, food]);
         setEditor(null);
@@ -84,7 +87,7 @@ function Action({ label, name = label, icon, onPress, disabled = false }: {
 const styles = StyleSheet.create({
   content: { gap: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md, gap: spacing.sm },
-  title: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
+  title: { ...textStyles.section, flexShrink: 1 },
   label: { color: colors.text, fontSize: typography.body, fontWeight: "600" },
   caption: { color: colors.textMuted, fontSize: typography.label },
   body: { color: colors.text, fontSize: typography.body, lineHeight: typography.bodyLineHeight },
@@ -92,10 +95,11 @@ const styles = StyleSheet.create({
   dateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.card },
   dateText: { flex: 1, alignItems: "center", gap: spacing.xs },
   meal: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, gap: spacing.xs },
-  food: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
+  food: { flexDirection: "row", alignItems: "center", minHeight: layout.minTouchTarget, gap: spacing.sm, padding: spacing.sm, borderRadius: radii.control, backgroundColor: colors.background },
   foodText: { flex: 1, gap: spacing.xs, minWidth: 0 },
   stacked: { flexDirection: "column", alignItems: "stretch" },
-  actions: { flexDirection: "row", gap: spacing.sm },
+  foodValue: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
+  editLink: { ...textStyles.label, color: colors.primaryDeep, textDecorationLine: "underline" },
   button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", alignItems: "center", padding: spacing.sm,
     backgroundColor: colors.surface, borderColor: colors.primaryDark, borderWidth: 1, borderRadius: radii.control },
   buttonText: { color: colors.primaryDeep, fontSize: typography.label, fontWeight: "600", textAlign: "center" },

@@ -42,7 +42,7 @@ function ClientNutritionContent({ clientId }: { clientId: string }) {
     <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]} keyboardShouldPersistTaps="handled">
       <K2FBrand coach />
       <BuilderButton label="Back to client profile" secondary onPress={() => router.replace({ pathname: "/coach-client/[clientId]", params: { clientId } })} />
-      <PageTitle style={styles.title}>{client ? `Nutrition for ${client.name}` : "Client unavailable"}</PageTitle>
+      <PageTitle>{client ? `Nutrition for ${client.name}` : "Client unavailable"}</PageTitle>
       <Text style={styles.muted}>Shared demo plan · changes stay in this app session.</Text>
       {loadStatus !== "ready" || !client || !data ? <Text style={styles.body}>Nutrition is unavailable for this demo client.</Text>
         : editing ? <NutritionPlanEditor clientId={clientId} plan={data.plan} onClose={() => setEditing(false)}
@@ -67,7 +67,6 @@ function ClientNutritionContent({ clientId }: { clientId: string }) {
 const styles = StyleSheet.create({
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   card: { backgroundColor: colors.surface, padding: spacing.md, gap: spacing.md, borderRadius: radii.card },
-  title: { color: colors.text, fontSize: typography.title, fontWeight: "400" },
   heading: { color: colors.text, fontSize: typography.body, fontWeight: "600" },
   body: { color: colors.text, fontSize: typography.body },
   muted: { color: colors.textMuted, fontSize: typography.label },

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors, radii, spacing, typography } from "@/theme";
+import { actionColors, colors, radii, spacing, textStyles } from "@/theme";
 
 type MessageBubbleProps = {
   message: string;
@@ -63,29 +63,22 @@ const styles = StyleSheet.create({
   },
   ownBubble: {
     alignSelf: "flex-end",
-    backgroundColor: colors.primary,
+    backgroundColor: actionColors.primary.fill,
   },
   otherBubble: {
     alignSelf: "flex-start",
     backgroundColor: colors.surface,
   },
   sender: {
-    fontSize: typography.label,
-    fontWeight: "700",
+    ...textStyles.label,
     marginBottom: spacing.xs,
   },
-  message: {
-    fontSize: typography.body,
-  },
+  message: textStyles.body,
   time: {
-  alignSelf: "flex-end",
-  color: colors.textMuted,
-  fontSize: typography.label,
-  marginTop: spacing.sm,
-  textAlign: "right",
-},
+    ...textStyles.meta, alignSelf: "flex-end", marginTop: spacing.xs, textAlign: "right",
+  },
   ownText: {
-    color: colors.surface,
+    color: actionColors.primary.ink,
   },
   otherText: {
     color: colors.text,

@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ClientAvatar } from "@/components/ClientAvatar";
+import { ActionButton } from "./ActionButton";
 import type { CoachClient } from "@/clients/mockClients";
 import type { MockMessage } from "@/messages/mockMessageCoachClient";
 import type { WorkoutActivity } from "@/workouts/workoutSessionService";
@@ -34,9 +35,7 @@ export function CoachDashboardPanel({ panel, clients, messages, activities, acti
                 style={({ pressed }) => [styles.row, pressed && styles.pressed]}>{content}</Pressable>;
           })}
         </ScrollView>
-        <Pressable accessibilityRole="button" onPress={onClose} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
-          <Text style={styles.closeText}>Close</Text>
-        </Pressable>
+        <ActionButton label="Close" secondary onPress={onClose} />
       </View>
     </View>
   </Modal>;
@@ -58,8 +57,5 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: typography.body, fontWeight: "700" },
   body: { color: colors.textMuted, fontSize: typography.body },
   meta: { color: colors.textMuted, fontSize: typography.caption },
-  close: { minHeight: layout.minTouchTarget, padding: spacing.sm, backgroundColor: colors.primaryDark,
-    borderRadius: radii.button, alignItems: "center", justifyContent: "center" },
-  closeText: { color: colors.surface, fontWeight: "700", fontSize: typography.body },
   pressed: { opacity: 0.75 },
 });

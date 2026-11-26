@@ -22,7 +22,7 @@ Every new or modified client and coach tab, section, and detail screen must show
 - **Placement and accessibility:** keep the logo clear of the status bar and notches. A native navigation bar may sit above it. The logo and name form one accessible image called `Keys2Fitness` or `Keys2Fitness, coach`. Use the shared `PageTitle` for the main heading or greeting. It supplies heading semantics and wraps long titles. Section headings inside cards remain ordinary headings.
 - **Messaging exception:** the Messages tabs and individual conversations show the list title or participant name instead of a brand row. Redirects have no screen content, and task dialogs do not repeat their parent screen's header. Keep the brand out of the bottom tab bar.
 - **Dashboards:** use `DashboardGreeting` with the device's local clock: morning before noon, afternoon until 6 pm, evening until midnight. Use the signed-in coach's first name or `Coach`. The client keeps its selected demo/profile name. Coach overview tiles share the tallest tile's natural height and the same column width. Stack them on compact or large-text layouts without truncating counts or actions.
-- **Coach tile icons:** use ▶ for Videos to Review, 💬 for Recent Messages, 👥 for Active Clients, and 📊 for Client Activity. Center each icon in a 48 dp circle. Show the count once in the summary below the title. Labels and counts follow the device's text size.
+- **Coach Home, local review candidate:** lead with the form-check inbox, its pending count, and the oldest submission. The four equal tiles remain shortcuts. Use native video, message, group, and activity symbols; the whole tile is tappable. The wider layout places the latest check-in beside the inbox and shortcuts.
 - Change sizing in [`src/theme.ts`](../src/theme.ts), not in individual screens.
 
 ### Check on every code change
@@ -57,6 +57,16 @@ Client and coach navigation must have the same visual treatment. Both layouts re
 | Coach | Home, Client List, Messages, Profile | Home, Workout Library, Check-ins, Video reviews, Messages, Profile, Preferences, Account settings |
 
 Nutrition opens the daily nutrition screen. Client Workout opens the active or assigned workout for the preview client. Check-ins and Video reviews are root-stack destinations; Android Back returns to the coach screen.
+
+## Local design candidate: 1.0.5
+
+[Screenshots and local review walkthrough](local-design-preview.md)
+
+- Choose `ThemedBackground` for a quiet reading or editing screen, `variant="home"` for either dashboard, and `variant="welcome"` for auth. These are light surfaces. Use dark system icons in both OS appearances. Login is available immediately; the welcome animation is optional and is omitted when reduced motion is requested.
+- Use `textStyles.page` for page titles, `section` for section or exercise headings, `metric` for comparable numbers, and `meta` for secondary information. Reserve `eyebrow` for a short category. A greeting should not outweigh the task.
+- The [shared action button](../src/components/ActionButton.tsx) uses `actionColors` for normal and pressed pairs. Use it for the next action, `secondary` for supporting actions, and `selected` for a filter. A selected filter has a checkmark and an outline, rather than another primary fill. Use `danger` when confirming destruction and for the approved red quick-access Close.
+- Keep Nutrition named on client Home. In a running workout, Log sets leads; Pause and exercise details remain available. In the food log, tap a named entry to edit it. Save stays in the dialog footer. Deletion needs a separate confirmation. Workout Library shows template details and one **Assign or manage** disclosure per template; the choice of clients and template tools sit inside that row.
+- Review the color pairs with `node --test tests/theme-contrast.test.mjs`. It checks declared colors, not native rendering, keyboard navigation, or spoken output.
 
 **Android verification (Nov 25, 2026):** opened both roles’ menus at 320 dp / 1.5× text, 390 dp, and 800 dp. Checked the close button, Android Back, tapping outside the panel, and navigation to Nutrition and Video reviews. At 390 dp the selected Home tab had no background at rest, showed the rounded highlight while held, and cleared it on release. The active blue and inactive gray matched the theme colors in the screenshots.
 

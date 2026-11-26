@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { K2FBrand, PageTitle } from "@/components/K2FBrand";
+import { PageTitle, SectionMasthead } from "@/components/K2FBrand";
+import { ActionButton } from "@/components/ActionButton";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { VideoPlayerCard } from "@/components/VideoPlayerCard";
 import { colors, layout, radii, spacing, typography } from "@/theme";
@@ -55,15 +56,7 @@ function VideoReviewContent({ videoId }: { videoId: string }) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl }]}
         >
-          <K2FBrand coach />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back from video review"
-            onPress={goBack}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
+          <SectionMasthead coach onBack={goBack} backLabel="Back from video review" />
 
           {!video ? (
             <View style={styles.card}>
@@ -120,16 +113,7 @@ function VideoReviewContent({ videoId }: { videoId: string }) {
                     style={styles.input}
                   />
                   {error && <Text accessibilityLiveRegion="polite" style={styles.errorText}>{error}</Text>}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Send feedback to ${video.clientName}`}
-                    accessibilityState={{ disabled: !canSend }}
-                    disabled={!canSend}
-                    onPress={sendFeedback}
-                    style={({ pressed }) => [styles.sendButton, !canSend && styles.disabled, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.sendText}>Send feedback</Text>
-                  </Pressable>
+                  <ActionButton label="Send feedback" accessibilityLabel={`Send feedback to ${video.clientName}`} disabled={!canSend} onPress={sendFeedback} />
                 </View>
               )}
             </>
@@ -150,20 +134,6 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
     paddingHorizontal: spacing.md,
     width: "100%",
-  },
-  backButton: {
-    alignSelf: "flex-start",
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
-    minWidth: layout.minTouchTarget,
-  },
-  backText: {
-    color: colors.primaryDark,
-    fontSize: typography.body,
-    fontWeight: "600",
-  },
-  pressed: {
-    opacity: 0.7,
   },
   clientRow: {
     alignItems: "center",
@@ -215,21 +185,5 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: typography.label,
-  },
-  sendButton: {
-    alignItems: "center",
-    backgroundColor: colors.primaryDark,
-    borderRadius: radii.button,
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: spacing.md,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  sendText: {
-    color: colors.surface,
-    fontSize: typography.label,
-    fontWeight: "700",
   },
 });

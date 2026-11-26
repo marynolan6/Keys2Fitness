@@ -1,4 +1,5 @@
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
+import { ActionButton } from "@/components/ActionButton";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { BrandedPage } from "@/components/BrandedPage";
@@ -125,7 +126,7 @@ return (
           if (scrolledAway !== noteScrolledAway) setNoteScrolledAway(scrolledAway);
         }}
       >
-        <PageTitle style={styles.title}>{workout.title}</PageTitle>
+        <PageTitle>{workout.title}</PageTitle>
         <View style={[styles.subtitleRow, compact && styles.subtitleRowCompact]}>
           <Text style={[styles.subtitle, styles.subtitleText]}>
             {[workoutStatus, workout.scheduleLabel].filter(Boolean).join(" · ")}
@@ -157,14 +158,10 @@ return (
                   <Text style={styles.sessionButtonText}>Start New Workout</Text>
                 </Pressable>
               ) : <>
-                <Pressable accessibilityRole="button" disabled={isSavingSession}
-                  accessibilityState={{ disabled: isSavingSession }}
+                <ActionButton disabled={isSavingSession} secondary={timer.status === "running" || summary.isComplete}
+                  label={isSavingSession ? "Saving..." : timer.status === "ready" ? "Start Workout" : isPaused ? "Resume" : "Ⅱ Pause Workout"}
                   onPress={() => changeSession(timer.status === "ready" ? "start" : isPaused ? "resume" : "pause")}
-                  style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
-                  <Text style={styles.sessionButtonText}>
-                    {isSavingSession ? "Saving..." : timer.status === "ready" ? "Start Workout" : isPaused ? "Resume" : "Ⅱ Pause Workout"}
-                  </Text>
-                </Pressable>
+                  style={styles.sessionAction} />
                 {summary.isComplete && timer.status !== "ready" ? <Pressable accessibilityRole="button" disabled={isSavingSession}
                   onPress={() => setOverlay({ kind: "finish" })}
                   style={({ pressed }) => [styles.sessionButton, styles.sessionAction, pressed && styles.buttonPressed]}>
@@ -199,17 +196,14 @@ return (
           <View key={exercise.id} style={[styles.exerciseCard, exercise.completed && styles.completedCard]}>
             <View style={styles.rowBetween}>
               <View style={styles.exerciseText}>
-                <Text style={styles.exerciseName}>{exercise.name}</Text>
-                <Text style={[styles.exerciseStatus, exercise.completed && styles.exerciseStatusComplete]}>
-                  {exercise.completed ? "Completed" : "Not complete"}
-                </Text>
+                <Text accessibilityRole="header" style={styles.exerciseName}>{exercise.name}</Text>
                 <Text style={styles.prescription}>
                   Target: {prescriptionLabel(exercise)}
                 </Text>
                 {exercise.restSeconds !== undefined && <Text style={styles.exerciseStatus}>Rest: {countLabel(exercise.restSeconds, "second")}</Text>}
-                <Text style={styles.exerciseStatus}>
-                  {exercise.actualSets?.filter((set) => set.completed ?? exercise.completed).length ?? 0}/{countLabel(exercise.actualSets?.length ?? 0, "set")} complete
-                </Text>
+                {timer.status !== "ready" && <Text accessibilityLiveRegion="polite" style={exercise.completed ? styles.exerciseStatusComplete : styles.exerciseStatus}>
+                  {exercise.actualSets?.filter((set) => set.completed ?? exercise.completed).length ?? 0} of {countLabel(exercise.actualSets?.length ?? 0, "set")} confirmed
+                </Text>}
               </View>
               <Pressable
                 accessibilityRole="checkbox"
@@ -230,19 +224,11 @@ return (
             {timer.status !== "ready" && <RecordedSets exercise={exercise} preview={timer.status !== "ended"} />}
 
             <View style={[styles.buttonRow, compact && styles.buttonRowCompact]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`View ${exercise.name} details`}
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
-              onPress={() => setOverlay({ kind: "details", exerciseId: exercise.id })}
-            >
-              <Text style={styles.secondaryButtonText}>Exercise details</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={`View ${exercise.name} sets`}
-              onPress={() => setOverlay({ kind: "sets", exerciseId: exercise.id })}
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
-              <Text style={styles.secondaryButtonText}>{timer.status === "running" ? "Log sets" : "View sets"}</Text>
-            </Pressable>
+              <ActionButton label={timer.status === "running" ? "Log sets" : "View sets"} accessibilityLabel={`View ${exercise.name} sets`}
+                secondary={timer.status !== "running"} style={!compact && styles.sessionAction}
+                onPress={() => setOverlay({ kind: "sets", exerciseId: exercise.id })} />
+              <ActionButton label="Exercise details" accessibilityLabel={`View ${exercise.name} details`} secondary
+                style={!compact && styles.sessionAction} onPress={() => setOverlay({ kind: "details", exerciseId: exercise.id })} />
             </View>
           </View>
         ))}
@@ -324,7 +310,7 @@ const styles = StyleSheet.create({
   timerSummary: { flex: 1, gap: spacing.xs },
   timerSummaryCompact: { flex: 0, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   timerLabel: { color: colors.textMuted, fontSize: typography.caption, flexShrink: 1 },
-  timerValue: { color: colors.text, fontSize: typography.heading, fontVariant: ["tabular-nums"], flexShrink: 1 },
+  timerValue: { ...textStyles.metric, flexShrink: 1 },
   sessionActions: { flexDirection: "row", flex: 2, gap: spacing.sm },
   sessionActionsCompact: { flex: 0 },
   sessionActionsLargeText: { flexDirection: "column", flex: 0 },
@@ -364,9 +350,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontWeight: "700",
   },
-  exerciseStatusComplete: {
-    color: colors.text,
-  },
+  exerciseStatusComplete: { ...textStyles.label, color: colors.achieved, marginTop: spacing.sm },
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xl + spacing.md,
@@ -376,12 +360,6 @@ const styles = StyleSheet.create({
   },
   // Room for the floating "Coach's note" button so it never covers the last actions.
   contentWithNoteButton: { paddingBottom: spacing.xl + spacing.md + layout.minTouchTarget + spacing.lg },
-  title: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-    marginTop: spacing.sm,
-  },
   subtitle: {
     color: colors.textMuted,
     fontSize: typography.body,
@@ -421,11 +399,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: spacing.md,
   },
-  exerciseName: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "300",
-  },
+  exerciseName: textStyles.section,
   prescription: {
     color: colors.textMuted,
     fontSize: typography.body,
@@ -434,7 +408,7 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     alignItems: "center",
-    borderColor: colors.border,
+    borderColor: colors.controlBorder,
     borderRadius: radii.control,
     borderWidth: 3,
     height: layout.minTouchTarget,
@@ -443,12 +417,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkboxCompleted: {
-    backgroundColor: colors.success,
-    borderColor: colors.success,
+    backgroundColor: colors.achieved,
+    borderColor: colors.achieved,
   },
   checkmark: {
     color: colors.surface,
-    fontSize: 28,
+    fontSize: typography.heading,
     fontWeight: "700",
   },
   buttonRow: {
@@ -457,23 +431,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   buttonRowCompact: { flexDirection: "column" },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.button,
-    flexGrow: 1,
-    flexBasis: 0,
-    justifyContent: "center",
-    minHeight: layout.minTouchTarget + spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
   buttonPressed: { opacity: 0.75 },
-  secondaryButtonText: {
-    color: colors.primaryDark,
-    fontSize: typography.label,
-    fontWeight: "700",
-    textAlign: "center",
-  },
   finishButton: {
     alignItems: "center",
     backgroundColor: colors.primaryDark,

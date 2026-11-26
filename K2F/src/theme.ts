@@ -1,20 +1,22 @@
+import type { TextStyle } from "react-native";
+
 export const colors = {
-  // Solid fallback and gradient stops sampled visually from the Figma reference.
   background: "#F7FAFB",
-  backgroundMiddle: "#BDD3DC",
-  backgroundEnd: "#287393",
+  backgroundMiddle: "#EFF5F8",
+  backgroundEnd: "#E3EDF2",
+  lake: "#CDE5EF",
+  lakeDeep: "#287393",
   surface: "#FFFFFF",
   surfaceMuted: "#E6EFF4",
-  primary: "#599FDB",
+  primary: "#267397",
   primaryDark: "#176E96",
   primaryDeep: "#125574",
-  text: "#17232D",
-  textMuted: "#5B7180",
-  border: "#D5E4EF",
+  text: "#152D3B",
+  textMuted: "#465F6E",
+  border: "#CADAE2",
+  controlBorder: "#708591",
   progressTrack: "#E6EFF4",
-  success: "#599FDB",
-  // Completed-goal state; distinct from primary so "done" doesn't read as "in progress".
-  achieved: "#2F8A5B",
+  achieved: "#226B49",
   achievedMuted: "#E3F3EA",
   danger: "#B94A48",
   dangerMuted: "#FBEAE8",
@@ -24,9 +26,14 @@ export const colors = {
 export const gradients = {
   screen: {
     colors: [colors.background, colors.backgroundMiddle, colors.backgroundEnd],
-    locations: [0, 0.35, 1],
-    start: { x: 0.5, y: 0 },
-    end: { x: 0.5, y: 1 },
+  },
+  home: {
+    colors: [colors.lake, colors.background, colors.backgroundEnd],
+    locations: [0, 0.44, 1],
+  },
+  welcome: {
+    colors: [colors.background, colors.lake, colors.lakeDeep],
+    locations: [0, 0.65, 1],
   },
 } as const;
 
@@ -40,8 +47,8 @@ export const spacing = {
 
 export const radii = {
   control: 10,
-  button: 16,
-  card: 24,
+  button: 12,
+  card: 18,
 } as const;
 
 export const typography = {
@@ -49,8 +56,25 @@ export const typography = {
   body: 16,
   bodyLineHeight: 23,
   label: 15,
-  heading: 25,
-  title: 38,
+  heading: 22,
+  title: 30,
+} as const;
+
+export const textStyles = {
+  page: { fontSize: typography.title, lineHeight: 37, fontWeight: "700", color: colors.text },
+  section: { fontSize: typography.heading, lineHeight: 28, fontWeight: "600", color: colors.text },
+  metric: { fontSize: typography.heading, lineHeight: 28, fontWeight: "700", fontVariant: ["tabular-nums"], color: colors.text },
+  body: { fontSize: typography.body, lineHeight: typography.bodyLineHeight, fontWeight: "400", color: colors.text },
+  label: { fontSize: typography.label, lineHeight: 20, fontWeight: "600", color: colors.text },
+  meta: { fontSize: 14, lineHeight: 20, fontWeight: "400", color: colors.textMuted },
+  eyebrow: { fontSize: typography.caption, lineHeight: 17, fontWeight: "700", letterSpacing: 0.8, color: colors.primaryDeep },
+} satisfies Record<string, TextStyle>;
+
+export const actionColors = {
+  primary: { fill: colors.primaryDark, ink: colors.surface, pressed: colors.primaryDeep },
+  secondary: { fill: colors.surfaceMuted, ink: colors.primaryDeep, pressed: colors.border },
+  danger: { fill: colors.danger, ink: colors.surface, pressed: "#963836" },
+  disabled: { fill: colors.surfaceMuted, ink: colors.textMuted, pressed: colors.surfaceMuted },
 } as const;
 
 // Use the app window width (dp) and system font scale, not physical screen pixels.
@@ -60,6 +84,8 @@ export const layout = {
   largeFontScale: 1.3,
   minTouchTarget: 48,
   maxContentWidth: 600,
+  twoColumnWidth: 760,
+  workspaceWidth: 960,
 } as const;
 
 export function isCompactLayout(width: number, fontScale: number): boolean {
@@ -78,11 +104,11 @@ export const branding = {
 // Render through AppTabBar so role-specific destinations never fork the design.
 export const navigation = {
   inactiveTint: "#6B7280",
-  cornerRadius: radii.card,
+  cornerRadius: spacing.lg,
   overlap: spacing.md,
   centerSlotWidth: layout.minTouchTarget + spacing.md,
   actionSize: layout.minTouchTarget + spacing.sm,
-  actionRadius: radii.card + spacing.xs,
+  actionRadius: (layout.minTouchTarget + spacing.sm) / 2,
   actionColor: colors.primaryDeep,
   actionPressedColor: colors.primaryDark,
   actionElevation: 4,
@@ -95,6 +121,8 @@ export const theme = {
   spacing,
   radii,
   typography,
+  textStyles,
+  actionColors,
   layout,
   branding,
   navigation,

@@ -40,6 +40,7 @@ If pass two leads to more code changes, do one focused follow-up on those edits 
 
 ## Theme & Design
 
+- For design reviews and handoff, use the [mobile UI learning guide](docs/mobile-ui-design-resources.md) and [1.0.4 visual audit](docs/mobile-ui-design-review.md). The audit's proposals are research; [theme standards](docs/theme-standards.md) remain the approved rules.
 - **Required brand and title check on every code change:** follow [Required screen branding](docs/theme-standards.md#required-screen-branding). Every new or modified non-messaging screen, including every tab and its loading/error/empty states, must render exactly one shared `K2FBrand` above a `PageTitle` or `DashboardGreeting`. Use the shared `branding` tokens, preserve the coach label and safe area, and allow large text to wrap. Auth uses the welcome variant. Messages and conversation pages use `PageTitle` without a brand row. Run `npm run check:branding` from `K2F/` before handoff and report the result; for UI work also perform the documented native size and navigation checks.
 
 - **Required for every new or modified screen/component:** use tokens from `src/theme.ts` (`@/theme`) for color, gradient, spacing, radii, typography, touch targets, and layout breakpoints. Do not hardcode colors or duplicate theme values in UI styles. Add genuinely reusable tokens to the shared theme; review impact on all consumers when changing existing tokens.

@@ -28,7 +28,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { auth, db } from "@/lib/firebase";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { WorkoutHistorySection } from "@/components/WorkoutHistorySection";
@@ -82,7 +82,6 @@ export default function Progress() {
         >
           <K2FBrand />
           <PageTitle style={styles.title}>Your Progress</PageTitle>
-          <Text style={styles.subtitle}>Small steps. Stronger every week.</Text>
           <WeightProgressChart checkIns={mockCheckIns} through={sampleCheckInAsOf} />
           <WorkoutHistorySection />
           {userId === undefined ? <LoadingAccountProgress /> : userId === null ? (
@@ -500,12 +499,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     padding: spacing.lg,
   },
-  title: { 
-    color: colors.text, 
-    fontSize: typography.title, 
-    fontWeight: "300", 
-    marginTop: spacing.sm 
-  },
+  title: { ...textStyles.page, marginTop: spacing.sm },
   subtitle: { 
     color: colors.textMuted, 
     fontSize: typography.body, 
@@ -518,11 +512,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg, 
     padding: spacing.lg 
   },
-  cardTitle: { 
-    color: colors.text, 
-    fontSize: typography.heading, 
-    fontWeight: "300" 
-  },
+  cardTitle: textStyles.section,
   goalTitle: { 
     color: colors.text, 
     fontSize: typography.body, 
@@ -536,11 +526,7 @@ const styles = StyleSheet.create({
   stat: { 
     flex: 1 
   },
-  statValue: { 
-    color: colors.text, 
-    fontSize: 22, 
-    fontWeight: "300" 
-  },
+  statValue: textStyles.metric,
   highlighted: { 
     color: colors.primaryDark, 
     fontWeight: "600" 

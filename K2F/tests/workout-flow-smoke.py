@@ -2,7 +2,7 @@
 import argparse
 import time
 
-from helpers.android_ui import adb, bounds, fill, matches, open_route, scroll_to, snapshot, tap, tap_node, wait_for
+from helpers.android_ui import fill, matches, open_route, scroll_to, snapshot, tap, tap_node, wait_for
 from helpers.workout_sandbox import smoke_title, workout_sandbox
 
 
@@ -13,6 +13,7 @@ def run(args):
     route = lambda path: open_route(path, args.base_url)
     route("coach/workouts")
     fill("Search workouts and templates", args.source)
+    tap("Assign or manage " + args.source)
     tap("Duplicate " + args.source)
     tap("Edit " + args.source[:93] + " (copy)")
     wait_for("Edit Workout")
@@ -27,7 +28,7 @@ def run(args):
     wait_for("Workout Library")
     fill("Search workouts and templates", title)
     tap("Preview assigned client workout")
-    wait_for("Demo workout client: Alex Morgan")
+    wait_for("Your assigned workouts")
     tap("View workout →")
     wait_for(title)
     tap("Expand coach's note")
@@ -38,29 +39,18 @@ def run(args):
     tap("Close exercise details")
     print("PASS: editor controller -> assignment -> client workout and exercise notes", flush=True)
 
-    # UIAutomator can fail to reach idle while the clock ticks. Capture stable
-    # controls first and pause with coordinates before inspecting the running UI.
-    start = scroll_to("Start Workout")
-    start_bounds = bounds(start)
-    checkbox = scroll_to("Bench Press completed")
-    # Return to Start without changing the viewport used for the checkpoint.
     tap("Start Workout")
-    tap_node(checkbox)
+    tap("Bench Press completed")
     route("client/home")  # Leave running; the session controller must checkpoint edits.
     tap("Continue workout →")
-    time.sleep(4)
-    left, top, right, bottom = start_bounds
-    adb("shell", "input", "tap", str((left + right) // 2), str(bottom - 8))
-    time.sleep(2)
+    tap("Ⅱ Pause Workout")
     wait_for("Workout paused. Your progress is saved.")
     assert scroll_to("Bench Press completed").get("checked") == "true"
     print("PASS: recorded progress survives dashboard navigation and Continue", flush=True)
 
-    resume = scroll_to("Resume")
     route("client/home")
     tap("Continue workout →")
-    time.sleep(4)
-    tap_node(resume)  # Running Pause occupies the former Resume control's area.
+    tap("Ⅱ Pause Workout")
     wait_for("Workout paused. Your progress is saved.")
     assert scroll_to("Bench Press completed").get("checked") == "true"
     ready_to_finish = any(matches(node, "Finish Workout") for node in snapshot())
@@ -81,6 +71,7 @@ def run(args):
 
     route("coach/workouts")
     fill("Search workouts and templates", title)
+    tap("Assign or manage " + title)
     tap("Delete " + title)
     wait_for("Delete Workout Template?")
     tap("Delete template")

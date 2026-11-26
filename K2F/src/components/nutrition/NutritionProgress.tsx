@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NutritionDialog } from "./NutritionDialog";
 import { compareNutrition, nutrients, nutrientLabels, type NutritionTargets, type NutritionTotals } from "@/utils/nutrition";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 const amount = (value: number) => Number(value.toFixed(1)).toLocaleString();
 
@@ -15,7 +15,7 @@ export default function NutritionProgress({ totals, goals, context }: { totals: 
       accessibilityHint={`${calories}. ${macros}. Opens the full breakdown.`} onPress={() => setExpanded(true)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.values}><Text style={styles.label}>Daily targets &amp; intake</Text><Text style={styles.target}>View details ›</Text></View>
-      <Text style={styles.body}>{calories}</Text><Text style={styles.caption}>{macros}</Text>
+      <Text style={textStyles.metric}>{calories}</Text><Text style={styles.caption}>{macros}</Text>
     </Pressable>
     {expanded && <NutritionDialog title="Daily targets & intake" closeLabel="Close nutrition details" onClose={() => setExpanded(false)}>
       <Text style={styles.caption}>{context}</Text>
@@ -44,7 +44,8 @@ export default function NutritionProgress({ totals, goals, context }: { totals: 
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radii.card, minHeight: layout.minTouchTarget, padding: spacing.md, gap: spacing.xs },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, minHeight: layout.minTouchTarget, padding: spacing.md, gap: spacing.sm,
+    borderWidth: 1, borderColor: colors.border, borderLeftWidth: spacing.xs, borderLeftColor: colors.primaryDark },
   pressed: { backgroundColor: colors.surfaceMuted },
   caption: { color: colors.textMuted, fontSize: typography.label },
   nutrient: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md, marginTop: spacing.sm, gap: spacing.sm },

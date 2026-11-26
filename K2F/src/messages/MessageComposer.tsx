@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 
-import { colors, radii, spacing, typography } from "@/theme";
+import { ActionButton } from "@/components/ActionButton";
+import { colors, layout, radii, spacing, typography } from "@/theme";
 
 type MessageComposerProps = {
   message: string;
@@ -22,19 +23,14 @@ export function MessageComposer({
         onChangeText={onChangeMessage}
         placeholder="Write a message..."
         placeholderTextColor={colors.textMuted}
-        blurOnSubmit={false}
+        accessibilityLabel="Message"
+        submitBehavior="newline"
         showSoftInputOnFocus
         multiline
         style={styles.input}
       />
 
-      <Pressable
-        onPress={onSend}
-        disabled={!canSend}
-        style={[styles.sendButton, !canSend && styles.disabledButton]}
-      >
-        <Text style={styles.sendText}>Send</Text>
-      </Pressable>
+      <ActionButton label="Send" disabled={!canSend} onPress={onSend} />
     </View>
   );
 }
@@ -55,24 +51,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.body,
     maxHeight: 100,
-    minHeight: 46,
+    minHeight: layout.minTouchTarget,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-  },
-  sendButton: {
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    borderRadius: radii.button,
-    justifyContent: "center",
-    minHeight: 46,
-    paddingHorizontal: spacing.md,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  sendText: {
-    color: colors.surface,
-    fontSize: typography.label,
-    fontWeight: "700",
   },
 });

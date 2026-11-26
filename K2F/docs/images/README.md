@@ -17,6 +17,8 @@ These PNGs show the running Android app with demo data. Most were captured in Ex
 | `workout-history-empty.png`, `workout-history-list.png` | Empty and populated workout history cards, cropped from the 390 dp Android view using temporary demo records |
 | `nutrition-targets.png` | K2F-125: Alex's assigned daily targets and same-day intake (390 dp) |
 | [Nutrition date controls](nutrition-date-controls.png) | Previous day and disabled Next day on Today, cropped from the standalone 1.0.4 demo at 390 dp |
+| [Nine-screen UI review](mobile-ui-review-1.0.4.png) | Standalone 1.0.4 demo, about 411 dp wide at 1× text. Screens are scaled for side-by-side comparison; labels above the captures are annotations. See the [visual audit](../mobile-ui-design-review.md). |
+| [Local 1.0.5 preview](mobile-ui-preview-1.0.5.png) | Same nine routes in the redesigned standalone demo, at the same viewport. See the [review walkthrough](../local-design-preview.md). |
 | `workout-progress.png` | K2F-47: progress remains pinned while scrolling through a two-exercise demo session (390 dp) |
 
 The two dashboard previews show the Sprint 4 branding update at 390 × 844 dp and normal font scale. The login preview is from K2F-34. The workout library, prescription editor, client workout, exercise details, and messaging captures date to `e97c283`. Workout data is local, and conversations use demo messages.

@@ -27,7 +27,7 @@ import { mockClientStats } from "@/profile/mockStats";
 import { ClientStats, hasRecordedProgress } from "@/profile/stats";
 import { centimetersToInches, defaultProfile, EditableProfile, formatHeightImperial, normalizeProfile, validateProfile } from "@/profile/profile";
 import { loadProfile, saveProfile } from "@/profile/profileStorage";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 function describeProfileDetails(stats: ClientStats): string | undefined {
   const parts = [
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   screenContent: { padding: spacing.lg, paddingBottom: spacing.xl },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center" },
   titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
-  title: { flex: 1, color: colors.text, fontSize: typography.title, fontWeight: "300" },
+  title: { flex: 1, ...textStyles.page },
   avatar: { alignItems: "center", backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderRadius: avatarSize / 2, borderWidth: 1, height: avatarSize, justifyContent: "center", width: avatarSize },
   avatarImage: { borderRadius: avatarSize / 2, height: "100%", width: "100%" },
   subtitle: { color: colors.textMuted, fontSize: typography.body, fontWeight: "700", marginBottom: spacing.lg, marginTop: spacing.xs },
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   cardHeader: { alignItems: "center", flexDirection: "row", gap: spacing.md, justifyContent: "space-between" },
   compactColumn: { alignItems: "stretch", flexDirection: "column" },
   headerCopy: { flex: 1 },
-  cardTitle: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
+  cardTitle: textStyles.section,
   cardSummary: { color: colors.textMuted, fontSize: typography.label, marginTop: spacing.xs },
   editButton: { alignItems: "center", backgroundColor: colors.surfaceMuted, borderRadius: radii.button, justifyContent: "center", minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget * 1.5, paddingHorizontal: spacing.md },
   editButtonText: { color: colors.primaryDark, fontSize: typography.body, fontWeight: "700" },

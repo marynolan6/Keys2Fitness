@@ -10,7 +10,7 @@ import {
   formatShortGoalDate,
   getGoalProgress,
 } from "@/goals/goal";
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 type CurrentGoalCardProps = {
   goal: FitnessGoal | null;
@@ -147,11 +147,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: spacing.sm,
   },
-  cardTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "300",
-  },
+  cardTitle: textStyles.section,
   link: {
     color: colors.primaryDark,
     fontSize: typography.label,
@@ -177,11 +173,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   compactStat: { flex: 0, width: "100%" },
-  statValue: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "300",
-  },
+  statValue: textStyles.metric,
   targetValue: {
     color: colors.primaryDark,
     fontWeight: "500",

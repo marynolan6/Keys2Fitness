@@ -9,7 +9,7 @@ import {
 } from "react-native";
 
 // Use the existing Keys2Fitness theme for consistent styling
-import { colors, radii, spacing, typography, layout } from "@/theme";
+import { colors, radii, spacing, typography, layout, textStyles } from "@/theme";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -122,11 +122,7 @@ const styles = StyleSheet.create({
   },
 
   // Main "Client Progress" heading
-  heading: {
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "300",
-  },
+  heading: textStyles.page,
 
   // Selected client's ID text
   subtitle: {

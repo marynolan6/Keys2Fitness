@@ -2,7 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 
-import { colors, spacing, typography } from "@/theme";
+import { spacing, textStyles } from "@/theme";
 import { dashboardPeriod } from "@/utils/dashboardGreeting";
 import { PageTitle } from "@/components/K2FBrand";
 
@@ -24,12 +24,12 @@ export function DashboardGreeting({ name }: { name: string }) {
   }, []));
 
   return <View style={styles.group}>
-    <PageTitle>{clock.greeting}, {name}</PageTitle>
+    <PageTitle style={textStyles.section}>{clock.greeting}, {name}</PageTitle>
     {clock.date ? <Text style={styles.date}>{clock.date}</Text> : null}
   </View>;
 }
 
 const styles = StyleSheet.create({
   group: { gap: spacing.xs },
-  date: { fontSize: typography.body, color: colors.textMuted },
+  date: textStyles.meta,
 });

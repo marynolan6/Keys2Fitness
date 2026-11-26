@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { Image, Platform, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type TextStyle } from "react-native";
-import { branding, colors, isCompactLayout, layout, spacing, typography } from "@/theme";
+import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type TextStyle } from "react-native";
+import { branding, colors, isCompactLayout, layout, spacing, textStyles, typography } from "@/theme";
 
 const logo = require("@/assets/images/K2F-Logo.png");
 
@@ -9,6 +9,16 @@ export function PageTitle({ children, style }: PropsWithChildren<{ style?: Style
 }
 
 type Props = { variant?: "header" | "welcome"; coach?: boolean };
+
+export function SectionMasthead({ coach, onBack, backLabel = "Back" }: { coach?: boolean; onBack: () => void; backLabel?: string }) {
+  return <View style={styles.masthead}>
+    <K2FBrand coach={coach} />
+    <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack}
+      style={({ pressed }) => [styles.back, pressed && { backgroundColor: colors.surfaceMuted }]}>
+      <Text style={styles.backText}>‹ Back</Text>
+    </Pressable>
+  </View>;
+}
 
 export function K2FBrand({ variant = "header", coach = false }: Props) {
   const { width, fontScale } = useWindowDimensions();
@@ -31,7 +41,10 @@ export function K2FBrand({ variant = "header", coach = false }: Props) {
 }
 
 const styles = StyleSheet.create({
-  pageTitle: { color: colors.text, fontSize: typography.title, fontWeight: "300", flexShrink: 1 },
+  masthead: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: spacing.sm },
+  back: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center", paddingHorizontal: spacing.sm },
+  backText: { ...textStyles.label, color: colors.primaryDeep, textDecorationLine: "underline" },
+  pageTitle: { ...textStyles.page, flexShrink: 1 },
   brand: { alignItems: "center", maxWidth: "100%", gap: spacing.sm },
   header: { flexDirection: "row", alignSelf: "flex-start" },
   welcome: { alignSelf: "center" },

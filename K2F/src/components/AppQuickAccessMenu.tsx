@@ -2,7 +2,7 @@ import { usePathname, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BuilderButton } from "@/components/WorkoutBuilderControls";
+import { ActionButton } from "@/components/ActionButton";
 import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
 import { getClientAssignedWorkout, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState } from "@/workouts/workoutLibraryStore";
@@ -80,7 +80,7 @@ export function AppQuickAccessMenu({ role, visible, onClose }: {
               );
             })}
           </ScrollView>
-          <BuilderButton label="Close" accessibilityLabel="Close quick access menu" danger onPress={onClose} />
+          <ActionButton label="Close" accessibilityLabel="Close quick access menu" danger onPress={onClose} />
         </View>
       </View>
     </Modal>

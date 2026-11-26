@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { actionColors, colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 import type { AssignedWorkout } from "@/workouts/workout";
 import { countLabel } from "@/workouts/workoutLabels";
 import { getWorkoutCardLabels, type WorkoutSession } from "@/workouts/workoutSessionModel";
@@ -43,10 +43,10 @@ export function AssignedWorkoutCard({ workout, onOpen, session = null, assignedA
         : `${action}: ${workout.title}. ${[status, summary].filter(Boolean).join(". ")}`}
       accessibilityHint={labels.continuing ? "Continues your saved workout progress" : "Opens the assigned workout details"}
       onPress={() => onOpen(workout.id, labels.continuing)}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, featured && styles.featured, pressed && styles.pressed]}
     >
       {status && <Text style={styles.status}>{status}</Text>}
-      <Text style={styles.title}>{workout.title}</Text>
+      <Text style={featured ? textStyles.page : styles.title}>{workout.title}</Text>
       <Text style={styles.summary}>{summary}</Text>
       {date && <Text style={styles.date}>Assigned {date}</Text>}
       <View style={[styles.action, !featured && styles.secondaryAction]}>
@@ -67,11 +67,12 @@ const styles = StyleSheet.create({
   },
   pressed: { backgroundColor: colors.surfaceMuted },
   status: { color: colors.primaryDark, fontSize: typography.label, fontWeight: "700" },
-  title: { color: colors.text, fontSize: typography.heading, fontWeight: "300" },
+  featured: { borderLeftWidth: spacing.xs, borderLeftColor: colors.primaryDark },
+  title: textStyles.section,
   summary: { color: colors.textMuted, fontSize: typography.body },
   date: { color: colors.textMuted, fontSize: typography.label },
   action: {
-    backgroundColor: colors.primaryDark,
+    backgroundColor: actionColors.primary.fill,
     borderRadius: radii.button,
     padding: spacing.md,
     minHeight: layout.minTouchTarget,

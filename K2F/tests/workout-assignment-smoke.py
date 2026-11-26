@@ -39,11 +39,6 @@ def main(base_url):
 
     title = smoke_title("Assignment")
     print("Fixture: " + title, flush=True)
-    for client_id, name in [("2", "Alex Morgan"), ("1", "Spencer"), ("2", "Alex Morgan")]:
-        route("coach/workouts?clientId=" + client_id)
-        scroll_to("Selected clients: " + name)
-        assert scroll_to("Assign to " + name).get("checked") == "true"
-    print("PASS: changing client context refreshes the retained library selection", flush=True)
     route("coach/workouts/editor?clientId=2")
     fill("Workout name", title)
     tap("Add exercise")
@@ -61,7 +56,17 @@ def main(base_url):
     tap("Assign workout · 1 selected")
     tap("Confirm assignment")
     wait_for("Workout Library")
+    fill("Search workouts and templates", title)
+    tap("Assign or manage " + title)
     scroll_to("Assigned to Alex Morgan")
+    tap("Hide actions for " + title)
+    for client_id, name in [("2", "Alex Morgan"), ("1", "Spencer"), ("2", "Alex Morgan")]:
+        route("coach/workouts?clientId=" + client_id)
+        fill("Search workouts and templates", title)
+        tap("Assign or manage " + title)
+        assert scroll_to("Assign to " + name).get("checked") == "true"
+        tap("Hide actions for " + title)
+    print("PASS: changing client context refreshes the retained library selection", flush=True)
     route("coach-client/2/workouts")
     scroll_to(title)
     tap("Preview " + title + " as Alex Morgan")
@@ -72,7 +77,7 @@ def main(base_url):
     route("client/home")
     tap("Change demo workout client")
     tap("Preview workouts for Spencer")
-    wait_for("Demo workout client: Spencer")
+    scroll_to("Demo workout client: Spencer")
     assert not assignment_actions(title), "Alex's workout appeared on Spencer's dashboard"
     route("client/home")
     tap("Change demo workout client")
@@ -86,7 +91,7 @@ def main(base_url):
     wait_for("Edit template")
     adb("shell", "input", "keyevent", "4")
     assert scroll_to("Search workouts and templates", editable=True).get("text") == title
-    tap("Select " + title + " for assignment")
+    tap("Assign or manage " + title)
     tap("Assign workout · 1 selected")
     wait_for("Workout: " + title)
     tap("Cancel assignment")

@@ -50,6 +50,7 @@ def create(title):
     tap("Save template")
     wait_for("Workout Library")
     fill("Search workouts and templates", title)
+    tap("Assign or manage " + title)
     tap("Edit " + title)
     for label, expected in [("Sets for Bench Press", "4"), ("Reps for Bench Press", "12"),
                             ("Weight (lb) for Bench Press", "142.5"), ("Rest (seconds) for Bench Press", "120"),

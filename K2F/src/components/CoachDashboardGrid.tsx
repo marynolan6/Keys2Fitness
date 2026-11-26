@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { SymbolView } from "expo-symbols";
 
-import { colors, isCompactLayout, layout, radii, spacing, typography } from "@/theme";
+import { colors, isCompactLayout, layout, radii, spacing, textStyles } from "@/theme";
 
 const icons = {
-  videos: "▶",
-  messages: "💬",
-  clients: "👥",
-  activity: "📊",
+  videos: { ios: "play.rectangle", android: "videocam", web: "videocam" },
+  messages: { ios: "message", android: "chat", web: "chat" },
+  clients: { ios: "person.2", android: "group", web: "group" },
+  activity: { ios: "chart.bar", android: "bar_chart", web: "bar_chart" },
 } as const;
 
 type Tile = {
@@ -32,7 +33,7 @@ export function CoachDashboardGrid({ tiles }: { tiles: Tile[] }) {
           setHeights((prev) => prev[id] === height ? prev : { ...prev, [id]: height });
         }}>
           <View style={styles.iconCircle}>
-            {loading ? <ActivityIndicator color={colors.primaryDark} /> : <Text accessible={false} allowFontScaling={false} style={styles.icon}>{icons[id]}</Text>}
+            {loading ? <ActivityIndicator color={colors.primaryDark} /> : <SymbolView name={icons[id]} size={spacing.lg} tintColor={colors.primaryDeep} />}
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.summary}>{summary}</Text>
@@ -46,11 +47,10 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing.sm },
   tile: { width: "48%", backgroundColor: colors.surface, borderRadius: radii.card },
   stacked: { width: "100%" },
-  content: { padding: spacing.md, alignItems: "center", gap: spacing.xs },
-  iconCircle: { width: layout.minTouchTarget, height: layout.minTouchTarget, borderRadius: radii.card,
+  content: { padding: spacing.md, alignItems: "flex-start", gap: spacing.xs },
+  iconCircle: { width: spacing.xl, height: spacing.xl, borderRadius: radii.control,
     backgroundColor: colors.surfaceMuted, alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
-  icon: { fontSize: typography.heading, color: colors.primaryDark },
-  title: { color: colors.text, fontSize: typography.body, fontWeight: "700", textAlign: "center" },
-  summary: { color: colors.textMuted, fontSize: typography.label, textAlign: "center" },
+  title: { ...textStyles.label, alignSelf: "stretch" },
+  summary: { ...textStyles.meta, alignSelf: "stretch" },
   pressed: { backgroundColor: colors.surfaceMuted },
 });

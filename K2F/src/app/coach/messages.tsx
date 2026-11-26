@@ -20,7 +20,7 @@ import { demoClients } from "@/clients/mockClients";
 // Existing mock messages used to display conversation previews.
 import { coachMessages } from "@/messages/mockMessagesCoach";
 
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 export default function CoachMessages() {
   const router = useRouter();
@@ -59,7 +59,7 @@ export default function CoachMessages() {
       <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.md }]}>
 
         {/* Returns the coach to the dashboard. */}
-        <Pressable onPress={() => router.replace("/coach")}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to coach home" style={({ pressed }) => [styles.back, pressed && styles.pressed]} onPress={() => router.replace("/coach")}>
           <Text style={styles.backButton}>← Back</Text>
         </Pressable>
 
@@ -72,7 +72,7 @@ export default function CoachMessages() {
               key={client.id}
               accessibilityRole="button"
               accessibilityLabel={`Open conversation with ${client.name}`}
-              style={styles.messageCard}
+              style={({ pressed }) => [styles.messageCard, pressed && styles.pressed]}
 
               // K2F-282: Open the selected client's conversation.
               // Pass the client ID so the correct messages appear.
@@ -114,7 +114,7 @@ export default function CoachMessages() {
               <Text style={styles.message}>
                 {latestMessage
                   ? latestMessage.message
-                  : "No messages yet — tap to start a conversation"}
+                  : "No messages yet"}
               </Text>
 
               {/* Only show unread count when there are unread messages. */}
@@ -136,18 +136,19 @@ export default function CoachMessages() {
 const styles = StyleSheet.create({
   container: {
     padding: spacing.lg,
+    width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center",
   },
+  back: { alignSelf: "flex-start", minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget, justifyContent: "center" },
+  pressed: { backgroundColor: colors.surfaceMuted },
   backButton: {
     color: colors.primaryDark,
     fontSize: typography.body,
     fontWeight: "700",
-    marginBottom: spacing.lg,
+    textDecorationLine: "underline",
   },
   title: {
     marginTop: spacing.sm,
-    color: colors.text,
-    fontSize: typography.title,
-    fontWeight: "700",
+    ...textStyles.page,
     marginBottom: spacing.lg,
   },
   messageCard: {

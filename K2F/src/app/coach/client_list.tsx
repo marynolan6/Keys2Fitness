@@ -3,6 +3,7 @@
 // K2F-152: selectable client cards
 // K2F-153: open the selected client's profile
 import { router } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import {
   Pressable,
   ScrollView,
@@ -17,7 +18,7 @@ import { ClientAvatar } from "@/components/ClientAvatar";
 import { ThemedBackground } from "@/components/ThemedBackground";
 import { K2FBrand, PageTitle } from "@/components/K2FBrand";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 
 export default function Client_List() {
   const insets = useSafeAreaInsets();
@@ -50,10 +51,11 @@ export default function Client_List() {
             </Text>
           </View>
         ) : (
-          demoClients.map((client) => {
-            const status = pendingVideos.some(
+          <View style={styles.roster}>{demoClients.map((client) => {
+            const waiting = pendingVideos.filter(
               (video) => video.clientId === client.id,
-            ) ? "Review video" : "On track";
+            ).length;
+            const status = waiting ? `${waiting} ${waiting === 1 ? "video" : "videos"} awaiting review` : "No videos waiting";
             return (
               <Pressable
                 key={client.id}
@@ -75,17 +77,12 @@ export default function Client_List() {
                 <View style={styles.clientInfo}>
                   <Text style={styles.clientName}>{client.name}</Text>
                   <Text style={styles.clientGoal}>{client.goal}</Text>
+                  <Text style={waiting ? styles.statusText : styles.clientGoal}>{status}</Text>
                 </View>
-
-                <View style={styles.clientActions}>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>{status}</Text>
-                  </View>
-                  <Text style={styles.chevron}>›</Text>
-                </View>
+                <SymbolView name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }} size={spacing.lg} tintColor={colors.primaryDark} />
               </Pressable>
             );
-          })
+          })}</View>
         )}
       </ScrollView>
     </ThemedBackground>
@@ -131,14 +128,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
+  roster: { borderRadius: radii.card, overflow: "hidden", borderWidth: 1, borderColor: colors.border },
   clientCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     minHeight: layout.minTouchTarget,
     backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: spacing.md,
   },
@@ -155,21 +152,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
 
-  clientName: {
-    color: colors.text,
-    fontSize: typography.body,
-    fontWeight: "700",
-  },
+  clientName: textStyles.label,
 
   clientGoal: {
     color: colors.textMuted,
     fontSize: typography.label,
   },
 
-  chevron: {
-    color: colors.primaryDark,
-    fontSize: typography.heading,
-  },
 
   emptyCard: {
     backgroundColor: colors.surface,
@@ -190,18 +179,6 @@ const styles = StyleSheet.create({
     fontSize: typography.label,
     textAlign: "center",
   },
-  clientActions: {
-    alignItems: "flex-end",
-    gap: spacing.sm,
-  },
-
-  statusBadge: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-
   statusText: {
     color: colors.primaryDark,
     fontSize: typography.label,

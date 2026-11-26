@@ -5,20 +5,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CoachClient } from "@/clients/mockClients";
 import { reloadCoachClients, type ClientsLoadStatus } from "@/clients/clientStore";
 import { ClientAvatar } from "@/components/ClientAvatar";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 import { exerciseCatalog } from "@/workouts/exerciseCatalog";
+import { ActionButton as BuilderButton } from "./ActionButton";
 
-export function BuilderButton({ label, onPress, secondary = false, danger = false, disabled = false, accessibilityLabel, selected }: {
-  label: string; onPress: () => void; secondary?: boolean; danger?: boolean; disabled?: boolean;
-  accessibilityLabel?: string; selected?: boolean;
-}) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} disabled={disabled}
-    accessibilityState={{ disabled, selected }} onPress={onPress}
-    style={({ pressed }) => [builderStyles.button, secondary && builderStyles.secondary,
-      danger && builderStyles.danger, pressed && builderStyles.pressed, disabled && builderStyles.disabled]}>
-    <Text style={[builderStyles.buttonText, secondary && builderStyles.secondaryText]}>{label}</Text>
-  </Pressable>;
-}
+export { BuilderButton };
 
 export function BuilderField({ label, value, onChange, multiline = false, error, keyboardType = "default", disabled = false, accessibilityLabel }: {
   label: string; value: string; onChange: (value: string) => void; multiline?: boolean;
@@ -122,28 +113,22 @@ export const builderStyles = StyleSheet.create({
   screen: { flex: 1 },
   content: { width: "100%", maxWidth: layout.maxContentWidth, alignSelf: "center", padding: spacing.lg,
     paddingBottom: spacing.xl, gap: spacing.md },
-  title: { color: colors.text, fontSize: typography.title, fontWeight: "300", flexShrink: 1 },
-  heading: { color: colors.text, fontSize: typography.heading, fontWeight: "500", flexShrink: 1 },
-  label: { color: colors.text, fontSize: typography.label, fontWeight: "600", flexShrink: 1 },
-  muted: { color: colors.textMuted, fontSize: typography.caption, lineHeight: typography.bodyLineHeight },
+  title: { ...textStyles.page, flexShrink: 1 },
+  heading: { ...textStyles.section, flexShrink: 1 },
+  label: { ...textStyles.label, flexShrink: 1 },
+  muted: textStyles.meta,
   feedback: { color: colors.primaryDark, fontSize: typography.body },
   error: { color: colors.danger, fontSize: typography.label },
-  card: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.md, gap: spacing.md },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, padding: spacing.md, gap: spacing.md },
   field: { gap: spacing.sm },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flexWrap: "wrap" },
   actions: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
   stacked: { flexDirection: "column", alignItems: "stretch" },
   flex: { flex: 1 },
-  input: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.control,
+  input: { backgroundColor: colors.surface, borderColor: colors.controlBorder, borderWidth: 1, borderRadius: radii.control,
     color: colors.text, fontSize: typography.body, minHeight: layout.minTouchTarget, padding: spacing.sm },
   multiline: { minHeight: layout.minTouchTarget * 2 },
   invalid: { borderColor: colors.danger },
-  button: { minHeight: layout.minTouchTarget, minWidth: layout.minTouchTarget * 2, padding: spacing.sm,
-    borderRadius: radii.button, backgroundColor: colors.primaryDark, alignItems: "center", justifyContent: "center", flexGrow: 1 },
-  buttonText: { fontSize: typography.label, fontWeight: "600", color: colors.surface, textAlign: "center" },
-  secondary: { backgroundColor: colors.surfaceMuted },
-  secondaryText: { color: colors.primaryDark },
-  danger: { backgroundColor: colors.danger },
   pressed: { opacity: 0.75 },
   disabled: { opacity: 0.5 },
   selected: { backgroundColor: colors.surfaceMuted },

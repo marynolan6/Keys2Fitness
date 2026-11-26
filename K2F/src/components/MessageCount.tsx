@@ -5,7 +5,7 @@ import {
   mockMessages,
   type MessageViewer,
 } from "@/messages/mockMessageCoachClient";
-import { colors, typography } from "@/theme";
+import { actionColors, colors, radii, spacing, typography } from "@/theme";
 
 type MessageCountProps = {
   viewer: MessageViewer;
@@ -29,21 +29,21 @@ export function MessageCount({ viewer }: MessageCountProps) {
 const styles = StyleSheet.create({
   badge: {
   alignItems: "center",
-  backgroundColor: colors.primary,
+  backgroundColor: actionColors.primary.fill,
   borderColor: colors.surface,
-  borderRadius: 14,
+  borderRadius: radii.button,
   borderWidth: 2,
-  height: 28,
+  minHeight: spacing.lg,
   justifyContent: "center",
-  minWidth: 28,
-  paddingHorizontal: 5,
+  minWidth: spacing.lg,
+  paddingHorizontal: spacing.xs,
   position: "absolute",
   right: -10,
   top: -10,
 },
 
 badgeText: {
-  color: colors.surface,
+  color: actionColors.primary.ink,
   fontSize: typography.caption,
   fontWeight: "700",
   textAlign: "center",

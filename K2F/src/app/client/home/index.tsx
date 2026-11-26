@@ -10,13 +10,14 @@ import { K2FBrand } from "@/components/K2FBrand";
 import { getClientAssignedWorkout, getClientHomeWorkouts, workoutBelongsToClient } from "@/workouts/workoutSource";
 import { useWorkoutLibraryState, workoutLibrary } from "@/workouts/workoutLibraryStore";
 import { DemoWorkoutClientPicker } from "@/components/DemoWorkoutClientPicker";
+import { SymbolView } from "expo-symbols";
 import { useCoachClients } from "@/clients/clientStore";
 import { loadActiveWorkoutSession, loadWorkoutSession, type WorkoutSession } from "@/workouts/workoutSession";
 import { mockCurrentGoal } from "@/goals/mockGoal";
 import { RecentMessagesWidget } from "@/components/RecentMessagesWidgetClient";
 import { defaultProfile } from "@/profile/profile";
 import { loadProfile } from "@/profile/profileStorage";
-import { colors, layout, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, textStyles, typography } from "@/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type HomeSessions = { clientId: string } & (
@@ -81,14 +82,13 @@ export default function ClientHome() {
     params: { workoutId, ...(resume ? { resume: String(Date.now()) } : {}) },
   });
   return (
-    <ThemedBackground>
+    <ThemedBackground variant="home">
       <ScrollView style={styles.screen} contentContainerStyle={[styles.screenContent, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.content}>
           <K2FBrand />
           <View style={styles.greeting}><DashboardGreeting name={greetingName} /></View>
 
           <View style={[styles.goalSection, styles.workoutList]}>
-            <DemoWorkoutClientPicker />
             <Text accessibilityRole="header" style={styles.sectionTitle}>Your assigned workouts</Text>
             {workoutStatus === "error" && (
               <View style={styles.sessionFeedback}>
@@ -111,6 +111,12 @@ export default function ClientHome() {
             )) : restored && <AssignedWorkoutCard workout={null} onOpen={openWorkout} />)}
           </View>
 
+          <Pressable accessibilityRole="button" accessibilityLabel="Open nutrition" onPress={() => router.push("/client/home/nutrition")}
+            style={({ pressed }) => [styles.nutrition, pressed && styles.nutritionPressed]}>
+            <SymbolView name={{ ios: "fork.knife", android: "restaurant", web: "restaurant" }} size={spacing.lg} tintColor={colors.primaryDeep} />
+            <View style={styles.nutritionText}><Text style={textStyles.label}>Nutrition</Text><Text style={textStyles.meta}>Daily targets and food log</Text></View>
+            <SymbolView name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }} size={spacing.lg} tintColor={colors.primaryDeep} />
+          </Pressable>
           <View style={styles.goalSection}>
             <CurrentGoalCard
               goal={mockCurrentGoal}
@@ -120,6 +126,7 @@ export default function ClientHome() {
           </View>
 
           <RecentMessagesWidget />
+          <DemoWorkoutClientPicker />
         </View>
       </ScrollView>
     </ThemedBackground>
@@ -127,7 +134,11 @@ export default function ClientHome() {
 }
 
 const styles = StyleSheet.create({
-  workoutList: { gap: spacing.md },
+  workoutList: { gap: spacing.sm },
+  nutrition: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.md, backgroundColor: colors.surface,
+    minHeight: layout.minTouchTarget, padding: spacing.md, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border },
+  nutritionPressed: { backgroundColor: colors.surfaceMuted },
+  nutritionText: { flex: 1 },
   sessionFeedback: { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.lg, gap: spacing.md },
   sessionError: { color: colors.text, fontSize: typography.body },
   retryButton: { minHeight: layout.minTouchTarget, borderRadius: radii.button, justifyContent: "center", padding: spacing.md, backgroundColor: colors.primaryDark },
@@ -146,18 +157,14 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   goalSection: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
-  greeting: { marginTop: spacing.md },
+  greeting: { marginTop: spacing.sm },
   subtitle: {
     color: colors.textMuted,
     fontSize: typography.body,
     fontWeight: "700",
     marginTop: spacing.xs,
   },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: typography.heading,
-    fontWeight: "700",
-  },
+  sectionTitle: textStyles.eyebrow,
 });
