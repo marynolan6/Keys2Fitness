@@ -7,32 +7,67 @@ import {
   CheckInRow,
   groupCheckInsByMonth,
 } from "@/checkins/checkIn";
+import {
+  applyToSampleCheckIn,
+  draftFromSampleCheckIn,
+  emptyCheckInDraft,
+  localDateString,
+  sampleCheckInFromValues,
+} from "@/checkins/checkInForm";
+import { CheckInForm } from "@/components/CheckInForm";
 import { GoalNoDataNotice } from "@/components/GoalStatusBanner";
 import { formatMeasurement, formatShortGoalDate, formatSignedMeasurement } from "@/goals/goal";
-import { colors, radii, spacing, typography } from "@/theme";
+import { colors, layout, radii, spacing, typography } from "@/theme";
 
 const COLLAPSED_COUNT = 4;
 
 type CheckInHistoryProps = {
-  checkIns: CheckIn[];
+  checkIns: readonly CheckIn[];
+  onAdd: (checkIn: Omit<CheckIn, "id">) => void;
+  onUpdate: (checkIn: CheckIn) => void;
+  onDelete: (id: string) => void;
 };
 
-export function CheckInHistory({ checkIns }: CheckInHistoryProps) {
+// Only one thing at a time: adding a check-in, or editing / confirming deletion of one row.
+type RowAction = { kind: "add" } | { id: string; kind: "edit" | "confirm-delete" } | null;
+
+export function CheckInHistory({ checkIns, onAdd, onUpdate, onDelete }: CheckInHistoryProps) {
   const [expanded, setExpanded] = useState(false);
+  const [action, setAction] = useState<RowAction>(null);
   const rows = buildCheckInRows(checkIns);
   const visibleRows = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
   const months = groupCheckInsByMonth(visibleRows);
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle} accessibilityRole="header">
-        Check-in history
-      </Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.cardTitle} accessibilityRole="header">
+          Check-in history
+        </Text>
+        {action?.kind !== "add" && (
+          <RowButton label="Add check-in" onPress={() => setAction({ kind: "add" })} />
+        )}
+      </View>
       <Text style={styles.caption}>
         {rows.length === 0
           ? "Your progress check-ins"
           : `${rows.length} check-in${rows.length === 1 ? "" : "s"} · newest first`}
       </Text>
+
+      {action?.kind === "add" && (
+        <CheckInForm
+          initialDraft={emptyCheckInDraft(localDateString())}
+          today={localDateString()}
+          isEditing={false}
+          saving={false}
+          saveError=""
+          onSave={(values) => {
+            onAdd(sampleCheckInFromValues(values));
+            setAction(null);
+          }}
+          onCancel={() => setAction(null)}
+        />
+      )}
 
       {rows.length === 0 ? (
         <GoalNoDataNotice
@@ -43,9 +78,36 @@ export function CheckInHistory({ checkIns }: CheckInHistoryProps) {
         months.map((month) => (
           <View key={month.title} style={styles.month}>
             <Text style={styles.monthTitle}>{month.title}</Text>
-            {month.rows.map((row) => (
-              <CheckInListItem key={row.checkIn.id} row={row} />
-            ))}
+            {month.rows.map((row) =>
+              action?.kind === "edit" && action.id === row.checkIn.id ? (
+                <CheckInForm
+                  key={row.checkIn.id}
+                  initialDraft={draftFromSampleCheckIn(row.checkIn)}
+                  today={localDateString()}
+                  isEditing
+                  saving={false}
+                  saveError=""
+                  onSave={(values) => {
+                    onUpdate(applyToSampleCheckIn(row.checkIn, values));
+                    setAction(null);
+                  }}
+                  onCancel={() => setAction(null)}
+                />
+              ) : (
+                <CheckInListItem
+                  key={row.checkIn.id}
+                  row={row}
+                  confirmingDelete={action?.kind === "confirm-delete" && action.id === row.checkIn.id}
+                  onEdit={() => setAction({ id: row.checkIn.id, kind: "edit" })}
+                  onAskDelete={() => setAction({ id: row.checkIn.id, kind: "confirm-delete" })}
+                  onCancelDelete={() => setAction(null)}
+                  onConfirmDelete={() => {
+                    onDelete(row.checkIn.id);
+                    setAction(null);
+                  }}
+                />
+              ),
+            )}
           </View>
         ))
       )}
@@ -65,7 +127,16 @@ export function CheckInHistory({ checkIns }: CheckInHistoryProps) {
   );
 }
 
-function CheckInListItem({ row }: { row: CheckInRow }) {
+type CheckInListItemProps = {
+  row: CheckInRow;
+  confirmingDelete: boolean;
+  onEdit: () => void;
+  onAskDelete: () => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+};
+
+function CheckInListItem({ row, confirmingDelete, onEdit, onAskDelete, onCancelDelete, onConfirmDelete }: CheckInListItemProps) {
   const { checkIn, isLatest, isFirst, weightChange, measurements } = row;
   const [year, month, day] = checkIn.date.split("-").map(Number);
   const weekday = new Date(year, month - 1, day).toLocaleDateString("en-US", { weekday: "short" });
@@ -76,51 +147,83 @@ function CheckInListItem({ row }: { row: CheckInRow }) {
       : `${formatSignedMeasurement(weightChange, "kg")} since last check-in`;
 
   return (
-    <View
-      style={[styles.item, isLatest && styles.itemLatest]}
-      accessible
-      accessibilityLabel={[
-        `${isLatest ? "Latest check-in, " : ""}${formatShortGoalDate(checkIn.date)}`,
-        `weight ${formatMeasurement(checkIn.weightKg, "kg")}`,
-        changeText,
-        ...measurements.map((m) => `${m.label} ${formatMeasurement(m.value, "cm")}`),
-        checkIn.note,
-      ]
-        .filter(Boolean)
-        .join(", ")}
-    >
-      <View style={[styles.dateChip, isLatest && styles.dateChipLatest]}>
-        <Text style={[styles.dateWeekday, isLatest && styles.dateTextLatest]}>{weekday}</Text>
-        <Text style={[styles.dateDay, isLatest && styles.dateTextLatest]}>{day}</Text>
-      </View>
-
-      <View style={styles.itemBody}>
-        <View style={styles.weightRow}>
-          <Text style={styles.weight}>{formatMeasurement(checkIn.weightKg, "kg")}</Text>
-          {isLatest && (
-            <View style={styles.latestBadge}>
-              <Text style={styles.latestBadgeText}>Latest</Text>
-            </View>
-          )}
+    <View style={[styles.itemCard, isLatest && styles.itemLatest]}>
+      <View
+        style={styles.item}
+        accessible
+        accessibilityLabel={[
+          `${isLatest ? "Latest check-in, " : ""}${formatShortGoalDate(checkIn.date)}`,
+          `weight ${formatMeasurement(checkIn.weightKg, "kg")}`,
+          changeText,
+          ...measurements.map((m) => `${m.label} ${formatMeasurement(m.value, "cm")}`),
+          checkIn.note,
+        ]
+          .filter(Boolean)
+          .join(", ")}
+      >
+        <View style={[styles.dateChip, isLatest && styles.dateChipLatest]}>
+          <Text style={[styles.dateWeekday, isLatest && styles.dateTextLatest]}>{weekday}</Text>
+          <Text style={[styles.dateDay, isLatest && styles.dateTextLatest]}>{day}</Text>
         </View>
-        <Text style={[styles.change, isFirst && styles.changeFirst]}>{changeText}</Text>
 
-        {measurements.length > 0 && (
-          <Text style={styles.measurements}>
-            {measurements
-              .map(
-                (m) =>
-                  `${m.label} ${formatMeasurement(m.value, "cm")}${
-                    m.change === null ? "" : ` (${formatSignedMeasurement(m.change, "cm")})`
-                  }`,
-              )
-              .join(" · ")}
-          </Text>
-        )}
+        <View style={styles.itemBody}>
+          <View style={styles.weightRow}>
+            <Text style={styles.weight}>{formatMeasurement(checkIn.weightKg, "kg")}</Text>
+            {isLatest && (
+              <View style={styles.latestBadge}>
+                <Text style={styles.latestBadgeText}>Latest</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.change, isFirst && styles.changeFirst]}>{changeText}</Text>
 
-        {checkIn.note && <Text style={styles.note}>“{checkIn.note}”</Text>}
+          {measurements.length > 0 && (
+            <Text style={styles.measurements}>
+              {measurements
+                .map(
+                  (m) =>
+                    `${m.label} ${formatMeasurement(m.value, "cm")}${
+                      m.change === null ? "" : ` (${formatSignedMeasurement(m.change, "cm")})`
+                    }`,
+                )
+                .join(" · ")}
+            </Text>
+          )}
+
+          {checkIn.note && <Text style={styles.note}>“{checkIn.note}”</Text>}
+        </View>
       </View>
+
+      {confirmingDelete ? (
+        <View style={styles.confirm} accessibilityLiveRegion="polite">
+          <Text style={styles.confirmText}>Delete the {formatShortGoalDate(checkIn.date)} check-in? This can’t be undone.</Text>
+          <View style={styles.actions}>
+            <RowButton label="Keep it" onPress={onCancelDelete} />
+            <RowButton label="Delete" danger onPress={onConfirmDelete} />
+          </View>
+        </View>
+      ) : (
+        <View style={styles.actions}>
+          <RowButton label="Edit" accessibilityLabel={`Edit ${formatShortGoalDate(checkIn.date)} check-in`} onPress={onEdit} />
+          <RowButton label="Delete" danger accessibilityLabel={`Delete ${formatShortGoalDate(checkIn.date)} check-in`} onPress={onAskDelete} />
+        </View>
+      )}
     </View>
+  );
+}
+
+type RowButtonProps = { label: string; accessibilityLabel?: string; danger?: boolean; onPress: () => void };
+
+function RowButton({ label, accessibilityLabel, danger = false, onPress }: RowButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.rowButton, danger && styles.rowButtonDanger, pressed && styles.toggleButtonPressed]}
+    >
+      <Text style={[styles.rowButtonText, danger && styles.rowButtonTextDanger]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -131,6 +234,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.card,
     padding: spacing.lg,
+  },
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    justifyContent: "space-between",
   },
   cardTitle: {
     color: colors.text,
@@ -153,8 +263,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     textTransform: "uppercase",
   },
-  item: {
+  itemCard: {
     borderRadius: radii.control,
+    paddingBottom: spacing.sm,
+  },
+  item: {
     flexDirection: "row",
     gap: spacing.sm + spacing.xs,
     paddingHorizontal: spacing.sm,
@@ -232,6 +345,44 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontStyle: "italic",
     marginTop: spacing.xs,
+  },
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  rowButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    flexGrow: 1,
+    justifyContent: "center",
+    minHeight: layout.minTouchTarget,
+    minWidth: layout.minTouchTarget * 2,
+    paddingHorizontal: spacing.md,
+  },
+  rowButtonDanger: {
+    backgroundColor: colors.dangerMuted,
+    borderColor: colors.dangerMuted,
+  },
+  rowButtonText: {
+    color: colors.primaryDark,
+    fontSize: typography.label,
+    fontWeight: "700",
+  },
+  rowButtonTextDanger: {
+    color: colors.danger,
+  },
+  confirm: {
+    gap: spacing.sm,
+  },
+  confirmText: {
+    color: colors.text,
+    fontSize: typography.label,
+    fontWeight: "600",
+    paddingHorizontal: spacing.sm,
   },
   toggleButton: {
     alignItems: "center",
