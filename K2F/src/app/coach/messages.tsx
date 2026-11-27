@@ -1,5 +1,6 @@
 // K2F-97: Coach-facing message list
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Pressable,
@@ -25,6 +26,13 @@ import { colors, radii, spacing, typography } from "@/theme";
 export default function CoachMessages() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [, setRefreshKey] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshKey((current) => current + 1);
+    }, []),
+  );
 
   // K2F-97: Build the conversation list from all clients,
   // instead of only clients who already have messages.
