@@ -34,6 +34,26 @@ export default function CoachConversation() {
   // K2F-282: Retrieve the client selected from the Messages list.
   // Each client has a unique ID, so profiles won't get mixed up.
   const selectedClient = getClientById(clientId);
+  
+  useEffect(() => {
+    if (!clientId) return;
+
+    let messagesChanged = false;
+    coachMessages.forEach((message) => {
+      if (
+        message.clientId === clientId &&
+        message.unread &&
+        !message.fromCoach
+      ) {
+        message.unread = false;
+        messagesChanged = true;
+      }
+    });
+
+    if (messagesChanged) {
+      setMessages([...coachMessages]);
+    }
+  }, [clientId]);
 
   const oneHour = 30 * 60 * 1000;
 
