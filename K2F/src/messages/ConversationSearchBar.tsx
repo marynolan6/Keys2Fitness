@@ -6,11 +6,25 @@ import { colors, layout, radii, spacing, typography } from "@/theme";
 type ConversationSearchBarProps = {
   query: string;
   onChangeQuery: (query: string) => void;
-  // Closes search and clears the query.
+  // Clears or closes search, depending on the parent screen's behavior.
   onCancel: () => void;
+  placeholder?: string;
+  accessibilityLabel?: string;
+  autoFocus?: boolean;
+  cancelLabel?: string;
+  cancelAccessibilityLabel?: string;
 };
 
-export function ConversationSearchBar({ query, onChangeQuery, onCancel }: ConversationSearchBarProps) {
+export function ConversationSearchBar({
+  query,
+  onChangeQuery,
+  onCancel,
+  placeholder = "Search this conversation",
+  accessibilityLabel = "Search messages",
+  autoFocus = true,
+  cancelLabel = "Cancel",
+  cancelAccessibilityLabel = "Close search",
+}: ConversationSearchBarProps) {
   const inputRef = useRef<TextInputInstance>(null);
 
   return (
@@ -21,15 +35,15 @@ export function ConversationSearchBar({ query, onChangeQuery, onCancel }: Conver
           ref={inputRef}
           value={query}
           onChangeText={onChangeQuery}
-          placeholder="Search this conversation"
+          placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
-          autoFocus
+          autoFocus={autoFocus}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
           clearButtonMode="never"
-          accessibilityLabel="Search messages with your coach"
+          accessibilityLabel={accessibilityLabel}
         />
         {query.length > 0 && (
           <Pressable
@@ -42,17 +56,17 @@ export function ConversationSearchBar({ query, onChangeQuery, onCancel }: Conver
             }}
             style={styles.clearButton}
           >
-            <Text style={styles.clearText}>×</Text>
+            <Text style={styles.clearText}>x</Text>
           </Pressable>
         )}
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Close search"
+        accessibilityLabel={cancelAccessibilityLabel}
         onPress={onCancel}
         style={styles.cancelButton}
       >
-        <Text style={styles.cancelText}>Cancel</Text>
+        <Text style={styles.cancelText}>{cancelLabel}</Text>
       </Pressable>
     </View>
   );
