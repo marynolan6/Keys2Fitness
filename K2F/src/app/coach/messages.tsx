@@ -13,6 +13,7 @@ import {
 import { ClientAvatar } from "@/components/ClientAvatar";
 import { PageTitle } from "@/components/K2FBrand";
 import { ThemedBackground } from "@/components/ThemedBackground";
+import { ConversationSearchBar } from "@/messages/ConversationSearchBar";
 
 // K2F-97: Import all clients so the coach can see everyone,
 // including clients who haven't sent messages yet.
@@ -27,6 +28,7 @@ export default function CoachMessages() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [, setRefreshKey] = useState(0);
+  const [query, setQuery] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -34,10 +36,14 @@ export default function CoachMessages() {
     }, []),
   );
 
-  // K2F-97: Build the conversation list from all clients,
+  // Build the conversation list from all clients,
   // instead of only clients who already have messages.
-  const conversations = demoClients.map((client) => {
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredClients = demoClients.filter((client) =>
+    client.name.toLowerCase().includes(normalizedQuery),
+  );
 
+  const conversations = filteredClients.map((client) => {
     // Find messages belonging to the current client.
     const messages = coachMessages
       .filter((message) => message.clientId === client.id)
@@ -72,9 +78,26 @@ export default function CoachMessages() {
         </Pressable>
 
         <PageTitle style={styles.title}>Messages</PageTitle>
+        
+        <ConversationSearchBar
+          query={query}
+          onChangeQuery={setQuery}
+          onCancel={() => setQuery("")}
+          placeholder="Search clients by name"
+          accessibilityLabel="Search clients by name"
+          autoFocus={false}
+          cancelLabel="Clear"
+          cancelAccessibilityLabel="Clear client search"
+        />
 
         {/* K2F-98: Display every client in the list. */}
-        {conversations.map(
+                {normalizedQuery.length > 0 && conversations.length === 0 ? (
+          <View style={styles.emptySearch}>
+            <Text style={styles.emptySearchText}>
+              No clients found for “{query.trim()}”.
+            </Text>
+          </View>
+        ) : conversations.map(
           ({ client, latestMessage, unreadCount }) => (
             <Pressable
               key={client.id}
@@ -163,6 +186,17 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     marginBottom: spacing.md,
     padding: spacing.md,
+  },
+    emptySearch: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    padding: spacing.lg,
+  },
+  emptySearchText: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    textAlign: "center",
   },
   header: {
     alignItems: "center",
